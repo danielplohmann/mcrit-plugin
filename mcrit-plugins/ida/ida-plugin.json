@@ -31,7 +31,7 @@
       "ida-settings>=3.3.0"
     ],
     "urls": {
-      "repository": "https://github.com/danielplohmann/mcrit"
+      "repository": "https://github.com/danielplohmann/mcrit-plugins"
     },
     "authors": [{
       "name": "Daniel Plohmann",
