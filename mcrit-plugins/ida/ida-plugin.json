@@ -4,11 +4,7 @@
     "name": "mcrit-ida",
     "version": "1.4.5",
     "entryPoint": "ida_mcrit.py",
-    "idaVersions": [
-      "9.0",
-      "9.1",
-      "9.2"
-    ],
+    "idaVersions": ">=9.0",
     "description": "Integration with MCRIT server for code similarity analysis.",
     "license": "GPL-3.0",
     "logoPath": "icons/mcrit.png",
@@ -104,7 +100,7 @@
         "key": "blocks_min_size",
         "type": "string",
         "required": false,
-        "default": 4,
+        "default": "4",
         "name": "Blocks: Minimum Size",
         "documentation": "Minimum block size for Block Scope Widget."
       },
@@ -128,7 +124,7 @@
         "key": "function_min_score",
         "type": "string",
         "required": false,
-        "default": 50,
+        "default": "50",
         "name": "Functions: Minimum Score",
         "documentation": "Minimum score for Function Scope Widget."
       },
@@ -160,7 +156,7 @@
         "key": "overview_min_score",
         "type": "string",
         "required": false,
-        "default": 50,
+        "default": "50",
         "name": "Overview: Minimum Score",
         "documentation": "Minimum score for Function Overview Widget."
       }
