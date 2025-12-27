@@ -1,7 +1,7 @@
 # Plugin(s) for the MinHash-based Code Relationship & Investigation Toolkit (MCRIT)
 
 MCRIT is a framework created to simplify the application of the MinHash algorithm in the context of code similarity.
-This repository houses plugins to interact with an MCRIT instance from within other binary analyiss tools, with currently only IDA Pro being supported.
+This repository houses plugins to interact with an MCRIT instance from within other binary analysis tools, with currently only IDA Pro being supported.
 
 ## Usage
 

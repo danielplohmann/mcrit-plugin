@@ -1,6 +1,7 @@
 import os
 import logging
 import ida_settings
+import helpers.McritTableColumn as McritTableColumn
 
 # --- Settings Wrapper ---
 class SettingsWrapper:
@@ -13,14 +14,14 @@ class SettingsWrapper:
             "submit_function_names_on_close": False,
             "blocks_filter_library_functions": False,
             "blocks_live_query": False,
-            "blocks_min_size": "4",
+            "blocks_min_size": 4,
             "function_filter_library_functions": False,
             "function_live_query": False,
-            "function_min_score": "50",
+            "function_min_score": 50,
             "overview_fetch_labels_automatically": False,
             "overview_filter_to_labels": False,
             "overview_filter_to_conflicts": False,
-            "overview_min_score": "50"
+            "overview_min_score": 50
         }
 
     def _get(self, key):
@@ -52,62 +53,72 @@ class SettingsWrapper:
     # Widget specific settings
     @property
     def BLOCKS_FILTER_LIBRARY_FUNCTIONS(self):
-         return self._get("blocks_filter_library_functions")
+        return self._get("blocks_filter_library_functions")
 
     @property
     def BLOCKS_LIVE_QUERY(self):
-         return self._get("blocks_live_query")
+        return self._get("blocks_live_query")
 
     @property
     def BLOCKS_MIN_SIZE(self):
-         return int(self._get("blocks_min_size"))
+        value = self._get("blocks_min_size")
+        try:
+            return int(value) if not isinstance(value, int) else value
+        except (ValueError, TypeError):
+            return 4
 
     @property
     def FUNCTION_FILTER_LIBRARY_FUNCTIONS(self):
-         return self._get("function_filter_library_functions")
+        return self._get("function_filter_library_functions")
 
     @property
     def FUNCTION_LIVE_QUERY(self):
-         return self._get("function_live_query")
+        return self._get("function_live_query")
 
     @property
     def FUNCTION_MIN_SCORE(self):
-         return int(self._get("function_min_score"))
+        value = self._get("function_min_score")
+        try:
+            return int(value) if not isinstance(value, int) else value
+        except (ValueError, TypeError):
+            return 50
 
     @property
     def OVERVIEW_FETCH_LABELS_AUTOMATICALLY(self):
-         return self._get("overview_fetch_labels_automatically")
+        return self._get("overview_fetch_labels_automatically")
 
     @property
     def OVERVIEW_FILTER_TO_LABELS(self):
-         return self._get("overview_filter_to_labels")
+        return self._get("overview_filter_to_labels")
 
     @property
     def OVERVIEW_FILTER_TO_CONFLICTS(self):
-         return self._get("overview_filter_to_conflicts")
+        return self._get("overview_filter_to_conflicts")
 
     @property
     def OVERVIEW_MIN_SCORE(self):
-         return int(self._get("overview_min_score"))
+        value = self._get("overview_min_score")
+        try:
+            return int(value) if not isinstance(value, int) else value
+        except (ValueError, TypeError):
+            return 50
 
 settings = SettingsWrapper()
 
 
 # --- Original Config Constants ---
-import helpers.McritTableColumn as McritTableColumn
-
 VERSION = "1.4.5"
 # relevant paths
-CONFIG_FILE_PATH = str(os.path.abspath(__file__))
-PROJECT_ROOT = str(os.path.abspath(os.sep.join([CONFIG_FILE_PATH, ".."])))
+CONFIG_FILE_PATH = os.path.abspath(__file__)
+PROJECT_ROOT = os.path.dirname(CONFIG_FILE_PATH)
 # PLUGINS_ROOT = str(os.path.abspath(os.sep.join([PROJECT_ROOT, ".."]))) # No longer needed as icons are inside
-ICON_FILE_PATH = str(os.path.abspath(os.sep.join([PROJECT_ROOT, "icons"])) + os.sep)
+ICON_FILE_PATH = os.path.join(PROJECT_ROOT, "icons") + os.sep
 
 ### Configuration of Logging
 LOG_PATH = "./"
 LOG_LEVEL = logging.INFO
 LOG_FORMAT = "%(asctime)-15s: %(name)-25s: %(message)s"
-if len(logging._handlerList) == 0:
+if not logging.getLogger().hasHandlers():
     logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 
 MCRIT4IDA_PLUGIN_ONLY = False

@@ -98,7 +98,7 @@
         "key": "blocks_min_size",
         "type": "string",
         "required": false,
-        "default": "4",
+        "default": 4,
         "name": "Blocks: Minimum Size",
         "documentation": "Minimum block size for Block Scope Widget."
       },
@@ -122,7 +122,7 @@
         "key": "function_min_score",
         "type": "string",
         "required": false,
-        "default": "50",
+        "default": 50,
         "name": "Functions: Minimum Score",
         "documentation": "Minimum score for Function Scope Widget."
       },
@@ -154,7 +154,7 @@
         "key": "overview_min_score",
         "type": "string",
         "required": false,
-        "default": "50",
+        "default": 50,
         "name": "Overview: Minimum Score",
         "documentation": "Minimum score for Function Overview Widget."
       }
