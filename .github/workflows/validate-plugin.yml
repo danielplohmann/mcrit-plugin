@@ -1,0 +1,114 @@
+name: Validate IDA Plugin
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Validate ida-plugin.json exists
+      run: |
+        if [ ! -f "mcrit-plugins/ida/ida-plugin.json" ]; then
+          echo "Error: ida-plugin.json not found!"
+          exit 1
+        fi
+        echo "✓ ida-plugin.json found"
+
+    - name: Validate JSON syntax
+      run: |
+        python -c "import json; json.load(open('mcrit-plugins/ida/ida-plugin.json'))"
+        echo "✓ JSON syntax valid"
+
+    - name: Validate required fields
+      run: |
+        python3 << 'EOF'
+        import json
+        import sys
+
+        with open('mcrit-plugins/ida/ida-plugin.json') as f:
+            data = json.load(f)
+
+        required_fields = [
+            'IDAMetadataDescriptorVersion',
+            'plugin.name',
+            'plugin.version',
+            'plugin.entryPoint'
+        ]
+
+        errors = []
+
+        # Check IDAMetadataDescriptorVersion
+        if 'IDAMetadataDescriptorVersion' not in data:
+            errors.append('Missing IDAMetadataDescriptorVersion')
+        elif data['IDAMetadataDescriptorVersion'] != 1:
+            errors.append('IDAMetadataDescriptorVersion must be 1')
+
+        # Check plugin object
+        if 'plugin' not in data:
+            errors.append('Missing plugin object')
+            sys.exit(1)
+
+        plugin = data['plugin']
+
+        # Check required plugin fields
+        for field in ['name', 'version', 'entryPoint']:
+            if field not in plugin:
+                errors.append(f'Missing plugin.{field}')
+
+        # Validate version format (x.y.z)
+        if 'version' in plugin:
+            version = plugin['version']
+            parts = version.split('.')
+            if len(parts) != 3 or not all(p.isdigit() for p in parts):
+                errors.append(f'Version must be in x.y.z format, got: {version}')
+
+        # Validate entryPoint exists
+        if 'entryPoint' in plugin:
+            import os
+            entry_point = os.path.join('mcrit-plugins/ida', plugin['entryPoint'])
+            if not os.path.exists(entry_point):
+                errors.append(f'Entry point file not found: {entry_point}')
+
+        if errors:
+            print("❌ Validation errors:")
+            for error in errors:
+                print(f"  - {error}")
+            sys.exit(1)
+
+        print("✓ All required fields present and valid")
+        EOF
+
+    - name: Check Python dependencies format
+      run: |
+        python3 << 'EOF'
+        import json
+
+        with open('mcrit-plugins/ida/ida-plugin.json') as f:
+            data = json.load(f)
+
+        if 'pythonDependencies' in data.get('plugin', {}):
+            deps = data['plugin']['pythonDependencies']
+            if not isinstance(deps, list):
+                print("❌ pythonDependencies must be a list")
+                exit(1)
+            print(f"✓ Found {len(deps)} Python dependencies")
+        EOF
+
+    - name: Summary
+      run: |
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "✅ Plugin validation passed!"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
