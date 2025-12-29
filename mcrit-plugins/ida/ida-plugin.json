@@ -4,7 +4,11 @@
     "name": "mcrit-ida",
     "version": "1.4.5",
     "entryPoint": "ida_mcrit.py",
-    "idaVersions": ["9.0", "9.1", "9.2"],
+    "idaVersions": [
+      "9.0",
+      "9.1",
+      "9.2"
+    ],
     "description": "Integration with MCRIT server for code similarity analysis.",
     "license": "GPL-3.0",
     "logoPath": "icons/mcrit.png",
@@ -31,12 +35,14 @@
       "ida-settings>=3.3.0"
     ],
     "urls": {
-      "repository": "https://github.com/danielplohmann/mcrit"
+      "repository": "https://github.com/danielplohmann/mcrit-plugins"
     },
-    "authors": [{
-      "name": "Daniel Plohmann",
-      "email": "daniel.plohmann@fkie.fraunhofer.de"
-    }],
+    "authors": [
+      {
+        "name": "Daniel Plohmann",
+        "email": "daniel.plohmann@fkie.fraunhofer.de"
+      }
+    ],
     "settings": [
       {
         "key": "mcritweb_username",
