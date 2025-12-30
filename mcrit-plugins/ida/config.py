@@ -63,9 +63,9 @@ class SettingsWrapper:
     def BLOCKS_MIN_SIZE(self):
         value = self._get("blocks_min_size")
         try:
-            return int(value) if not isinstance(value, int) else value
+            return int(value)
         except (ValueError, TypeError):
-            return 4
+            return self._defaults["blocks_min_size"]
 
     @property
     def FUNCTION_FILTER_LIBRARY_FUNCTIONS(self):
