@@ -4,7 +4,7 @@
     "name": "mcrit-ida",
     "version": "1.4.5",
     "entryPoint": "ida_mcrit.py",
-    "idaVersions": ">=9.0",
+    "idaVersions": ">=6.8",
     "description": "Integration with MCRIT server for code similarity analysis.",
     "license": "GPL-3.0",
     "logoPath": "icons/mcrit.png",
@@ -13,11 +13,12 @@
       "integration-with-third-parties-interoperability"
     ],
     "keywords": [
-      "minhash",
       "mcrit",
+      "minhash",
       "smda",
-      "malware",
-      "similarity"
+      "code-similarity",
+      "malware-analysis",
+      "yara"
     ],
     "pythonDependencies": [
       "mcrit>=1.4.3",
