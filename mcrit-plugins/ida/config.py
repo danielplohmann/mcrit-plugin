@@ -27,7 +27,7 @@ class SettingsWrapper:
     def _get(self, key):
         try:
             return ida_settings.get_current_plugin_setting(key)
-        except (KeyError, AttributeError, ValueError):
+        except (KeyError, AttributeError, ValueError, TypeError):
             return self._defaults.get(key)
 
     @property

@@ -90,21 +90,14 @@ The plugin uses [ida-settings](https://github.com/williballenthin/ida-settings) 
 ### 1. IDA Pro GUI (Recommended)
 
 - Open IDA Pro
-- Go to **Edit → Plugins → MCRIT Settings** (or via Plugin Manager)
+- Install the settings editor plugin: `hcli plugin install ida-settings-editor`
+- Go to **Edit → Plugins → Plugin Settings Manager**
+- Select **mcrit-ida** from the plugin list
 - Configure settings through the GUI interface
 
-### 2. HCLI Command Line
+### 2. During HCLI Installation
 
-```bash
-# View current settings
-hcli config get mcrit-ida
-
-# Set MCRIT server URL
-hcli config set mcrit-ida.mcrit_server "http://your-server:8000/"
-
-# Set API token for MCRITweb
-hcli config set mcrit-ida.mcritweb_api_token "your_token_here"
-```
+When you run `hcli plugin install mcrit-ida`, HCLI will prompt you for the configuration values interactively. These values are stored in `ida-config.json`.
 
 ### 3. Configuration File
 
@@ -153,10 +146,16 @@ The plugin can connect to:
    - Set `mcritweb_api_token` for authentication
    - Username is inferred from token holder
 
-**Example:**
-```bash
-hcli config set mcrit-ida.mcrit_server "https://mcritweb.example.com/api/"
-hcli config set mcrit-ida.mcritweb_api_token "eyJ0eXAiOiJKV1QiLCJ..."
+**Example** (edit `$IDAUSR/ida-config.json` directly):
+```json
+{
+  "plugins": {
+    "mcrit-ida": {
+      "mcrit_server": "https://mcritweb.example.com/api/",
+      "mcritweb_api_token": "eyJ0eXAiOiJKV1QiLCJ..."
+    }
+  }
+}
 ```
 
 ## 📖 Usage
