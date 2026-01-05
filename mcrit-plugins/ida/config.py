@@ -27,7 +27,7 @@ class SettingsWrapper:
     def _get(self, key):
         try:
             return ida_settings.get_current_plugin_setting(key)
-        except (KeyError, AttributeError, ValueError):
+        except (KeyError, AttributeError, ValueError, TypeError):
             return self._defaults.get(key)
 
     @property
@@ -63,9 +63,9 @@ class SettingsWrapper:
     def BLOCKS_MIN_SIZE(self):
         value = self._get("blocks_min_size")
         try:
-            return int(value)
+            return int(value) if not isinstance(value, int) else value
         except (ValueError, TypeError):
-            return self._defaults["blocks_min_size"]
+            return 4
 
     @property
     def FUNCTION_FILTER_LIBRARY_FUNCTIONS(self):
