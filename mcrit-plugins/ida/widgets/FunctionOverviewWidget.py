@@ -171,6 +171,7 @@ class FunctionOverviewWidget(QMainWindow):
     def importSelectedLabels(self):
         # get currently selected names from all dropdowns in the table
         num_names_applied = 0
+        num_names_skipped = 0
         for row_id in range(self.table_local_functions.rowCount()):
             offset = int(self.table_local_functions.item(row_id, 0).text(), 16)
             label_via_table = self.table_local_functions.item(row_id, 5).text()
@@ -181,8 +182,12 @@ class FunctionOverviewWidget(QMainWindow):
                 label_via_mapping = map_entry[0]
             if label_via_table == "-":
                 result_label = label_via_mapping
-            # we did not get a usable label, so we continue to the next row
+            # we did not get a usable label, we continue to the next row
             if result_label == "-":
+                continue
+            # we found a manually disabled label, we continue to the next row
+            if result_label == "-|-":
+                num_names_skipped += 1
                 continue
             # extract the actual name from the score|name pair
             label_fields = result_label.split("|")
@@ -197,7 +202,7 @@ class FunctionOverviewWidget(QMainWindow):
                 self.cc.ida_proxy.set_name(offset, result_label, self.cc.ida_proxy.SN_NOWARN)
                 num_names_applied += 1
         if num_names_applied:
-            self.parent.local_widget.updateActivityInfo(f"Success! Imported {num_names_applied} function names.")
+            self.parent.local_widget.updateActivityInfo(f"Success! Imported {num_names_applied} function names (skipped: {num_names_skipped}).")
         else:
             self.parent.local_widget.updateActivityInfo(f"No suitable function names found to import.")
 
@@ -365,6 +370,7 @@ class FunctionOverviewWidget(QMainWindow):
             for function_id, function_info in sorted(aggregated_matches.items()):
                 sorted_labels = sorted(function_info["labels"], reverse=True)
                 self.function_name_mapping[(row, label_score_column_index)] = [f"{label_entry[0]}|{label_entry[1]}" for label_entry in sorted_labels]
+                self.function_name_mapping[(row, label_score_column_index)].append("-|-")
                 self.row_criticality_mapping[row] = function_info.get("criticality", 0)
                 for column, column_name in enumerate(self.local_function_header_labels):
                     column_type = self.parent.config.OVERVIEW_TABLE_COLUMNS[column]
