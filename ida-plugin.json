@@ -2,9 +2,9 @@
   "IDAMetadataDescriptorVersion": 1,
   "plugin": {
     "name": "mcrit-ida",
-    "version": "1.4.5",
+    "version": "1.1.0",
     "entryPoint": "ida_mcrit.py",
-    "idaVersions": ">=6.8",
+    "idaVersions": ">=8.4",
     "description": "Integration with MCRIT server for code similarity analysis.",
     "license": "GPL-3.0",
     "logoPath": "icons/mcrit.png",
@@ -22,7 +22,7 @@
     ],
     "pythonDependencies": [
       "mcrit>=1.4.3",
-      "smda>=1.13.19",
+      "smda>=2.4.6",
       "ida-settings>=3.3.0"
     ],
     "urls": {

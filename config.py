@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 import ida_settings
 import helpers.McritTableColumn as McritTableColumn
@@ -23,6 +24,15 @@ class SettingsWrapper:
             "overview_filter_to_conflicts": False,
             "overview_min_score": 50
         }
+        # a little developer convenience to override settings without messing with IDA settings
+        if os.path.exists("config_override.json"):
+            try:
+                with open("config_override.json", "r") as override_file:
+                    override_settings = json.load(override_file)
+                    for key in self._defaults.keys():
+                        self._defaults[key] = override_settings.get(key, self._defaults[key])
+            except (json.JSONDecodeError, IOError):
+                pass
 
     def _get(self, key):
         try:
@@ -107,7 +117,7 @@ settings = SettingsWrapper()
 
 
 # --- Original Config Constants ---
-VERSION = "1.4.5"
+VERSION = "1.1.0"
 # relevant paths
 CONFIG_FILE_PATH = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.dirname(CONFIG_FILE_PATH)
