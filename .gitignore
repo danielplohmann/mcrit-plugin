@@ -67,3 +67,5 @@ coverage-html/
 coverage_html_report
 
 profiler
+
+config_override.json

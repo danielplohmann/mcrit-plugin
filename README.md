@@ -7,7 +7,8 @@
 
 > **Integration with MCRIT** for MinHash-based code similarity analysis in IDA Pro.
 
-MCRIT (MinHash-based Code Relationship & Investigation Toolkit) simplifies MinHash-based code similarity detection. This plugin seamlessly integrates MCRIT servers with IDA Pro for malware analysis and function identification.
+MCRIT (MinHash-based Code Relationship & Investigation Toolkit) simplifies MinHash-based code similarity detection.
+This plugin seamlessly integrates MCRIT servers with IDA Pro for malware analysis and function identification.
 
 ## ✨ Features
 
@@ -46,7 +47,7 @@ Configure the plugin to connect to your MCRIT instance:
 | `mcritweb_api_token` | API Token (for MCRITweb) | `eyJ0eXAi...` |
 | `mcritweb_username` | Username (optional) | `analyst` |
 
-**Note**: For MCRITweb, set the token; the username is inferred.
+**Note**: For MCRITweb, the username is inferred automatically by setting the API token.
 
 ## 📖 Usage
 
@@ -85,7 +86,7 @@ hcli plugin install ../mcrit-ida.zip
 
 ##  Version History
 
-### v1.4.5 (2025-12-30)
+### v1.1.0 (2025-12-30)
 - ✨ Full HCLI Plugin Manager support.
 - ⚙️ Migrated configuration to `ida-settings`.
 - 🔧 Code quality improvements.
