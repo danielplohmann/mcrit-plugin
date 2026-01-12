@@ -8,9 +8,12 @@ from mcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
 
 import helpers.QtShim as QtShim
 import helpers.McritTableColumn as McritTableColumn
-QMainWindow = QtShim.get_QMainWindow()
+from helpers.ScoreColorProvider import ScoreColorProvider
 from widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
 from widgets.SmdaGraphViewer import SmdaGraphViewer
+
+QMainWindow = QtShim.get_QMainWindow()
+QColor = QtShim.get_QColor()
 
 
 class FunctionMatchWidget(QMainWindow):
@@ -21,6 +24,7 @@ class FunctionMatchWidget(QMainWindow):
         print("[|] loading FunctionMatchWidget")
         # enable access to shared MCRIT4IDA modules
         self.parent = parent
+        self.scp = ScoreColorProvider()
         self.last_viewed = None
         self.name = "Function Scope"
         self.last_family_selected = None
@@ -283,6 +287,10 @@ class FunctionMatchWidget(QMainWindow):
                 column_type = self.parent.config.FUNCTION_MATCHES_TABLE_COLUMNS[column]
                 tmp_item = self.generateMatchTableCellItem(column_type, function_match_entry)
                 tmp_item.setFlags(tmp_item.flags() & ~self.cc.QtCore.Qt.ItemIsEditable)
+                # colorize by score
+                row_color = self.scp.scoreToColor(function_match_entry.matched_score, opacity=1)
+                tmp_item.setBackground(QColor(row_color[0], row_color[1], row_color[2]))
+                tmp_item.setForeground(QColor("black"))
                 self.table_function_matches.setItem(row, column, tmp_item)
             # self.table_function_matches.resizeRowToContents(row)
             row += 1

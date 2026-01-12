@@ -25,9 +25,11 @@ class SettingsWrapper:
             "overview_min_score": 50
         }
         # a little developer convenience to override settings without messing with IDA settings
-        if os.path.exists("config_override.json"):
+        CONFIG_FILE_PATH = os.path.abspath(__file__)
+        PROJECT_ROOT = os.path.dirname(CONFIG_FILE_PATH)
+        if os.path.exists(PROJECT_ROOT + os.sep  + "config_override.json"):
             try:
-                with open("config_override.json", "r") as override_file:
+                with open(PROJECT_ROOT + os.sep  + "config_override.json", "r") as override_file:
                     override_settings = json.load(override_file)
                     for key in self._defaults.keys():
                         self._defaults[key] = override_settings.get(key, self._defaults[key])
@@ -37,7 +39,7 @@ class SettingsWrapper:
     def _get(self, key):
         try:
             return ida_settings.get_current_plugin_setting(key)
-        except (KeyError, AttributeError, ValueError, TypeError):
+        except (KeyError, AttributeError, ValueError, TypeError, RuntimeError):
             return self._defaults.get(key)
 
     @property

@@ -9,9 +9,12 @@ from mcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
 
 import helpers.QtShim as QtShim
 import helpers.McritTableColumn as McritTableColumn
-QMainWindow = QtShim.get_QMainWindow()
+from helpers.ScoreColorProvider import ScoreColorProvider
 from widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
 from widgets.SmdaGraphViewer import SmdaGraphViewer
+
+QMainWindow = QtShim.get_QMainWindow()
+QColor = QtShim.get_QColor()
 
 
 class BlockMatchWidget(QMainWindow):
@@ -22,6 +25,7 @@ class BlockMatchWidget(QMainWindow):
         print("[|] loading BlockMatchWidget")
         # enable access to shared MCRIT4IDA modules
         self.parent = parent
+        self.scp = ScoreColorProvider()
         self.last_viewed_function = None
         self.last_viewed_block = None
         self._last_block_matches = None
@@ -343,6 +347,11 @@ class BlockMatchWidget(QMainWindow):
                 column_type = self.parent.config.BLOCK_SUMMARY_TABLE_COLUMNS[column]
                 tmp_item = self.generateSummaryTableCellItem(column_type, block_offset, block_entry)
                 tmp_item.setFlags(tmp_item.flags() & ~self.cc.QtCore.Qt.ItemIsEditable)
+                # Set background color and font color
+                if block_entry["summary"]["families"] > 0:
+                    row_color = self.scp.frequencyToColor(block_entry["summary"]["families"], opacity=1)
+                    tmp_item.setBackground(QColor(row_color[0], row_color[1], row_color[2]))
+                    tmp_item.setForeground(QColor("black"))
                 self.table_block_summary.setItem(row, column, tmp_item)
             # self.table_function_matches.resizeRowToContents(row)
             row += 1
