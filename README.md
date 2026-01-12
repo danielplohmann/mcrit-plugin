@@ -1,69 +1,103 @@
-# Plugin(s) for the MinHash-based Code Relationship & Investigation Toolkit (MCRIT)
+# MCRIT IDA Plugin
 
-MCRIT is a framework created to simplify the application of the MinHash algorithm in the context of code similarity.  
-This repository houses plugins to interact with an MCRIT instance from within other binary analyiss tools, with currently only IDA Pro being supported.
+[![IDA Version](https://img.shields.io/badge/IDA-9.0%2B-blue.svg)](https://hex-rays.com/ida-pro/)
+[![Python](https://img.shields.io/badge/python-3.x-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)](LICENSE)
+[![HCLI Compatible](https://img.shields.io/badge/HCLI-compatible-brightgreen.svg)](https://hcli.docs.hex-rays.com/)
 
-## Usage
+> **Integration with MCRIT** for MinHash-based code similarity analysis in IDA Pro.
 
-### IDA Plugin
+MCRIT (MinHash-based Code Relationship & Investigation Toolkit) simplifies MinHash-based code similarity detection.
+This plugin seamlessly integrates MCRIT servers with IDA Pro for malware analysis and function identification.
 
-In order to use the plugin, MCRIT and its dependencies have to be installed within the Python version used by IDA Pro.
-Additionally, `pyperclip` is used to facilitate copying data (YARA rule fragments) to the clipboard.
-Using the `requirements.txt` for installation should provide everything needed.
+## ✨ Features
 
-Once installed, the plugin can be started by simply running `mcrit-plugins/ida/ida_mcrit.py` as a Python script from within IDA Pro.
+- **Code Similarity** - Compare functions/blocks against MCRIT.
+- **Function Matching** - Identify similar functions across binaries.
+- **Label Management** - Sync function labels with the server.
+- **Interactive Widgets** - Dedicated views for blocks, functions, and overview.
+- **Integrated Settings** - Native configuration via `ida-settings`.
+- **HCLI Support** - Easy installation and updates.
 
-### Configuration 
+## 🚀 Installation
 
-The plugin's behavior can be controlled through a config file.
-To instantiate your config, copy or rename `template.config.py` to `config.py`.
+The recommended way to install is using [HCLI](https://hcli.docs.hex-rays.com/).
 
-#### Connecting to MCRIT
-
-In order to fully use the plugin, you need to be able to interact with an MCRIT instance.  
-This can be both a MCRIT standalone server or a MCRITweb instance via API pass-through.
-
-To set up the connection use this section of the `config.py`:
-
-```
-MCRITWEB_USERNAME = ""
-MCRIT_SERVER = "http://127.0.0.1:8000/"
-MCRITWEB_API_TOKEN = ""
+```bash
+hcli plugin install mcrit-ida
 ```
 
-The username is only relevant if talking directly to MCRIT, because when using an API token as provided by MCRITweb, the username is automatically inferred from the token holder instead.
+This automatically handles dependencies (including `smda` and `mcrit` client) and configuration.
 
-#### Startup and UI Behavior
+## ⚙️ Configuration
 
-The remaining part of the configuration file controls the behavior during startup and default settings for the individual widgets.
+Configuration is managed via [ida-settings](https://github.com/williballenthin/ida-settings).
 
+### Setup
+1.  **GUI (Recommended)**: Install `ida-settings-editor` (`hcli plugin install ida-settings-editor`) and configure via **Edit → Plugins → Plugin Settings Manager**.
+2.  **Interactive**: HCLI prompts for config values during installation.
+3.  **Manual**: Edit `$IDAUSR/ida-config.json` (discouraged).
 
-## Version History
+### Connecting to Server
+Configure the plugin to connect to your MCRIT instance:
 
- * 2025-12-22 v1.0.0:  Moved Plugin to its own repository. Fixed compatibility with up to version IDA 9.2 (adopting PySide6).
+| Setting | Description | Example |
+| :--- | :--- | :--- |
+| `mcrit_server` | Server URL | `https://mcrit.example.com/api/` |
+| `mcritweb_api_token` | API Token (for MCRITweb) | `eyJ0eXAi...` |
+| `mcritweb_username` | Username (optional) | `analyst` |
 
-## Credits & Notes
+**Note**: For MCRITweb, the username is inferred automatically by setting the API token.
 
-Pull requests welcome! :)
+## 📖 Usage
 
-## License
+1.  **Open Binary**: Load a file in IDA Pro.
+2.  **Open Widgets**: View → Open subviews → MCRIT widgets.
+3.  **Analyze**: Right-click a function → **MCRIT** → **Query function**.
+4.  **Matches**: Review results in the **Function Scope Widget**.
+
+## 🔧 Development
+
+### Project Structure
+```text
+mcrit-plugin/
+├── ida-plugin.json   # Plugin metadata
+├── ida_mcrit.py      # Entry point
+├── config.py         # Settings management
+├── helpers/          # Utilities (incl. vendored pyperclip)
+├── widgets/          # UI components
+└── icons/            # Resources
 ```
-    Plugins for MCRIT
-    Copyright (C) 2025+ Daniel Plohmann
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+### Local Build & Install
+To install a development version from source:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+```bash
+# 1. Clone
+git clone https://github.com/danielplohmann/mcrit-plugins.git
+cd mcrit-plugins
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    
-    Some plug-ins and libraries may have different licenses. 
-    If so, a license file is provided in the plug-in's folder.
+# 2. Package
+zip -r ../mcrit-ida.zip .
+
+# 3. Install
+hcli plugin install ../mcrit-ida.zip
 ```
+
+##  Version History
+
+### v1.1.0 (2025-12-30)
+- ✨ Full HCLI Plugin Manager support.
+- ⚙️ Migrated configuration to `ida-settings`.
+- 🔧 Code quality improvements.
+- ✅ Strict HCLI compliance.
+
+### v1.0.0 (2025-12-22)
+- 🎉 Initial standalone release.
+- 🔄 IDA 9.2 (PySide6) compatibility.
+
+## 📄 License
+GPL-3.0. See [LICENSE](LICENSE) for details.
+
+## 👤 Author
+**Daniel Plohmann** ([@danielplohmann](https://github.com/danielplohmann))

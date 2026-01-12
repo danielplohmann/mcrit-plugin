@@ -63,8 +63,9 @@ ENV/
 
 # project files
 config.ini
-config.py
 coverage-html/
 coverage_html_report
 
 profiler
+
+config_override.json
