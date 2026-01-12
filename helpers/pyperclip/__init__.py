@@ -656,5 +656,3 @@ copy, paste = lazy_load_stub_copy, lazy_load_stub_paste
 
 
 __all__ = ['copy', 'paste', 'set_clipboard', 'determine_clipboard']
-
-
