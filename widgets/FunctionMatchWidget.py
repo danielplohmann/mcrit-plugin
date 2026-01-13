@@ -238,6 +238,9 @@ class FunctionMatchWidget(QMainWindow):
         tmp_item = None
         if column_type == McritTableColumn.FUNCTION_ID:
             tmp_item = self.NumberQTableWidgetItem("%d" % function_match_entry.matched_function_id)
+        elif column_type == McritTableColumn.OFFSET:
+            function_offset = self.parent.function_id_to_offset.get(function_match_entry.matched_function_id, 0)
+            tmp_item = self.NumberQTableWidgetItem("0x%x" % function_offset)
         elif column_type == McritTableColumn.SHA256:
             sample_sha256 = self.parent.sample_infos[function_match_entry.matched_sample_id].sha256
             tmp_item = self.cc.QTableWidgetItem(sample_sha256[:8])

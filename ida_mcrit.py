@@ -102,6 +102,7 @@ class Mcrit4IdaForm(PluginForm):
         self.remote_function_mapping = {}
         self.sample_infos = {}
         self.family_infos = None
+        self.function_id_to_offset = {}
         self.pichash_matches = {}
         self.pichash_match_summaries = {}
         self.picblockhash_matches = {}
