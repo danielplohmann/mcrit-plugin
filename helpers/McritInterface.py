@@ -162,9 +162,16 @@ class McritInterface(object):
         try:
             smda_function = [f for f in smda_report.getFunctions()][0]
             if smda_function.offset not in self.parent.function_matches:
-                match_report = self.mcrit_client.getMatchesForSmdaFunction(smda_report, exclude_self_matches=False)
-                if match_report:
-                    self.parent.function_matches.update({smda_function.offset: match_report})
+                match_report_dict = self.mcrit_client.getMatchesForSmdaFunction(smda_report, exclude_self_matches=False)
+                if match_report_dict:
+                    self.parent.function_matches.update({smda_function.offset: match_report_dict})
+                match_report = MatchingResult.fromDict(match_report_dict)
+                matched_function_ids = [match.function_id for match in match_report.matched_function_id]
+                unknown_function_ids = [fid for fid in matched_function_ids if fid not in self.parent.function_id_to_offset]
+                if unknown_function_ids:
+                    function_entries = self.queryFunctionEntriesById(unknown_function_ids)
+                    for function_id, function_entry in function_entries.items():
+                        self.parent.function_id_to_offset[function_id] = function_entry.offset
         except Exception as exc:
             if self._withTraceback: traceback.print_exc()
             self.parent.local_widget.updateActivityInfo("querySmdaFunctionMatches failed, error on connection :(")
