@@ -67,7 +67,6 @@ class ColoredComboBox(QComboBox):
         if not self.programmatic_change:
             self.user_has_interacted = True
             self.user_made_selection = True
-            print(f"User actively selected item at index {index}: {self.currentText()}")
     
     def _on_text_changed(self, text):
         """Called when text changes - but this can be misleading for dropdowns"""
@@ -548,13 +547,13 @@ class FunctionOverviewWidget(QMainWindow):
                 if selected_item == "-" and self.function_name_mapping:
                     selected_item = self.function_name_mapping[(row, label_score_column_index)][0]
                 delegate = self.table_local_functions.itemDelegateForColumn(label_score_column_index)
-                continue
-                if hasattr(delegate, 'getUserInteractionTypeForRow'):
-                    interaction_type = delegate.getUserInteractionTypeForRow(row)
-                    print(f"Row {row}: Offset 0x{offset:x}, Selected Item: {selected_item}, item interaction type: {interaction_type}")
-                else:
-                    print(f"Row {row}: Offset 0x{offset:x}, Selected Item: {selected_item}, item interaction type: N/A")
-
+                if False:
+                    # something we might use in the future for inferring selected labels/rows
+                    if hasattr(delegate, 'getUserInteractionTypeForRow'):
+                        interaction_type = delegate.getUserInteractionTypeForRow(row)
+                        print(f"Row {row}: Offset 0x{offset:x}, Selected Item: {selected_item}, item interaction type: {interaction_type}")
+                    else:
+                        print(f"Row {row}: Offset 0x{offset:x}, Selected Item: {selected_item}, item interaction type: N/A")
             # TODO we cannot use offset here as this is not known to the Delegate later on.
             # We have to transform this to row indices instead, which should also be known by this time
             self.last_selected_fields[offset] = selected_item
