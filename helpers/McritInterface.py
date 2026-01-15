@@ -166,12 +166,13 @@ class McritInterface(object):
                 if match_report_dict:
                     self.parent.function_matches.update({smda_function.offset: match_report_dict})
                 match_report = MatchingResult.fromDict(match_report_dict)
-                matched_function_ids = [match.function_id for match in match_report.matched_function_id]
+                matched_function_ids = [match.matched_function_id for match in match_report.function_matches]
                 unknown_function_ids = [fid for fid in matched_function_ids if fid not in self.parent.function_id_to_offset]
                 if unknown_function_ids:
                     function_entries = self.queryFunctionEntriesById(unknown_function_ids)
                     for function_id, function_entry in function_entries.items():
                         self.parent.function_id_to_offset[function_id] = function_entry.offset
+                return match_report
         except Exception as exc:
             if self._withTraceback: traceback.print_exc()
             self.parent.local_widget.updateActivityInfo("querySmdaFunctionMatches failed, error on connection :(")
@@ -184,6 +185,7 @@ class McritInterface(object):
                 if self.parent.matched_function_entries is None:
                     self.parent.matched_function_entries = {}
                 self.parent.matched_function_entries.update(function_entries)
+                return function_entries
         except Exception as exc:
             if self._withTraceback: traceback.print_exc()
             self.parent.local_widget.updateActivityInfo("queryFunctionEntriesById failed, error on connection :(")
