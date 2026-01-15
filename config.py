@@ -176,8 +176,7 @@ FUNCTION_MIN_SCORE = settings.FUNCTION_MIN_SCORE
 FUNCTION_MATCHES_TABLE_COLUMNS = [
     McritTableColumn.SCORE,
     McritTableColumn.SHA256,
-    # TODO we want to have the matched function's offset here, needs to be implemented in core MCRIT first
-    # MCritTableColumn.OFFSET,
+    # McritTableColumn.OFFSET,
     McritTableColumn.FAMILY_NAME,
     McritTableColumn.VERSION,
     McritTableColumn.SAMPLE_ID,
