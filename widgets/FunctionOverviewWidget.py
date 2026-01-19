@@ -599,12 +599,37 @@ class FunctionOverviewWidget(QMainWindow):
         self.table_local_functions.resizeColumnsToContents()
         self.table_local_functions.setSortingEnabled(True)
         header = self.table_local_functions.horizontalHeader()
+        
+        # Set column resize modes based on content type
+        offset_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+        label_score_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+        families_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.FAMILIES, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+        samples_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.SAMPLES, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+        functions_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.FUNCTIONS, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+        library_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.IS_LIBRARY, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+        
         for header_id in range(0, len(self.local_function_header_labels), 1):
             try:
-                header.setSectionResizeMode(header_id, header_view.Stretch)
+                # Set minimal width for numeric and fixed-content columns
+                if header_id in [offset_column_index, families_column_index, samples_column_index, functions_column_index, library_column_index]:
+                    header.setSectionResizeMode(header_id, header_view.ResizeToContents)
+                # Let the score/label column stretch to fill remaining space
+                elif header_id == label_score_column_index:
+                    header.setSectionResizeMode(header_id, header_view.Stretch)
+                else:
+                    # Fallback for any other columns
+                    header.setSectionResizeMode(header_id, header_view.ResizeToContents)
             except:
-                header.setResizeMode(header_id, header_view.Stretch)
-        header.setStretchLastSection(True)
+                # Fallback for older Qt versions
+                if header_id in [offset_column_index, families_column_index, samples_column_index, functions_column_index, library_column_index]:
+                    header.setResizeMode(header_id, header_view.ResizeToContents)
+                elif header_id == label_score_column_index:
+                    header.setResizeMode(header_id, header_view.Stretch)
+                else:
+                    header.setResizeMode(header_id, header_view.ResizeToContents)
+        
+        # Don't stretch the last section since we're handling it explicitly
+        header.setStretchLastSection(False)
 
 ################################################################################
 # Buttons and Actions
