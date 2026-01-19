@@ -86,6 +86,9 @@ hcli plugin install ../mcrit-ida.zip
 
 ##  Version History
 
+### v1.1.2 (2026-01-19)
+- ✨ Optionally use SMDA as backend analysis engine (consistency towards MCRIT server), even when in IDA Pro.
+
 ### v1.1.1 (2026-01-15)
 - ✨ Now coloring results in BlockMatch (by frequency) and FunctionMatch (by score) widgets
 - ✨ Can now display offsets of matched functions in FunctionMatchWidget
