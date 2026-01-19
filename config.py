@@ -12,6 +12,7 @@ class SettingsWrapper:
             "mcrit_server": "http://127.0.0.1:8000/",
             "mcritweb_api_token": "",
             "auto_analyze_smda_on_startup": False,
+            "use_smda_for_analysis": False,
             "submit_function_names_on_close": False,
             "blocks_filter_library_functions": False,
             "blocks_live_query": False,
@@ -57,6 +58,10 @@ class SettingsWrapper:
     @property
     def AUTO_ANALYZE_SMDA_ON_STARTUP(self):
         return self._get("auto_analyze_smda_on_startup")
+
+    @property
+    def USE_SMDA_FOR_ANALYSIS(self):
+        return self._get("use_smda_for_analysis")
 
     @property
     def SUBMIT_FUNCTION_NAMES_ON_CLOSE(self):
@@ -143,6 +148,7 @@ MCRITWEB_API_TOKEN = settings.MCRITWEB_API_TOKEN
 ### UI behavior configurations
 ## General behavior
 AUTO_ANALYZE_SMDA_ON_STARTUP = settings.AUTO_ANALYZE_SMDA_ON_STARTUP
+USE_SMDA_FOR_ANALYSIS = settings.USE_SMDA_FOR_ANALYSIS
 SUBMIT_FUNCTION_NAMES_ON_CLOSE = settings.SUBMIT_FUNCTION_NAMES_ON_CLOSE
 
 ## Widget specific behavior

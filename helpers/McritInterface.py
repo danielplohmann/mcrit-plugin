@@ -7,6 +7,7 @@ import requests
 try:
     from smda.Disassembler import Disassembler
     from smda.ida.IdaInterface import IdaInterface
+    from smda.common.BinaryInfo import BinaryInfo
 except:
     print("SMDA not found, please install it (and its dependencies) as a python package to proceed!")
     sys.exit()
@@ -42,6 +43,28 @@ class McritInterface(object):
     def convertIdbToSmda(self):
         self.parent.local_widget.updateActivityInfo("Converting to SMDA report...")
         report = self.smda_disassembler.disassembleBuffer(self.smda_ida.getBinary(), 0)
+        self.parent.local_widget.updateActivityInfo("Conversion from IDB to SMDA finished.")
+        return report
+    
+    def getIdaBinaryInfo(self):
+        binary_info = BinaryInfo(self.smda_ida.getBinary())
+        if not binary_info.architecture:
+            binary_info.architecture = self.smda_ida.getArchitecture()
+        if not binary_info.base_addr:
+            binary_info.base_addr = self.smda_ida.getBaseAddr()
+        if not binary_info.bitness:
+            binary_info.bitness = self.smda_ida.getBitness()
+        return binary_info
+
+    def convertIdbToSmdaUsingSmda(self):
+        self.parent.local_widget.updateActivityInfo("Converting to SMDA report using SMDA...")
+        smda_disassembler = Disassembler(backend="intel")
+        binary_info = self.getIdaBinaryInfo()
+        report = smda_disassembler._disassemble(binary_info, timeout=300)
+        function_symbols = self.smda_ida.getFunctionSymbols()
+        for smda_function in report.getFunctions():
+            if smda_function.offset in function_symbols:
+                smda_function.function_name = function_symbols[smda_function.offset]
         self.parent.local_widget.updateActivityInfo("Conversion from IDB to SMDA finished.")
         return report
 

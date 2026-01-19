@@ -135,7 +135,28 @@ class MainWidget(QMainWindow):
         return
     
     def getLocalSmdaReport(self):
-        local_report = self.parent.mcrit_interface.convertIdbToSmda()
+        ida_converted_report = self.parent.mcrit_interface.convertIdbToSmda()
+        local_report = ida_converted_report
+        # check of we alternatively want to use SMDA for analysis
+        smda_converted_report = None
+        if self.parent.config.USE_SMDA_FOR_ANALYSIS:
+            smda_converted_report = self.parent.mcrit_interface.convertIdbToSmdaUsingSmda()
+        if smda_converted_report is not None:
+            ida_report_offsets = [func.offset for func in ida_converted_report.getFunctions()]
+            smda_report_offsets = [func.offset for func in smda_converted_report.getFunctions()]
+            # output diagnostic information if function sets differ
+            if set(ida_report_offsets) != set(smda_report_offsets):
+                print(f"[!] SMDA disassembly report function set ({len(smda_report_offsets)}) differs from IDA converted report function set ({len(ida_report_offsets)})!")
+                missing_in_smda = set(ida_report_offsets) - set(smda_report_offsets)
+                missing_in_ida = set(smda_report_offsets) - set(ida_report_offsets)
+                if missing_in_smda:
+                    print("    Functions in IDA but not in SMDA report (%d): %s" % (len(missing_in_smda), ", ".join([f"0x{off:x}" for off in missing_in_smda])))
+                if missing_in_ida:
+                    print("    Functions in SMDA but not in IDA report (%d): %s" % (len(missing_in_ida), ", ".join([f"0x{off:x}" for off in missing_in_ida])))
+                print("    Using SMDA converted report.")
+            else:
+                print("[|] SMDA converted report function set matches IDA converted report function set.")
+            local_report = smda_converted_report
         if local_report is not None:
             # some information obtained from IDA directly
             local_report.sha256 = idaapi.retrieve_input_file_sha256().hex()
