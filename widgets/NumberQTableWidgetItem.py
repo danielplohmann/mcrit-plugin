@@ -25,6 +25,7 @@
 ########################################################################
 
 import helpers.QtShim as QtShim
+
 QTableWidgetItem = QtShim.get_QTableWidgetItem()
 
 

@@ -62,6 +62,7 @@ MAP_COLUMN_TO_HEADER_STRING = {
     SCORE_AND_LABEL: "Score & Labels",
 }
 
+
 def columnTypeToIndex(column_type: int, configured_columns: List[int]) -> Optional[int]:
     """
     Given a column type and a list of configured columns, return the index of the column type in the list.

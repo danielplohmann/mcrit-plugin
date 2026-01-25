@@ -1,8 +1,9 @@
 import re
+
 import ida_funcs
 
-import helpers.QtShim as QtShim
 import helpers.McritTableColumn as McritTableColumn
+import helpers.QtShim as QtShim
 from widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
 
 QMainWindow = QtShim.get_QMainWindow()
@@ -19,11 +20,11 @@ class ColoredComboBox(QComboBox):
         self.user_has_interacted = False
         self.user_made_selection = False
         self.programmatic_change = False
-        
+
         # Connect signals to track user interaction
         self.activated.connect(self._on_user_activated)
         self.currentTextChanged.connect(self._on_text_changed)
-        
+
         # Set colors immediately in constructor
         color_rgb = None
         if criticality == 0:
@@ -37,7 +38,7 @@ class ColoredComboBox(QComboBox):
             color_rgb = "255, 255, 100"  # yellow
         elif criticality >= 4:
             color_rgb = "255, 100, 100"  # red
-        
+
         if color_rgb:
             # Use more aggressive stylesheet targeting all parts of the combobox
             stylesheet = f"""
@@ -58,72 +59,72 @@ class ColoredComboBox(QComboBox):
                     color: black;
                 }}
             """
-            
+
             self.setStyleSheet(stylesheet)
             self.setAutoFillBackground(True)
-    
+
     def _on_user_activated(self, index):
         """Called when user actively selects an item from dropdown"""
         if not self.programmatic_change:
             self.user_has_interacted = True
             self.user_made_selection = True
-    
+
     def _on_text_changed(self, text):
         """Called when text changes - but this can be misleading for dropdowns"""
         # For QComboBox, text changes can happen without user selection
         # We rely more on the activated signal for true user interaction
-        if not self.programmatic_change and hasattr(self, 'user_has_interacted'):
+        if not self.programmatic_change and hasattr(self, "user_has_interacted"):
             # Only mark as interacted if text actually changed to something different
-            if not hasattr(self, '_last_known_text') or self._last_known_text != text:
+            if not hasattr(self, "_last_known_text") or self._last_known_text != text:
                 self.user_has_interacted = True
                 self._last_known_text = text
-    
+
     def showPopup(self):
         """Override to track when dropdown is opened"""
         self.dropdown_was_opened = True
         super().showPopup()
-    
+
     def hidePopup(self):
         """Override to track when dropdown is closed"""
         super().hidePopup()
         # If dropdown was opened but no selection was made via activated signal,
         # and text didn't change, then user just clicked away
-        if hasattr(self, 'dropdown_was_opened') and self.dropdown_was_opened:
+        if hasattr(self, "dropdown_was_opened") and self.dropdown_was_opened:
             if not self.user_made_selection:
-                print(f"User opened dropdown but made no selection")
+                print("User opened dropdown but made no selection")
             self.dropdown_was_opened = False
-    
+
     def setCurrentText(self, text):
         """Override to mark programmatic changes"""
         self.programmatic_change = True
         super().setCurrentText(text)
         self.programmatic_change = False
-    
+
     def setCurrentIndex(self, index):
         """Override to mark programmatic changes"""
         self.programmatic_change = True
         super().setCurrentIndex(index)
         self.programmatic_change = False
-    
+
     def hasUserInteracted(self):
         """Check if user has ever interacted with this combobox"""
         return self.user_has_interacted
-    
+
     def hasUserMadeSelection(self):
         """Check if user has actively selected an item from dropdown"""
         return self.user_made_selection
-    
+
     def hasUserOpenedDropdown(self):
         """Check if user has opened the dropdown (even without selecting)"""
-        return hasattr(self, 'dropdown_was_opened') and self.dropdown_was_opened
-    
+        return hasattr(self, "dropdown_was_opened") and self.dropdown_was_opened
+
     def getUserInteractionType(self):
         """Get detailed info about user interaction"""
         if self.user_made_selection:
             return "SELECTED"  # User made an actual selection
         elif self.user_has_interacted:
             return "INTERACTED"  # User changed text somehow but didn't use dropdown
-        elif hasattr(self, 'dropdown_was_opened'):
+        elif hasattr(self, "dropdown_was_opened"):
             return "OPENED"  # User opened dropdown but didn't select
         else:
             return "NONE"  # No user interaction at all
@@ -133,7 +134,9 @@ class DropdownDelegate(QStyledItemDelegate):
     def __init__(self, function_name_mapping, row_criticality_mapping=None, parent_widget=None):
         super().__init__()
         self.function_name_mapping = function_name_mapping
-        self.row_criticality_mapping = row_criticality_mapping if row_criticality_mapping is not None else {}
+        self.row_criticality_mapping = (
+            row_criticality_mapping if row_criticality_mapping is not None else {}
+        )
         self.parent_widget = parent_widget
         # Store references to created editors
         self.editors_by_row = {}  # row -> ColoredComboBox
@@ -150,19 +153,19 @@ class DropdownDelegate(QStyledItemDelegate):
         # Store row information for right-click handling
         editor.table_row = index.row()
         editor.table_column = index.column()
-        
+
         # Enable context menu for the combo box to handle right-clicks
         editor.setContextMenuPolicy(QtShim.get_Qt().CustomContextMenu)
         editor.customContextMenuRequested.connect(
             lambda pos: self._handleComboBoxRightClick(editor, pos)
         )
-        
+
         return editor
 
     def getEditorForRow(self, row):
         """Get the ColoredComboBox editor for a specific row"""
         return self.editors_by_row.get(row, None)
-    
+
     def getUserInteractionTypeForRow(self, row):
         """Get interaction type for a specific row"""
         editor = self.getEditorForRow(row)
@@ -172,12 +175,12 @@ class DropdownDelegate(QStyledItemDelegate):
 
     def _handleComboBoxRightClick(self, combo_box, position):
         """Handle right-click events on combo box"""
-        if self.parent_widget and hasattr(combo_box, 'table_row'):
+        if self.parent_widget and hasattr(combo_box, "table_row"):
             row = combo_box.table_row
             column = combo_box.table_column
-            
+
             # Call the parent widget's right-click handler directly
-            if hasattr(self.parent_widget, '_handleRightClickOnRow'):
+            if hasattr(self.parent_widget, "_handleRightClickOnRow"):
                 self.parent_widget._handleRightClickOnRow(row, column)
 
     def setEditorData(self, editor, index):
@@ -189,9 +192,7 @@ class DropdownDelegate(QStyledItemDelegate):
         model.setData(index, value)
 
 
-
 class FunctionOverviewWidget(QMainWindow):
-
     def __init__(self, parent):
         self.cc = parent.cc
         self.cc.QMainWindow.__init__(self)
@@ -204,29 +205,29 @@ class FunctionOverviewWidget(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.b_fetch_labels = self.cc.QPushButton("Fetch labels for matches")
         self.b_fetch_labels.clicked.connect(self.fetchLabels)
-        
+
         # Create horizontal layout for filter options
         self.filter_container = self.cc.QWidget()
         self.filter_layout = self.cc.QHBoxLayout()
         self.filter_container.setLayout(self.filter_layout)
-        
+
         # Filter label
         self.filter_label = self.cc.QLabel("Filter:")
         self.filter_layout.addWidget(self.filter_label)
-        
+
         # Create radio buttons for filter options
         self.rb_filter_none = self.cc.QRadioButton("none")
         self.rb_filter_labels = self.cc.QRadioButton("labels")
         self.rb_filter_applicable = self.cc.QRadioButton("applicable")
         self.rb_filter_conflicted = self.cc.QRadioButton("conflicted")
-        
+
         # Add radio buttons to layout
         self.filter_layout.addWidget(self.rb_filter_none)
         self.filter_layout.addWidget(self.rb_filter_labels)
         self.filter_layout.addWidget(self.rb_filter_applicable)
         self.filter_layout.addWidget(self.rb_filter_conflicted)
         self.filter_layout.addStretch()  # Add stretch to push everything to the left
-        
+
         # Set default selection based on config
         if self.parent.config.OVERVIEW_FILTER_TO_CONFLICTS:
             self.rb_filter_conflicted.setChecked(True)
@@ -234,13 +235,13 @@ class FunctionOverviewWidget(QMainWindow):
             self.rb_filter_labels.setChecked(True)
         else:
             self.rb_filter_none.setChecked(True)
-        
+
         # Connect radio buttons to populate function
         self.rb_filter_none.toggled.connect(self.populateFunctionTable)
         self.rb_filter_labels.toggled.connect(self.populateFunctionTable)
         self.rb_filter_applicable.toggled.connect(self.populateFunctionTable)
         self.rb_filter_conflicted.toggled.connect(self.populateFunctionTable)
-        
+
         self.b_import_labels = self.cc.QPushButton("Import all labels for unnamed functions")
         # TODO implement an actual selective import function here
         self.b_import_labels.clicked.connect(self.importSelectedLabels)
@@ -256,12 +257,14 @@ class FunctionOverviewWidget(QMainWindow):
         # table
         self.label_local_functions = self.cc.QLabel("Functions Matched")
         self.table_local_functions = self.cc.QTableWidget()
-        self.table_local_functions.selectionModel().selectionChanged.connect(self._onTableFunctionsSelectionChanged)
+        self.table_local_functions.selectionModel().selectionChanged.connect(
+            self._onTableFunctionsSelectionChanged
+        )
         self.table_local_functions.clicked.connect(self._onTableFunctionsClicked)
         self.table_local_functions.doubleClicked.connect(self._onTableFunctionsDoubleClicked)
         # Enable context menu for right-click handling -> we need to do that in the delegate now
-        #self.table_local_functions.setContextMenuPolicy(self.cc.QtCore.Qt.CustomContextMenu)
-        #self.table_local_functions.customContextMenuRequested.connect(self._onTableFunctionsRightClicked)
+        # self.table_local_functions.setContextMenuPolicy(self.cc.QtCore.Qt.CustomContextMenu)
+        # self.table_local_functions.customContextMenuRequested.connect(self._onTableFunctionsRightClicked)
         # cache for function_names
         self.function_name_mapping = None
         self.current_rows = []
@@ -285,9 +288,9 @@ class FunctionOverviewWidget(QMainWindow):
         function_info_layout.addWidget(self.table_local_functions)
         self.central_widget.setLayout(function_info_layout)
 
-################################################################################
-# Rendering and state keeping
-################################################################################
+    ################################################################################
+    # Rendering and state keeping
+    ################################################################################
 
     def fetchLabels(self):
         match_report = self.parent.getMatchingReport()
@@ -297,7 +300,9 @@ class FunctionOverviewWidget(QMainWindow):
         for function_match in match_report.function_matches:
             matched_function_ids.add(function_match.matched_function_id)
         print("Number of matched remote functions: ", len(matched_function_ids))
-        self.parent.mcrit_interface.queryFunctionEntriesById(list(matched_function_ids), with_label_only=True)
+        self.parent.mcrit_interface.queryFunctionEntriesById(
+            list(matched_function_ids), with_label_only=True
+        )
         function_entries_with_labels = {}
         if self.parent.matched_function_entries:
             for function_id, function_entry in self.parent.matched_function_entries.items():
@@ -330,12 +335,16 @@ class FunctionOverviewWidget(QMainWindow):
 
     def importSelectedLabels(self):
         # get currently selected names from all dropdowns in the table
-        label_score_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+        label_score_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
         num_names_applied = 0
         num_names_skipped = 0
         for row_id in range(self.table_local_functions.rowCount()):
             offset = int(self.table_local_functions.item(row_id, 0).text(), 16)
-            label_via_table = self.table_local_functions.item(row_id, label_score_column_index).text()
+            label_via_table = self.table_local_functions.item(
+                row_id, label_score_column_index
+            ).text()
             result_label = label_via_table
             label_via_mapping = "-"
             map_entry = self.function_name_mapping[(row_id, label_score_column_index)]
@@ -353,7 +362,9 @@ class FunctionOverviewWidget(QMainWindow):
             # extract the actual name from the score|name pair
             label_fields = result_label.split("|")
             if len(label_fields) < 2:
-                self.parent.local_widget.updateActivityInfo(f"Error: Could not parse label '{result_label}' for function at 0x{offset:x}.")
+                self.parent.local_widget.updateActivityInfo(
+                    f"Error: Could not parse label '{result_label}' for function at 0x{offset:x}."
+                )
                 continue
             result_label = result_label.split("|")[1]
             # check if IDA function has default name
@@ -363,14 +374,21 @@ class FunctionOverviewWidget(QMainWindow):
                 self.cc.ida_proxy.set_name(offset, result_label, self.cc.ida_proxy.SN_NOWARN)
                 num_names_applied += 1
         if num_names_applied:
-            self.parent.local_widget.updateActivityInfo(f"Success! Imported {num_names_applied} function names (skipped: {num_names_skipped}).")
+            self.parent.local_widget.updateActivityInfo(
+                f"Success! Imported {num_names_applied} function names (skipped: {num_names_skipped})."
+            )
         else:
-            self.parent.local_widget.updateActivityInfo(f"No suitable function names found to import.")
+            self.parent.local_widget.updateActivityInfo(
+                "No suitable function names found to import."
+            )
 
     def _updateLabelFunctionMatches(self, num_functions_matched):
         local_smda_report = self.parent.getLocalSmdaReport()
         total_local_functions = local_smda_report.num_functions
-        self.label_local_functions.setText("Local Functions Matched (%d/%d), Remote Functions Matched: %d" % (self._countLocalMatches(), total_local_functions, self._countRemoteMatches()))
+        self.label_local_functions.setText(
+            "Local Functions Matched (%d/%d), Remote Functions Matched: %d"
+            % (self._countLocalMatches(), total_local_functions, self._countRemoteMatches())
+        )
 
     def _countLocalMatches(self):
         local_matches = set([])
@@ -385,17 +403,25 @@ class FunctionOverviewWidget(QMainWindow):
         for function_match in match_report.function_matches:
             remote_matches.add(function_match.matched_function_id)
         return len(remote_matches)
-    
+
     def ensureSpinBoxRange(self, match_report):
         # Set min/max value for score filter once
         if self.global_minimum_match_value is None:
             self.global_minimum_match_value = 100
             self.global_maximum_match_value = 0
             for function_match in match_report.function_matches:
-                self.global_minimum_match_value = int(min(self.global_minimum_match_value, function_match.matched_score))
-                self.global_maximum_match_value = int(max(self.global_maximum_match_value, function_match.matched_score))
-            config_adjusted_lower_value = max(self.parent.config.OVERVIEW_MIN_SCORE, self.global_minimum_match_value)
-            self.sb_minhash_threshold.setRange(config_adjusted_lower_value, self.global_maximum_match_value)
+                self.global_minimum_match_value = int(
+                    min(self.global_minimum_match_value, function_match.matched_score)
+                )
+                self.global_maximum_match_value = int(
+                    max(self.global_maximum_match_value, function_match.matched_score)
+                )
+            config_adjusted_lower_value = max(
+                self.parent.config.OVERVIEW_MIN_SCORE, self.global_minimum_match_value
+            )
+            self.sb_minhash_threshold.setRange(
+                config_adjusted_lower_value, self.global_maximum_match_value
+            )
             self.sb_minhash_threshold.setValue(config_adjusted_lower_value)
 
     def _calculateLabelCriticality(self, label_list, has_function_name=False):
@@ -408,7 +434,9 @@ class FunctionOverviewWidget(QMainWindow):
         criticality = 2
         label_set = set([label_entry[1] for label_entry in label_list])
         top_score = max([label_entry[0] for label_entry in label_list])
-        top_score_label_pool = [label_entry for label_entry in label_list if label_entry[0] == top_score]
+        top_score_label_pool = [
+            label_entry for label_entry in label_list if label_entry[0] == top_score
+        ]
         if len(label_set) > 1:
             criticality += 1
             if len(set([label_entry[1] for label_entry in top_score_label_pool])) > 1:
@@ -462,16 +490,23 @@ class FunctionOverviewWidget(QMainWindow):
         # count matched functions
         matched_function_ids_per_function_id = {}
         matches_beyond_filters = 0
-        total_matches = 0
         functions_beyond_filters = set()
         aggregated_matches = {}
         for function_match in match_report.function_matches:
             if function_match.function_id not in matched_function_ids_per_function_id:
                 matched_function_ids_per_function_id[function_match.function_id] = []
-            if function_match.matched_function_id not in matched_function_ids_per_function_id[function_match.function_id]:
-                matched_function_ids_per_function_id[function_match.function_id].append(function_match.matched_function_id)
+            if (
+                function_match.matched_function_id
+                not in matched_function_ids_per_function_id[function_match.function_id]
+            ):
+                matched_function_ids_per_function_id[function_match.function_id].append(
+                    function_match.matched_function_id
+                )
             if function_match.matched_score >= threshold_value:
-                if self.getSelectedFilter() != "none" and not function_match.matched_function_id in function_entries_with_labels:
+                if (
+                    self.getSelectedFilter() != "none"
+                    and function_match.matched_function_id not in function_entries_with_labels
+                ):
                     continue
                 matches_beyond_filters += 1
                 functions_beyond_filters.add(function_match.function_id)
@@ -482,16 +517,33 @@ class FunctionOverviewWidget(QMainWindow):
                         "samples": set(),
                         "functions": set(),
                         "library_matches": set(),
-                        "labels": set()
+                        "labels": set(),
                     }
-                aggregated_matches[function_match.function_id]["families"].add(function_match.matched_family_id)
-                aggregated_matches[function_match.function_id]["samples"].add(function_match.matched_sample_id)
-                aggregated_matches[function_match.function_id]["functions"].add(function_match.matched_function_id)
+                aggregated_matches[function_match.function_id]["families"].add(
+                    function_match.matched_family_id
+                )
+                aggregated_matches[function_match.function_id]["samples"].add(
+                    function_match.matched_sample_id
+                )
+                aggregated_matches[function_match.function_id]["functions"].add(
+                    function_match.matched_function_id
+                )
                 if function_match.match_is_library:
-                    aggregated_matches[function_match.function_id]["library_matches"].add(function_match.matched_function_id)
+                    aggregated_matches[function_match.function_id]["library_matches"].add(
+                        function_match.matched_function_id
+                    )
                 if function_match.matched_function_id in function_entries_with_labels:
-                    for label in function_entries_with_labels[function_match.matched_function_id].function_labels:
-                        aggregated_matches[function_match.function_id]["labels"].add((int(function_match.matched_score), label.function_label, label.username, label.timestamp))
+                    for label in function_entries_with_labels[
+                        function_match.matched_function_id
+                    ].function_labels:
+                        aggregated_matches[function_match.function_id]["labels"].add(
+                            (
+                                int(function_match.matched_score),
+                                label.function_label,
+                                label.username,
+                                label.timestamp,
+                            )
+                        )
 
         # count filtered functions again
         filtered_list = {}
@@ -503,7 +555,10 @@ class FunctionOverviewWidget(QMainWindow):
             ida_function_name = ida_funcs.get_func_name(function_info["offset"])
             is_custom_name = re.match("sub_[0-9A-Fa-f]+$", ida_function_name) is None
             # print(f"Function 0x{function_info['offset']:x} has name '{ida_function_name}', custom: {is_custom_name}")
-            criticality = self._calculateLabelCriticality(list(sorted(function_info["labels"], reverse=True)), has_function_name=is_custom_name)
+            criticality = self._calculateLabelCriticality(
+                list(sorted(function_info["labels"], reverse=True)),
+                has_function_name=is_custom_name,
+            )
             function_info["criticality"] = criticality
             print(f"Function 0x{function_info['offset']:x} criticality: {criticality}")
             if criticality > 0:
@@ -527,10 +582,17 @@ class FunctionOverviewWidget(QMainWindow):
         # Update summary
         update_text = f"Showing {len(functions_beyond_filters)} functions with {matches_beyond_filters} matches and {len(function_labels)} labels ({len(matched_function_ids_per_function_id) - len(functions_beyond_filters)} functions and {len(match_report.function_matches) - matches_beyond_filters} matches filtered)"
         self.label_local_functions.setText(update_text)
-        
-        label_score_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS)
-        offset_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS)
-        self.local_function_header_labels = [McritTableColumn.MAP_COLUMN_TO_HEADER_STRING[col] for col in self.parent.config.OVERVIEW_TABLE_COLUMNS]
+
+        label_score_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
+        offset_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
+        self.local_function_header_labels = [
+            McritTableColumn.MAP_COLUMN_TO_HEADER_STRING[col]
+            for col in self.parent.config.OVERVIEW_TABLE_COLUMNS
+        ]
         self.table_local_functions.setSortingEnabled(False)
 
         # maintain a registry of current selections made by the user
@@ -546,14 +608,20 @@ class FunctionOverviewWidget(QMainWindow):
                     selected_item = item.text()
                 if selected_item == "-" and self.function_name_mapping:
                     selected_item = self.function_name_mapping[(row, label_score_column_index)][0]
-                delegate = self.table_local_functions.itemDelegateForColumn(label_score_column_index)
+                delegate = self.table_local_functions.itemDelegateForColumn(
+                    label_score_column_index
+                )
                 if False:
                     # something we might use in the future for inferring selected labels/rows
-                    if hasattr(delegate, 'getUserInteractionTypeForRow'):
+                    if hasattr(delegate, "getUserInteractionTypeForRow"):
                         interaction_type = delegate.getUserInteractionTypeForRow(row)
-                        print(f"Row {row}: Offset 0x{offset:x}, Selected Item: {selected_item}, item interaction type: {interaction_type}")
+                        print(
+                            f"Row {row}: Offset 0x{offset:x}, Selected Item: {selected_item}, item interaction type: {interaction_type}"
+                        )
                     else:
-                        print(f"Row {row}: Offset 0x{offset:x}, Selected Item: {selected_item}, item interaction type: N/A")
+                        print(
+                            f"Row {row}: Offset 0x{offset:x}, Selected Item: {selected_item}, item interaction type: N/A"
+                        )
             # TODO we cannot use offset here as this is not known to the Delegate later on.
             # We have to transform this to row indices instead, which should also be known by this time
             self.last_selected_fields[offset] = selected_item
@@ -565,15 +633,16 @@ class FunctionOverviewWidget(QMainWindow):
         self.table_local_functions.setRowCount(len(aggregated_matches))
         self.table_local_functions.resizeRowToContents(0)
         row = 0
-        first_function = None
         self.function_name_mapping = {}
         self.row_criticality_mapping = {}
         self.current_rows = aggregated_matches
-        
+
         if label_score_column_index is not None:
             for function_id, function_info in sorted(aggregated_matches.items()):
                 sorted_labels = sorted(function_info["labels"], reverse=True)
-                self.function_name_mapping[(row, label_score_column_index)] = [f"{label_entry[0]}|{label_entry[1]}" for label_entry in sorted_labels]
+                self.function_name_mapping[(row, label_score_column_index)] = [
+                    f"{label_entry[0]}|{label_entry[1]}" for label_entry in sorted_labels
+                ]
                 self.function_name_mapping[(row, label_score_column_index)].append("-|-")
                 self.row_criticality_mapping[row] = function_info.get("criticality", 0)
                 for column, column_name in enumerate(self.local_function_header_labels):
@@ -587,31 +656,55 @@ class FunctionOverviewWidget(QMainWindow):
             # we need to set up rendering delegates for function names only if we have names at all
             if function_labels:
                 # Set the delegate to create dropdown menus in the second column
-                delegate = DropdownDelegate(self.function_name_mapping, self.row_criticality_mapping, self)
-                self.table_local_functions.setItemDelegateForColumn(label_score_column_index, delegate)
+                delegate = DropdownDelegate(
+                    self.function_name_mapping, self.row_criticality_mapping, self
+                )
+                self.table_local_functions.setItemDelegateForColumn(
+                    label_score_column_index, delegate
+                )
 
                 # Show the dropdown menus immediately
                 for row in range(self.table_local_functions.rowCount()):
-                    item = self.table_local_functions.item(row, label_score_column_index)  # Get the QTableWidgetItem for the cell
+                    item = self.table_local_functions.item(
+                        row, label_score_column_index
+                    )  # Get the QTableWidgetItem for the cell
                     self.table_local_functions.openPersistentEditor(item)
 
         self.table_local_functions.setSelectionMode(self.cc.QAbstractItemView.SingleSelection)
         self.table_local_functions.resizeColumnsToContents()
         self.table_local_functions.setSortingEnabled(True)
         header = self.table_local_functions.horizontalHeader()
-        
+
         # Set column resize modes based on content type
-        offset_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS)
-        label_score_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS)
-        families_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.FAMILIES, self.parent.config.OVERVIEW_TABLE_COLUMNS)
-        samples_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.SAMPLES, self.parent.config.OVERVIEW_TABLE_COLUMNS)
-        functions_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.FUNCTIONS, self.parent.config.OVERVIEW_TABLE_COLUMNS)
-        library_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.IS_LIBRARY, self.parent.config.OVERVIEW_TABLE_COLUMNS)
-        
+        offset_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
+        label_score_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
+        families_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.FAMILIES, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
+        samples_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.SAMPLES, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
+        functions_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.FUNCTIONS, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
+        library_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.IS_LIBRARY, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
+
         for header_id in range(0, len(self.local_function_header_labels), 1):
             try:
                 # Set minimal width for numeric and fixed-content columns
-                if header_id in [offset_column_index, families_column_index, samples_column_index, functions_column_index, library_column_index]:
+                if header_id in [
+                    offset_column_index,
+                    families_column_index,
+                    samples_column_index,
+                    functions_column_index,
+                    library_column_index,
+                ]:
                     header.setSectionResizeMode(header_id, header_view.ResizeToContents)
                 # Let the score/label column stretch to fill remaining space
                 elif header_id == label_score_column_index:
@@ -619,28 +712,31 @@ class FunctionOverviewWidget(QMainWindow):
                 else:
                     # Fallback for any other columns
                     header.setSectionResizeMode(header_id, header_view.ResizeToContents)
-            except:
+            except Exception:
                 # Fallback for older Qt versions
-                if header_id in [offset_column_index, families_column_index, samples_column_index, functions_column_index, library_column_index]:
+                if header_id in [
+                    offset_column_index,
+                    families_column_index,
+                    samples_column_index,
+                    functions_column_index,
+                    library_column_index,
+                ]:
                     header.setResizeMode(header_id, header_view.ResizeToContents)
                 elif header_id == label_score_column_index:
                     header.setResizeMode(header_id, header_view.Stretch)
                 else:
                     header.setResizeMode(header_id, header_view.ResizeToContents)
-        
+
         # Don't stretch the last section since we're handling it explicitly
         header.setStretchLastSection(False)
 
-################################################################################
-# Buttons and Actions
-################################################################################
+    ################################################################################
+    # Buttons and Actions
+    ################################################################################
 
     def _onTableFunctionsSelectionChanged(self, selected, deselected):
         try:
-            selected_row = self.table_local_functions.selectedItems()[0].row()
-            function_offset_column = McritTableColumn.columnTypeToIndex(McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS)
-            if function_offset_column is not None:
-                function_offset = int(self.table_local_functions.item(selected_row, function_offset_column).text(), 16)
+            self.table_local_functions.selectedItems()[0].row()
         except IndexError:
             # we can ignore this, as it may happen when a popup window is closed
             pass
@@ -650,30 +746,48 @@ class FunctionOverviewWidget(QMainWindow):
         If a row in the best family match table is clicked, handle the selection
         """
         # For left click (default behavior), just handle the selection
-        function_offset_column = McritTableColumn.columnTypeToIndex(McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+        function_offset_column = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
         if function_offset_column is not None:
-            clicked_function_address = self.table_local_functions.item(mi.row(), function_offset_column).text()
+            clicked_function_address = self.table_local_functions.item(
+                mi.row(), function_offset_column
+            ).text()
             as_int = int(clicked_function_address, 16)
             self.last_function_selected = as_int
 
     def _handleRightClickOnRow(self, row, column):
         """Handle right-click action for a specific row and column"""
-        function_offset_column = McritTableColumn.columnTypeToIndex(McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS)
-        function_label_column = McritTableColumn.columnTypeToIndex(McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+        function_offset_column = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
+        function_label_column = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
         if column == function_label_column and row >= 0:
             # For this column, get the specific function's labels from the current row
             function_ids = list(sorted(self.current_rows.keys()))
             if row < len(function_ids):
                 function_id = function_ids[row]
                 aggregated_result = self.current_rows[function_id]
-                print(f"Labels for function id {function_id} @ {self.table_local_functions.item(row, function_offset_column).text()}")
+                print(
+                    f"Labels for function id {function_id} @ {self.table_local_functions.item(row, function_offset_column).text()}"
+                )
                 for label in sorted(aggregated_result["labels"], reverse=True):
-                    print(f"  Score: {label[0]}, Label: {label[1]}, Username: {label[2]}, Timestamp: {label[3]}")
+                    print(
+                        f"  Score: {label[0]}, Label: {label[1]}, Username: {label[2]}, Timestamp: {label[3]}"
+                    )
 
     def _onTableFunctionsDoubleClicked(self, mi):
-        function_offset_column = McritTableColumn.columnTypeToIndex(McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS)
-        function_label_column = McritTableColumn.columnTypeToIndex(McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS)
-        clicked_function_address = self.table_local_functions.item(mi.row(), function_offset_column).text()
+        function_offset_column = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
+        function_label_column = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
+        clicked_function_address = self.table_local_functions.item(
+            mi.row(), function_offset_column
+        ).text()
         if mi.column() not in [function_offset_column, function_label_column]:
             self.cc.ida_proxy.Jump(int(clicked_function_address, 16))
             # change to function scope tab

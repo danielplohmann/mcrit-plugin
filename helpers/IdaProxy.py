@@ -24,13 +24,13 @@
 #
 ########################################################################
 
+import ida_bytes
 import idaapi
 import idautils
 import idc
-import ida_bytes
 
 
-class IdaProxy():
+class IdaProxy:
     """
     This class serves as a generic proxy to the IDA Pro Python API. This is neccessary because while running the
     plugin, dynamic references to the loaded Python modules get lost when inside functions called by Qt.
@@ -68,9 +68,9 @@ class IdaProxy():
             self.ASCSTR_C = self.idc.STRTYPE_C
         self.FUNCATTR_START = self.idc.FUNCATTR_START
 
-###############################################################################
-# From idc.py
-###############################################################################
+    ###############################################################################
+    # From idc.py
+    ###############################################################################
 
     def AddHotkey(self, hotkey, function):
         return self.idc.AddHotkey(hotkey, function)
@@ -165,7 +165,9 @@ class IdaProxy():
             return type_at_address
         else:
             if self.verbose:
-                print ("[!] IdaProxy.FlowChart: No type information for 0x%x available, returning \"\".") % address
+                print(
+                    '[!] IdaProxy.FlowChart: No type information for 0x%x available, returning "".'
+                ) % address
             return ""
 
     def isCode(self, flags):
@@ -182,7 +184,7 @@ class IdaProxy():
 
     def MakeNameEx(self, address, name, warning_level):
         return self.idc.MakeNameEx(address, name, warning_level)
-    
+
     def set_name(self, address, name, warning_level):
         return self.idc.set_name(address, name, warning_level)
 
@@ -231,9 +233,9 @@ class IdaProxy():
     def GetOpnd(self, ea, n):
         return self.idc.GetOpnd(ea, n)
 
-###############################################################################
-# From idaapi.py
-###############################################################################
+    ###############################################################################
+    # From idaapi.py
+    ###############################################################################
 
     def CompileLine(self, line):
         return self.idaapi.CompileLine(line)
@@ -248,13 +250,17 @@ class IdaProxy():
         function_chart = []
         try:
             function_chart = self.idaapi.FlowChart(function_address)
-        except:
+        except Exception:
             if self.verbose:
                 if function_address is not None:
-                    print ("[!] Trying to resolve an API address in non-function code at location: 0x%x, continuing " \
-                        + "analysis...") % function_address
+                    print(
+                        "[!] Trying to resolve an API address in non-function code at location: 0x%x, continuing "
+                        + "analysis..."
+                    ) % function_address
                 else:
-                    print ("[!] IdaProxy.FlowChart: Tried to create a FlowChart on None object, skipping function.")
+                    print(
+                        "[!] IdaProxy.FlowChart: Tried to create a FlowChart on None object, skipping function."
+                    )
         return function_chart
 
     def get_func(self, function_address):
@@ -281,9 +287,9 @@ class IdaProxy():
     def enum_import_names(self, mod_index, py_cb):
         return self.idaapi.enum_import_names(mod_index, py_cb)
 
-###############################################################################
-# From idautils.py
-###############################################################################
+    ###############################################################################
+    # From idautils.py
+    ###############################################################################
 
     def CodeRefsFrom(self, source, flow):
         return self.idautils.CodeRefsFrom(source, flow)
@@ -318,9 +324,9 @@ class IdaProxy():
     def XrefsTo(self, ea, flag=0):
         return self.idautils.XrefsTo(ea, flag)
 
-###############################################################################
-# From idautils.py
-###############################################################################
-    
+    ###############################################################################
+    # From idautils.py
+    ###############################################################################
+
     def GetBytes(self, address, size):
         return self.ida_bytes.get_bytes(address, size)

@@ -1,10 +1,9 @@
-
 import helpers.QtShim as QtShim
+
 QDialog = QtShim.get_QDialog()
 
 
 class SmdaInfoDialog(QDialog):
-
     def __init__(self, parent):
         self.cc = parent.cc
         self.cc.QDialog.__init__(self, parent)
@@ -68,9 +67,8 @@ class SmdaInfoDialog(QDialog):
         return {
             "family": self._sample_family,
             "version": self._sample_version,
-            "is_library": self._sample_is_library
+            "is_library": self._sample_is_library,
         }
-
 
     def _createFamilyChooserLineedit(self):
         """
@@ -98,5 +96,11 @@ class SmdaInfoDialog(QDialog):
         if self.parent.parent.family_infos and len(family_chooser_text) > 0:
             if family_chooser_text != self.old_family_chooser_text:
                 self.old_family_chooser_text = family_chooser_text
-                keyword_data = sorted([family_entry.family_name.lower() for family_entry in self.parent.parent.family_infos.values() if family_chooser_text.lower() in family_entry.family_name.lower()])
+                keyword_data = sorted(
+                    [
+                        family_entry.family_name.lower()
+                        for family_entry in self.parent.parent.family_infos.values()
+                        if family_chooser_text.lower() in family_entry.family_name.lower()
+                    ]
+                )
                 self.completer_model.setStringList(keyword_data)

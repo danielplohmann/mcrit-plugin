@@ -1,11 +1,11 @@
 import datetime
 
 import helpers.QtShim as QtShim
+
 QMainWindow = QtShim.get_QMainWindow()
 
 
 class LocalInfoWidget(QMainWindow):
-
     def __init__(self, parent):
         self.cc = parent.cc
         self.cc.QMainWindow.__init__(self)
@@ -91,8 +91,8 @@ class LocalInfoWidget(QMainWindow):
         local_smda_report = self.parent.getLocalSmdaReport()
         if local_smda_report:
             for smda_function in local_smda_report.getFunctions():
-                    for smda_ins in smda_function.getInstructions():
-                        num_bytes += len(smda_ins.bytes) / 2
+                for smda_ins in smda_function.getInstructions():
+                    num_bytes += len(smda_ins.bytes) / 2
         return num_bytes
 
     def update(self):
@@ -103,15 +103,31 @@ class LocalInfoWidget(QMainWindow):
         self.label_architecture_value.setText(local_smda_report.architecture)
         self.label_bitness_value.setText("%d bit" % local_smda_report.bitness)
         self.label_image_base_value.setText("0x%x" % local_smda_report.base_addr)
-        self.label_functions_value.setText("%d (leaf: %d, recursive: %d)" % (local_smda_report.num_functions, local_smda_report.statistics.num_leaf_functions, local_smda_report.statistics.num_recursive_functions))
-        self.label_instructions_value.setText("%d" % (local_smda_report.statistics.num_instructions))
+        self.label_functions_value.setText(
+            "%d (leaf: %d, recursive: %d)"
+            % (
+                local_smda_report.num_functions,
+                local_smda_report.statistics.num_leaf_functions,
+                local_smda_report.statistics.num_recursive_functions,
+            )
+        )
+        self.label_instructions_value.setText(
+            "%d" % (local_smda_report.statistics.num_instructions)
+        )
         self.label_size_value.setText("%d bytes" % self._summarizeLocalReportInstructionBytes())
         self.label_family_value.setText(local_smda_report.family)
         self.label_version_value.setText(local_smda_report.version)
         is_library = "YES" if local_smda_report.is_library else "NO"
         self.label_library_value.setText(is_library)
         if self.parent.remote_sample_entry:
-            self.label_remote_sample_info.setText("Remote sample: %s (%s -- %s)" % (self.parent.remote_sample_entry.sample_id, self.parent.remote_sample_entry.family, self.parent.remote_sample_entry.version))
+            self.label_remote_sample_info.setText(
+                "Remote sample: %s (%s -- %s)"
+                % (
+                    self.parent.remote_sample_entry.sample_id,
+                    self.parent.remote_sample_entry.family,
+                    self.parent.remote_sample_entry.version,
+                )
+            )
 
     def updateActivityInfo(self, message):
         timestamp = self._datetime.datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%SZ")
@@ -126,5 +142,12 @@ class LocalInfoWidget(QMainWindow):
             num_functions = statistics["num_functions"]
             fun_str = "functions" if num_functions != 1 else "function"
         version_text = version if version is not None else "No connection"
-        status_text = "Content: %d %s with %d %s containing %d %s." % (num_families, fam_str, num_samples, sam_str, num_functions, fun_str) if statistics else "No statistics"
-        self.label_mcrit_server_info.setText("Remote server: %s  -- %s -- %s." % (mcrit_server, version_text, status_text))
+        status_text = (
+            "Content: %d %s with %d %s containing %d %s."
+            % (num_families, fam_str, num_samples, sam_str, num_functions, fun_str)
+            if statistics
+            else "No statistics"
+        )
+        self.label_mcrit_server_info.setText(
+            "Remote server: %s  -- %s -- %s." % (mcrit_server, version_text, status_text)
+        )

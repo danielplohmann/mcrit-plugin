@@ -1,47 +1,47 @@
 import math
 
+
 class ScoreColorProvider(object):
-    
     frequency_color_map = {
         # white
-        0 : (0xff, 0xff, 0xff),
+        0: (0xFF, 0xFF, 0xFF),
         # blue
-        1: (0x10, 0x7f, 0xfc),
+        1: (0x10, 0x7F, 0xFC),
         # light blue
-        2: (0x22, 0xfe, 0xfd),
+        2: (0x22, 0xFE, 0xFD),
         # green
-        3: (0x1f, 0xfe, 0x28),
+        3: (0x1F, 0xFE, 0x28),
         # green yellow: (0xc1, 0xfe, 0x2f)
         # yellow
-        4: (0xff, 0xff, 0x35),
+        4: (0xFF, 0xFF, 0x35),
         # light orange: (0xfe, 0xc1, 0x2c)
         # orange
-        5: (0xfe, 0x82, 0x25),
+        5: (0xFE, 0x82, 0x25),
         # light red:
-        #6: (0xfd, 0x46, 0x21),
+        # 6: (0xfd, 0x46, 0x21),
         # red
-        6: (0xfd, 0x1a, 0x20),
+        6: (0xFD, 0x1A, 0x20),
         # violet
-        7: (0xb4, 0x00, 0xff)
+        7: (0xB4, 0x00, 0xFF),
     }
 
     matching_color_map_50 = {
         # white
-        0: (0xff, 0xff, 0xff),
+        0: (0xFF, 0xFF, 0xFF),
         # dark blue
-        1: (0x00, 0x45, 0xba),
+        1: (0x00, 0x45, 0xBA),
         # blue
-        2: (0x00, 0x80, 0xff),
+        2: (0x00, 0x80, 0xFF),
         # light blue
-        3: (0x22, 0xfe, 0xfd),
+        3: (0x22, 0xFE, 0xFD),
         # green
-        4: (0x1f, 0xfe, 0x28),
+        4: (0x1F, 0xFE, 0x28),
         # yellow
-        5: (0xff, 0xff, 0x35),
+        5: (0xFF, 0xFF, 0x35),
         # orange
-        6: (0xfe, 0x82, 0x25),
+        6: (0xFE, 0x82, 0x25),
         # red
-        7: (0xfd, 0x1a, 0x20),
+        7: (0xFD, 0x1A, 0x20),
     }
 
     def _calculateLogScore(self, cluster_size):
@@ -56,7 +56,9 @@ class ScoreColorProvider(object):
         return tuple(int(255 - opacity * (255 - e)) for e in tup)
 
     def frequencyToColor(self, count, opacity=1):
-        top_color_tuple = self._adjustOpacity(self.frequency_color_map[max(self.frequency_color_map)], opacity)
+        top_color_tuple = self._adjustOpacity(
+            self.frequency_color_map[max(self.frequency_color_map)], opacity
+        )
         frequency = self._calculateLogScore(count)
         if frequency in self.frequency_color_map:
             top_color_tuple = self._adjustOpacity(self.frequency_color_map[frequency], opacity)
