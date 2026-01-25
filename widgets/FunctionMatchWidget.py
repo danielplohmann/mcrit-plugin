@@ -2,6 +2,11 @@ import idaapi
 import ida_funcs
 import ida_kernwin
 
+try:
+    import ida_hexrays
+except ImportError:
+    ida_hexrays = None
+
 from mcrit.storage.MatchingResult import MatchingResult
 from mcrit.storage.MatchedFunctionEntry import MatchedFunctionEntry
 from mcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
@@ -151,9 +156,12 @@ class FunctionMatchWidget(QMainWindow):
 
         elif widgetType == idaapi.BWN_PSEUDOCODE:
             ea = ida_kernwin.get_screen_ea()
-            if not ea:
+            if not ea or ida_hexrays is None:
                 return
-            cfunc = idaapi.decompile(ea)
+            try:
+                cfunc = ida_hexrays.decompile(ea)
+            except ida_hexrays.DecompilationFailure:
+                return
             for cc, item in enumerate(cfunc.treeitems):
                 if item.ea != idaapi.BADADDR:
                     if cfunc.treeitems.at(cc).ea == ea:

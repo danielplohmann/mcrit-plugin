@@ -1,5 +1,6 @@
 import datetime
-import pyperclip
+
+import helpers.pyperclip as pyperclip
 
 import helpers.QtShim as QtShim
 QDialog = QtShim.get_QDialog()

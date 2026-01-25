@@ -14,7 +14,7 @@ class LocalInfoWidget(QMainWindow):
         # enable access to shared MCRIT4IDA modules
         self.parent = parent
         self.name = "LocalInfo"
-        self.icon = self.cc.QIcon(self.parent.config.ICON_FILE_PATH + "inspection.png")
+        self.icon = self.cc.QIcon(self.parent.config.ICON_FILE_PATH + "scan.png")
         self.central_widget = self.cc.QWidget()
         self.setCentralWidget(self.central_widget)
         self.label_mcrit_activity_info = self.cc.QLabel("Activity Info: <PLACEHOLDER>")
@@ -97,6 +97,8 @@ class LocalInfoWidget(QMainWindow):
 
     def update(self):
         local_smda_report = self.parent.getLocalSmdaReport()
+        if not local_smda_report:
+            return
         self.label_label_sha256_value.setText(local_smda_report.sha256)
         self.label_architecture_value.setText(local_smda_report.architecture)
         self.label_bitness_value.setText("%d bit" % local_smda_report.bitness)

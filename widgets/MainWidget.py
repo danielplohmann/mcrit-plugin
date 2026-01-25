@@ -24,7 +24,6 @@ class MainWidget(QMainWindow):
         self.name = "Main"
         self.icon = self.cc.QIcon(self.parent.config.ICON_FILE_PATH + "mcrit.png")
         self.tabs = None
-        self.tabbed_widgets = [self.parent.function_match_widget, self.parent.sample_widget, self.parent.function_widget]
         self.tabbed_widgets = [self.parent.block_match_widget, self.parent.function_match_widget, self.parent.function_widget]
         self.central_widget = self.cc.QWidget()
         self.setCentralWidget(self.central_widget)

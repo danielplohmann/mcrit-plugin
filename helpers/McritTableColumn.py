@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 # This file holds enums for configurable table column types across the different tables in the MCRIT plugin.
 # The SHA256 hash of the sample, shortened to the first 8 hexbytes, right-click copies full hash to clipboard.
 SHA256 = 1
@@ -60,7 +62,7 @@ MAP_COLUMN_TO_HEADER_STRING = {
     SCORE_AND_LABEL: "Score & Labels",
 }
 
-def columnTypeToIndex(column_type: int, configured_columns: list[int]) -> int | None:
+def columnTypeToIndex(column_type: int, configured_columns: List[int]) -> Optional[int]:
     """
     Given a column type and a list of configured columns, return the index of the column type in the list.
     If the column type is not found, return None.

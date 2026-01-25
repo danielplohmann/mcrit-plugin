@@ -1,16 +1,18 @@
 import json
 import os
-import sys
 import traceback
 import requests
 
+_SMDA_IMPORT_ERROR = None
 try:
     from smda.Disassembler import Disassembler
     from smda.ida.IdaInterface import IdaInterface
     from smda.common.BinaryInfo import BinaryInfo
-except:
-    print("SMDA not found, please install it (and its dependencies) as a python package to proceed!")
-    sys.exit()
+except Exception as exc:
+    Disassembler = None
+    IdaInterface = None
+    BinaryInfo = None
+    _SMDA_IMPORT_ERROR = exc
 #from helpers.SmdaConfig import SmdaConfig
 
 from mcrit.client.McritClient import McritClient
@@ -20,6 +22,10 @@ from mcrit.storage.MatchingResult import MatchingResult
 class McritInterface(object):
 
     def __init__(self, parent):
+        if Disassembler is None or IdaInterface is None or BinaryInfo is None:
+            raise ImportError(
+                "SMDA not found, please install it (and its dependencies) as a python package to proceed!"
+            ) from _SMDA_IMPORT_ERROR
         self.parent = parent
         self.config = parent.config
         self._mcrit_server = self.config.MCRIT_SERVER
