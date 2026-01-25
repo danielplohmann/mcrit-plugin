@@ -313,6 +313,10 @@ class Mcrit4IdaPlugin(ida_idaapi.plugin_t):
         self.icon_id = 0
         return Mcrit4IdaPlugmod()
 
+    def run(self, arg):
+        show_mcrit_form()
+        return True
+
 ################################################################################
 # Usage as script
 ################################################################################
