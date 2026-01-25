@@ -107,6 +107,11 @@ class SmdaGraphViewer(idaapi.GraphViewer):
                 GraphCloser(self),
             )
         )
+        ida_kernwin.attach_action_to_popup(
+            self.GetTCustomControl(),
+            None,
+            self._close_action_name,
+        )
         return True
 
     def OnClose(self):
