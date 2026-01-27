@@ -294,16 +294,24 @@ def PLUGIN_ENTRY():
 
 def show_mcrit_form():
     global MCRIT4IDA
+    created_form = False
     if MCRIT4IDA is None:
         try:
             MCRIT4IDA = Mcrit4IdaForm()
+            created_form = True
         except ImportError as exc:
             ida_kernwin.warning(str(exc))
             return None
+    if MCRIT4IDA.Show() is None:
+        if created_form:
+            try:
+                MCRIT4IDA.OnClose(MCRIT4IDA)
+            except Exception as exc:
+                print(f"[!] Error closing MCRIT4IDA after failed show: {exc}")
+            MCRIT4IDA = None
+        return None
     global G_FORM
     G_FORM = MCRIT4IDA
-    if MCRIT4IDA.Show() is None:
-        return None
     return MCRIT4IDA
 
 

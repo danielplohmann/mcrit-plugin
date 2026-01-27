@@ -394,12 +394,17 @@ class FunctionMatchWidget(QMainWindow):
         function_matches_by_id = {
             match.matched_function_id: match for match in match_report.filtered_function_matches
         }
-        self.parent.mcrit_interface.queryFunctionEntriesById(
+        function_entries = self.parent.mcrit_interface.queryFunctionEntriesById(
             [i for i in function_matches_by_id.keys()]
         )
+        if not function_entries:
+            return
         matched_entries = {}
         for function_id in function_matches_by_id.keys():
-            matched_entries[function_id] = self.parent.matched_function_entries[function_id]
+            matched_entry = self.parent.matched_function_entries.get(function_id)
+            if matched_entry is None:
+                continue
+            matched_entries[function_id] = matched_entry
         function_label_entries = []
         for function_id, entry in matched_entries.items():
             if (
