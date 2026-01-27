@@ -233,6 +233,7 @@ class FunctionMatchWidget(QMainWindow):
                 "Can only query functions with 10 instructions or more."
             )
             return
+        match_report = None
         single_function_smda_report = self.parent.getLocalSmdaReportOutline()
         single_function_smda_report.xcfg = {smda_function.offset: smda_function}
         # check if pichash match data is already available in local cache
@@ -281,7 +282,7 @@ class FunctionMatchWidget(QMainWindow):
                     )
                 )
                 self.current_function_offset = self.parent.current_function
-        if match_report:
+        if match_report is not None:
             # populate tables with data
             self.populateFunctionMatchTable(match_report)
             # TODO fetch all labels to populate lower table as soon as we support this

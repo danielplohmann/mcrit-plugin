@@ -267,6 +267,8 @@ class BlockMatchWidget(QMainWindow):
                 num_queries += 1
                 self.parent.blockhash_matches[entry["hash"]] = pichash_matches
             pichash_matches = self.parent.blockhash_matches[entry["hash"]]
+            if pichash_matches is None:
+                pichash_matches = []
             # cache this so we only query once per block
             if entry["offset"] not in self.parent.block_to_hash:
                 self.parent.block_to_hash[entry["offset"]] = entry["hash"]

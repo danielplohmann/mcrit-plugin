@@ -253,8 +253,9 @@ class McritInterface(object):
                 ]
                 if unknown_function_ids:
                     function_entries = self.queryFunctionEntriesById(unknown_function_ids)
-                    for function_id, function_entry in function_entries.items():
-                        self.parent.function_id_to_offset[function_id] = function_entry.offset
+                    if function_entries:
+                        for function_id, function_entry in function_entries.items():
+                            self.parent.function_id_to_offset[function_id] = function_entry.offset
                 return match_report
         except Exception:
             if self._withTraceback:
