@@ -200,7 +200,7 @@ class McritInterface(object):
         self.parent.local_widget.updateActivityInfo("Querying result for job with id: %s" % job_id)
         try:
             matching_result = self.mcrit_client.getResultForJob(job_id)
-            if job_id:
+            if matching_result:
                 self.parent.matching_job_id = job_id
                 self.parent.matching_report = MatchingResult.fromDict(matching_result)
                 self.parent.local_widget.updateActivityInfo("Success! Downloaded MatchResult.")
@@ -242,21 +242,24 @@ class McritInterface(object):
                 )
                 if match_report_dict:
                     self.parent.function_matches.update({smda_function.offset: match_report_dict})
-                match_report = MatchingResult.fromDict(match_report_dict)
-                matched_function_ids = [
-                    match.matched_function_id for match in match_report.function_matches
-                ]
-                unknown_function_ids = [
-                    fid
-                    for fid in matched_function_ids
-                    if fid not in self.parent.function_id_to_offset
-                ]
-                if unknown_function_ids:
-                    function_entries = self.queryFunctionEntriesById(unknown_function_ids)
-                    if function_entries:
-                        for function_id, function_entry in function_entries.items():
-                            self.parent.function_id_to_offset[function_id] = function_entry.offset
-                return match_report
+                if match_report_dict:
+                    match_report = MatchingResult.fromDict(match_report_dict)
+                    matched_function_ids = [
+                        match.matched_function_id for match in match_report.function_matches
+                    ]
+                    unknown_function_ids = [
+                        fid
+                        for fid in matched_function_ids
+                        if fid not in self.parent.function_id_to_offset
+                    ]
+                    if unknown_function_ids:
+                        function_entries = self.queryFunctionEntriesById(unknown_function_ids)
+                        if function_entries:
+                            for function_id, function_entry in function_entries.items():
+                                self.parent.function_id_to_offset[function_id] = (
+                                    function_entry.offset
+                                )
+                    return match_report
         except Exception:
             if self._withTraceback:
                 traceback.print_exc()
