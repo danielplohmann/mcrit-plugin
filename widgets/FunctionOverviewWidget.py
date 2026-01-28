@@ -32,10 +32,12 @@ class ColoredComboBox(QComboBox):
         elif criticality == 1:
             color_rgb = "70, 120, 220"  # blue
         elif criticality == 2:
-            color_rgb = "100, 255, 100"  # green
+            color_rgb = "70, 180, 70"  # dark green
         elif criticality == 3:
+            color_rgb = "100, 255, 100"  # green
+        elif criticality == 4:
             color_rgb = "255, 255, 100"  # yellow
-        elif criticality >= 4:
+        elif criticality >= 5:
             color_rgb = "255, 100, 100"  # red
         
         if color_rgb:
@@ -89,8 +91,6 @@ class ColoredComboBox(QComboBox):
         # If dropdown was opened but no selection was made via activated signal,
         # and text didn't change, then user just clicked away
         if hasattr(self, 'dropdown_was_opened') and self.dropdown_was_opened:
-            if not self.user_made_selection:
-                print(f"User opened dropdown but made no selection")
             self.dropdown_was_opened = False
     
     def setCurrentText(self, text):
@@ -142,7 +142,9 @@ class DropdownDelegate(QStyledItemDelegate):
         criticality = self.row_criticality_mapping.get(index.row(), 0)
         editor = ColoredComboBox(parent, criticality)
         choices = self.function_name_mapping.get((index.row(), index.column()), [])
-        editor.addItems(choices)
+        choice_items = [entry["text"] for entry in choices]
+        editor.addItems(choice_items)
+        editor.setCurrentText(next((entry["text"] for entry in choices if entry["preselected"]), choice_items[0]))
 
         # Store editor reference by row
         self.editors_by_row[index.row()] = editor
@@ -196,6 +198,8 @@ class FunctionOverviewWidget(QMainWindow):
         self.cc = parent.cc
         self.cc.QMainWindow.__init__(self)
         print("[|] loading FunctionOverviewWidget")
+        self.last_selected_fields = {}  # offset -> selected label string
+        self.resolved_function_labels = {}  # offset -> resolved label string
         # enable access to shared MCRIT4IDA modules
         self.parent = parent
         self.name = "Function Overview"
@@ -236,14 +240,28 @@ class FunctionOverviewWidget(QMainWindow):
             self.rb_filter_none.setChecked(True)
         
         # Connect radio buttons to populate function
-        self.rb_filter_none.toggled.connect(self.populateFunctionTable)
-        self.rb_filter_labels.toggled.connect(self.populateFunctionTable)
-        self.rb_filter_applicable.toggled.connect(self.populateFunctionTable)
-        self.rb_filter_conflicted.toggled.connect(self.populateFunctionTable)
+        self.rb_filter_none.toggled.connect(self.update)
+        self.rb_filter_labels.toggled.connect(self.update)
+        self.rb_filter_applicable.toggled.connect(self.update)
+        self.rb_filter_conflicted.toggled.connect(self.update)
+
+        # Create horizontal layout for button container
+        self.button_container = self.cc.QWidget()
+        self.button_layout = self.cc.QHBoxLayout()
+        self.button_container.setLayout(self.button_layout)
+        
+        # Create buttons
+        self.b_select_deselect_all = self.cc.QPushButton("(de)select all")
+        self.b_select_deselect_all.clicked.connect(self.selectDeselectAllLabels)
         
         self.b_import_labels = self.cc.QPushButton("Import all labels for unnamed functions")
         # TODO implement an actual selective import function here
         self.b_import_labels.clicked.connect(self.importSelectedLabels)
+        
+        # Add buttons to horizontal layout
+        self.button_layout.addWidget(self.b_select_deselect_all)
+        self.button_layout.addWidget(self.b_import_labels)
+        self.button_layout.addStretch()  # Add stretch to push buttons to the left
         self.sb_minhash_threshold = self.cc.QSpinBox()
         self.sb_minhash_threshold.setRange(100, 100)
         self.sb_minhash_threshold.valueChanged.connect(self.handleSpinThresholdChange)
@@ -278,7 +296,7 @@ class FunctionOverviewWidget(QMainWindow):
         function_info_layout = self.cc.QVBoxLayout()
         function_info_layout.addWidget(self.b_fetch_labels)
         function_info_layout.addWidget(self.filter_container)
-        function_info_layout.addWidget(self.b_import_labels)
+        function_info_layout.addWidget(self.button_container)
         function_info_layout.addWidget(self.sb_minhash_threshold)
         function_info_layout.addWidget(self.hline)
         function_info_layout.addWidget(self.label_local_functions)
@@ -328,6 +346,61 @@ class FunctionOverviewWidget(QMainWindow):
             return "conflicted"
         return "none"  # fallback
 
+    def getSelectedLabel(self, row, column):
+        """Get the currently selected label value from a ComboBox editor or table item"""
+        # Get the actual selected value from the ComboBox editor, not the table item
+        selected_item_value = None
+        delegate = self.table_local_functions.itemDelegateForColumn(column)
+        if hasattr(delegate, 'getEditorForRow'):
+            editor = delegate.getEditorForRow(row)
+            if editor:
+                selected_item_value = editor.currentText()
+        
+        # Fallback to table item if no editor found
+        if selected_item_value is None:
+            selected_item_value = self.table_local_functions.item(row, column).text() if column is not None else None
+        
+        return selected_item_value
+
+    def selectDeselectAllLabels(self):
+        """Toggle between selecting all labels or deselecting all labels"""
+        match_report = self.parent.getMatchingReport()
+        if match_report is None:
+            return
+        
+        # Get all offsets from the current matching report
+        current_offsets = set()
+        for function_match in match_report.function_matches:
+            current_offsets.add(function_match.offset)
+        
+        # Check current state: count how many are NOT set to the empty demarker "-|-"
+        non_empty_count = 0
+        total_count = len(current_offsets)
+        
+        for offset in current_offsets:
+            selected_value = self.last_selected_fields.get(offset, "-")
+            if selected_value != "-|-":
+                non_empty_count += 1
+        
+        print(f"Current state: {non_empty_count}/{total_count} functions have labels selected")
+        
+        # Decision logic based on current state
+        if non_empty_count > 0:
+            # DESELECTION: At least one row is not set to empty demarker
+            print("Performing deselection - setting all to empty demarker")
+            for offset in current_offsets:
+                self.last_selected_fields[offset] = "-|-"
+            self.resolved_function_labels = {}  # Clear resolved labels as well
+            self.parent.local_widget.updateActivityInfo(f"Deselected labels for {total_count} functions.")
+        else:
+            # SELECTION: All rows are currently set to empty demarker or unset
+            print("Performing selection - resetting selection memory")
+            self.last_selected_fields = {}  # Reset to forget chosen values
+            self.parent.local_widget.updateActivityInfo(f"Reset label selection for {total_count} functions.")
+        
+        # Refresh the table to show the changes
+        self.populateFunctionTable(track_selection=False)
+
     def importSelectedLabels(self):
         # get currently selected names from all dropdowns in the table
         label_score_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS)
@@ -335,32 +408,25 @@ class FunctionOverviewWidget(QMainWindow):
         num_names_skipped = 0
         for row_id in range(self.table_local_functions.rowCount()):
             offset = int(self.table_local_functions.item(row_id, 0).text(), 16)
-            label_via_table = self.table_local_functions.item(row_id, label_score_column_index).text()
-            result_label = label_via_table
-            label_via_mapping = "-"
-            map_entry = self.function_name_mapping[(row_id, label_score_column_index)]
-            if len(map_entry) > 0:
-                label_via_mapping = map_entry[0]
-            if label_via_table == "-":
-                result_label = label_via_mapping
+            label_via_table = self.getSelectedLabel(row_id, label_score_column_index)
             # we did not get a usable label, we continue to the next row
-            if result_label == "-":
+            if label_via_table == "-":
                 continue
             # we found a manually disabled label, we continue to the next row
-            if result_label == "-|-":
+            if label_via_table == "-|-":
                 num_names_skipped += 1
                 continue
             # extract the actual name from the score|name pair
-            label_fields = result_label.split("|")
+            label_fields = label_via_table.split("|")
             if len(label_fields) < 2:
-                self.parent.local_widget.updateActivityInfo(f"Error: Could not parse label '{result_label}' for function at 0x{offset:x}.")
+                self.parent.local_widget.updateActivityInfo(f"Error: Could not parse label '{label_via_table}' for function at 0x{offset:x}.")
                 continue
-            result_label = result_label.split("|")[1]
+            label_via_table = label_via_table.split("|")[1]
             # check if IDA function has default name
             ida_function_name = ida_funcs.get_func_name(offset)
             if ida_function_name and re.match("sub_[0-9A-Fa-f]+$", ida_function_name):
                 # apply label
-                self.cc.ida_proxy.set_name(offset, result_label, self.cc.ida_proxy.SN_NOWARN)
+                self.cc.ida_proxy.set_name(offset, label_via_table, self.cc.ida_proxy.SN_NOWARN)
                 num_names_applied += 1
         if num_names_applied:
             self.parent.local_widget.updateActivityInfo(f"Success! Imported {num_names_applied} function names (skipped: {num_names_skipped}).")
@@ -398,14 +464,17 @@ class FunctionOverviewWidget(QMainWindow):
             self.sb_minhash_threshold.setRange(config_adjusted_lower_value, self.global_maximum_match_value)
             self.sb_minhash_threshold.setValue(config_adjusted_lower_value)
 
-    def _calculateLabelCriticality(self, label_list, has_function_name=False):
+    def _calculateLabelCriticality(self, label_list, has_function_name=False, is_resolved=False):
         criticality = 0
         if len(label_list) == 0:
             return criticality
         if has_function_name:
             criticality = 1
             return criticality
-        criticality = 2
+        if is_resolved:
+            criticality = 2
+            return criticality
+        criticality = 3
         label_set = set([label_entry[1] for label_entry in label_list])
         top_score = max([label_entry[0] for label_entry in label_list])
         top_score_label_pool = [label_entry for label_entry in label_list if label_entry[0] == top_score]
@@ -433,7 +502,7 @@ class FunctionOverviewWidget(QMainWindow):
             tmp_item = self.cc.QTableWidgetItem("%s" % label_value)
         return tmp_item
 
-    def populateFunctionTable(self):
+    def populateFunctionTable(self, track_selection=True):
         """
         Populate the function table with information about matches of local functions.
         """
@@ -498,20 +567,15 @@ class FunctionOverviewWidget(QMainWindow):
         crit_functions_beyond_filters = set()
         crit_matches_beyond_filters = 0
         crit_function_labels = []
-        print("* Calculating criticality for functions and filtering *")
         for function_id, function_info in sorted(aggregated_matches.items()):
             ida_function_name = ida_funcs.get_func_name(function_info["offset"])
             is_custom_name = re.match("sub_[0-9A-Fa-f]+$", ida_function_name) is None
-            # print(f"Function 0x{function_info['offset']:x} has name '{ida_function_name}', custom: {is_custom_name}")
-            criticality = self._calculateLabelCriticality(list(sorted(function_info["labels"], reverse=True)), has_function_name=is_custom_name)
+            criticality = self._calculateLabelCriticality(list(sorted(function_info["labels"], reverse=True)), has_function_name=is_custom_name, is_resolved=function_info["offset"] in self.resolved_function_labels)
             function_info["criticality"] = criticality
-            print(f"Function 0x{function_info['offset']:x} criticality: {criticality}")
             if criticality > 0:
                 if self.getSelectedFilter() == "applicable" and criticality < 2:
-                    print("  -> filtered out by applicable filter")
                     continue
-                if self.getSelectedFilter() == "conflicted" and criticality < 3:
-                    print("  -> filtered out by conflicted filter")
+                if self.getSelectedFilter() == "conflicted" and criticality < 4:
                     continue
                 filtered_list[function_id] = function_info
                 crit_functions_beyond_filters.add(function_id)
@@ -533,30 +597,38 @@ class FunctionOverviewWidget(QMainWindow):
         self.local_function_header_labels = [McritTableColumn.MAP_COLUMN_TO_HEADER_STRING[col] for col in self.parent.config.OVERVIEW_TABLE_COLUMNS]
         self.table_local_functions.setSortingEnabled(False)
 
-        # maintain a registry of current selections made by the user
-        self.last_selected_fields = {}
-        for row in range(self.table_local_functions.rowCount()):
-            offset = None
-            selected_item = None
-            if offset_column_index is not None:
-                offset = int(self.table_local_functions.item(row, offset_column_index).text(), 16)
-            if label_score_column_index is not None:
-                item = self.table_local_functions.item(row, label_score_column_index)
+        if track_selection:
+            # maintain a registry of current selections made by the user
+            new_selected_fields = {}
+            for row in range(self.table_local_functions.rowCount()):
+                offset = int(self.table_local_functions.item(row, offset_column_index).text(), 16) if offset_column_index is not None else None
+                item = self.table_local_functions.item(row, label_score_column_index).text() if label_score_column_index is not None else None
+                selected_item = None
                 if item is not None:
-                    selected_item = item.text()
+                    if offset is not None:
+                        if offset in self.last_selected_fields:
+                            if item == "-":
+                                selected_item = self.last_selected_fields[offset]
+                            elif item != self.last_selected_fields[offset]:
+                                selected_item = item
+                            else:
+                                selected_item = self.last_selected_fields[offset]
+                            score = selected_item.split("|")[0] if "|" in selected_item else "-"
+                            if score != "-":
+                                if int(score) >= threshold_value:
+                                    # selection is fine, keep it
+                                    pass
+                                else:
+                                    # set to highest value instead
+                                    selected_item = "-" 
+                            else:
+                                selected_item = "-|-"
+                        else:
+                            selected_item = item
                 if selected_item == "-" and self.function_name_mapping:
-                    selected_item = self.function_name_mapping[(row, label_score_column_index)][0]
-                delegate = self.table_local_functions.itemDelegateForColumn(label_score_column_index)
-                if False:
-                    # something we might use in the future for inferring selected labels/rows
-                    if hasattr(delegate, 'getUserInteractionTypeForRow'):
-                        interaction_type = delegate.getUserInteractionTypeForRow(row)
-                        print(f"Row {row}: Offset 0x{offset:x}, Selected Item: {selected_item}, item interaction type: {interaction_type}")
-                    else:
-                        print(f"Row {row}: Offset 0x{offset:x}, Selected Item: {selected_item}, item interaction type: N/A")
-            # TODO we cannot use offset here as this is not known to the Delegate later on.
-            # We have to transform this to row indices instead, which should also be known by this time
-            self.last_selected_fields[offset] = selected_item
+                    selected_item = self.function_name_mapping[(row, label_score_column_index)][0]["text"]
+                new_selected_fields[offset] = selected_item
+            self.last_selected_fields = new_selected_fields
 
         self.table_local_functions.clear()
         self.table_local_functions.setColumnCount(len(self.local_function_header_labels))
@@ -572,9 +644,23 @@ class FunctionOverviewWidget(QMainWindow):
         
         if label_score_column_index is not None:
             for function_id, function_info in sorted(aggregated_matches.items()):
-                sorted_labels = sorted(function_info["labels"], reverse=True)
-                self.function_name_mapping[(row, label_score_column_index)] = [f"{label_entry[0]}|{label_entry[1]}" for label_entry in sorted_labels]
-                self.function_name_mapping[(row, label_score_column_index)].append("-|-")
+                # set label based on stored selection if available
+                rows_labels = []
+                preselected_label = self.last_selected_fields.get(function_info["offset"], None)
+                if function_info["offset"] in self.resolved_function_labels:
+                    resolved_label = self.resolved_function_labels[function_info["offset"]]
+                    preselected_label = resolved_label
+                label_assigned = False
+                for label_entry in sorted(function_info["labels"], reverse=True):
+                    formatted_label_entry = f"{label_entry[0]}|{label_entry[1]}"
+                    if formatted_label_entry == preselected_label and not label_assigned:
+                        rows_labels.append({"text": formatted_label_entry, "preselected": True})
+                        label_assigned = True
+                    else:
+                        rows_labels.append({"text": formatted_label_entry, "preselected": False})
+                rows_labels.append({"text": "-|-", "preselected": preselected_label == "-|-"})
+                self.function_name_mapping[(row, label_score_column_index)] = rows_labels
+
                 self.row_criticality_mapping[row] = function_info.get("criticality", 0)
                 for column, column_name in enumerate(self.local_function_header_labels):
                     column_type = self.parent.config.OVERVIEW_TABLE_COLUMNS[column]
@@ -666,9 +752,26 @@ class FunctionOverviewWidget(QMainWindow):
             if row < len(function_ids):
                 function_id = function_ids[row]
                 aggregated_result = self.current_rows[function_id]
-                print(f"Labels for function id {function_id} @ {self.table_local_functions.item(row, function_offset_column).text()}")
-                for label in sorted(aggregated_result["labels"], reverse=True):
-                    print(f"  Score: {label[0]}, Label: {label[1]}, Username: {label[2]}, Timestamp: {label[3]}")
+                if False:  # Print detailed label information to console for debugging
+                    print(f"Labels for function id {function_id} @ {self.table_local_functions.item(row, function_offset_column).text()}")
+                    for label in sorted(aggregated_result["labels"], reverse=True):
+                        print(f"  Score: {label[0]}, Label: {label[1]}, Username: {label[2]}, Timestamp: {label[3]}")
+                function_offset = aggregated_result["offset"]
+                if function_offset in self.resolved_function_labels:
+                    self.resolved_function_labels.pop(function_offset)
+                    self.update()
+                else:
+                    label_score_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+                    offset_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+                    for row in range(self.table_local_functions.rowCount()):
+                        offset = int(self.table_local_functions.item(row, offset_column_index).text(), 16) if offset_column_index is not None else None
+                        
+                        if offset == function_offset:
+                            selected_item_value = self.getSelectedLabel(row, label_score_column_index)
+                            if selected_item_value is not None:
+                                self.resolved_function_labels[function_offset] = selected_item_value
+                                self.update()
+                                break
 
     def _onTableFunctionsDoubleClicked(self, mi):
         function_offset_column = McritTableColumn.columnTypeToIndex(McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS)
@@ -681,3 +784,4 @@ class FunctionOverviewWidget(QMainWindow):
             self.parent.function_match_widget.queryCurrentFunction()
         elif mi.column() == function_offset_column:
             self.cc.ida_proxy.Jump(int(clicked_function_address, 16))
+

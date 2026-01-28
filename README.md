@@ -86,6 +86,9 @@ hcli plugin install ../mcrit-ida.zip
 
 ##  Version History
 
+### v1.1.3 (2026-01-28)
+- ✨ Significantly improved usablity of FunctionOverviewWidget by being able to deconflict multiple candidate labels.
+
 ### v1.1.2 (2026-01-19)
 - ✨ Optionally use SMDA as backend analysis engine (consistency towards MCRIT server), even when in IDA Pro.
 
