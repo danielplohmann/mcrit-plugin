@@ -8,6 +8,7 @@ import ida_idaapi
 import ida_kernwin
 import idaapi
 from ida_kernwin import PluginForm
+
 try:
     from smda.common.SmdaReport import SmdaReport
     from smda.ida.IdaInterface import IdaInterface
