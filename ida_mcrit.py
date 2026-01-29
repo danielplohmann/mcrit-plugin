@@ -8,8 +8,15 @@ import ida_idaapi
 import ida_kernwin
 import idaapi
 from ida_kernwin import PluginForm
-from smda.common.SmdaReport import SmdaReport
-from smda.ida.IdaInterface import IdaInterface
+try:
+    from smda.common.SmdaReport import SmdaReport
+    from smda.ida.IdaInterface import IdaInterface
+except Exception as exc:
+    SmdaReport = None
+    IdaInterface = None
+    _SMDA_IMPORT_ERROR = exc
+else:
+    _SMDA_IMPORT_ERROR = None
 
 import config
 import helpers.pyperclip as pyperclip
