@@ -5,6 +5,10 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: write
+  packages: read
+
 jobs:
   build-dependencies:
     runs-on: windows-latest
