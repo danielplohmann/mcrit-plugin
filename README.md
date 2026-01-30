@@ -94,24 +94,24 @@ hcli plugin install ../mcrit-ida.zip
 - Dev/CI: Added Ruff config + GitHub Action and reformatted the codebase.
 
 ### v1.1.3 (2026-01-28)
-- ✨ Significantly improved usablity of FunctionOverviewWidget by being able to deconflict multiple candidate labels.
+- Significantly improved usablity of FunctionOverviewWidget by being able to deconflict multiple candidate labels.
 
 ### v1.1.2 (2026-01-19)
-- ✨ Optionally use SMDA as backend analysis engine (consistency towards MCRIT server), even when in IDA Pro.
+- Optionally use SMDA as backend analysis engine (consistency towards MCRIT server), even when in IDA Pro.
 
 ### v1.1.1 (2026-01-15)
-- ✨ Now coloring results in BlockMatch (by frequency) and FunctionMatch (by score) widgets
-- ✨ Can now display offsets of matched functions in FunctionMatchWidget
+- Now coloring results in BlockMatch (by frequency) and FunctionMatch (by score) widgets
+- Can now display offsets of matched functions in FunctionMatchWidget
 
 ### v1.1.0 (2025-12-30)
-- ✨ Full HCLI Plugin Manager support.
-- ⚙️ Migrated configuration to `ida-settings`.
-- 🔧 Code quality improvements.
-- ✅ Strict HCLI compliance.
+- Full HCLI Plugin Manager support.
+- Migrated configuration to `ida-settings`.
+- Code quality improvements.
+- Strict HCLI compliance.
 
 ### v1.0.0 (2025-12-22)
-- 🎉 Initial standalone release.
-- 🔄 IDA 9.2 (PySide6) compatibility.
+- Initial standalone release.
+- IDA 9.2 (PySide6) compatibility.
 
 ## 📄 License
 GPL-3.0. See [LICENSE](LICENSE) for details.

@@ -67,6 +67,14 @@
         "documentation": "Automatically convert IDB to SMDA on plugin startup."
       },
       {
+        "key": "use_smda_for_analysis",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "name": "Use SMDA for Analysis",
+        "documentation": "Use SMDA for code analysis instead of IDA's engine."
+      },
+      {
         "key": "submit_function_names_on_close",
         "type": "boolean",
         "required": false,
