@@ -57,7 +57,7 @@ jobs:
     - name: Create bundle
       run: |
         $bundleName = "mcrit-plugin-dependencies-${{ matrix.variant.name }}-winpy${{ matrix.python-version }}-${{ steps.get_tag.outputs.tag }}.zip"
-        Compress-Archive -Path "wheels\*" -DestinationPath $bundleName
+        Compress-Archive -Path "wheels/*" -DestinationPath $bundleName
         echo "BUNDLE_NAME=$bundleName" >> $env:GITHUB_ENV
         
     - name: Upload bundle as artifact
@@ -66,3 +66,11 @@ jobs:
         name: mcrit-plugin-dependencies-${{ matrix.variant.name }}-winpy${{ matrix.python-version }}-${{ steps.get_tag.outputs.tag }}
         path: ${{ env.BUNDLE_NAME }}
         retention-days: 90
+        
+    - name: Upload bundle to release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: ${{ env.BUNDLE_NAME }}
+        tag_name: ${{ steps.get_tag.outputs.tag }}
+        token: ${{ secrets.GITHUB_TOKEN }}
