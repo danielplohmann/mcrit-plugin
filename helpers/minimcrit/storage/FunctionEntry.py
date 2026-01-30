@@ -67,7 +67,6 @@ class FunctionEntry(object):
     def getMinHash(self, minhash_bits=32):
         return None
 
-
     def toSmdaFunction(self):
         binary_info = BinaryInfo(b"")
         binary_info.architecture = self.architecture
@@ -104,7 +103,11 @@ class FunctionEntry(object):
         function_entry.sample_id = entry_dict["sample_id"]
         function_entry.architecture = entry_dict["architecture"]
         function_entry.function_name = entry_dict["function_name"]
-        function_entry.function_labels = [FunctionLabelEntry.fromDict(l) for l in entry_dict["function_labels"]] if "function_labels" in entry_dict else []
+        function_entry.function_labels = (
+            [FunctionLabelEntry.fromDict(l) for l in entry_dict["function_labels"]]
+            if "function_labels" in entry_dict
+            else []
+        )
         for label in function_entry.function_labels:
             label.setFunctionId(entry_dict["function_id"])
         function_entry.matches = entry_dict["matches"]

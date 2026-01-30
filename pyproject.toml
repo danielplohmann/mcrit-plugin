@@ -1,0 +1,18 @@
+[tool.ruff]
+target-version = "py38"
+line-length = 100
+exclude = [
+    ".git",
+    ".vscode",
+    "helpers/minimcrit",
+    "helpers/pylev",
+    "helpers/pyperclip",
+    "icons",
+    "qt-designer-mockup",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.format]
+line-ending = "lf"

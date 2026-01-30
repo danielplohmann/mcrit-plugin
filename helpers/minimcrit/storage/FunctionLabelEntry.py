@@ -13,8 +13,8 @@ class FunctionLabelEntry(object):
         self,
         function_label: str,
         username: str,
-        function_id: Optional[int]=None,
-        timestamp: Optional[datetime.datetime]=None
+        function_id: Optional[int] = None,
+        timestamp: Optional[datetime.datetime] = None,
     ) -> None:
         self.function_label = function_label
         self.username = username
@@ -40,8 +40,12 @@ class FunctionLabelEntry(object):
         function_label_entry.function_label = entry_dict["function_label"]
         # function_entry.function_id = entry_dict["function_id"]
         function_label_entry.username = entry_dict["username"]
-        function_label_entry.function_id = entry_dict["function_id"] if "function_id" in entry_dict else None
-        function_label_entry.timestamp = datetime.datetime.strptime(entry_dict["timestamp"], "%Y-%m-%dT%H:%M:%S")
+        function_label_entry.function_id = (
+            entry_dict["function_id"] if "function_id" in entry_dict else None
+        )
+        function_label_entry.timestamp = datetime.datetime.strptime(
+            entry_dict["timestamp"], "%Y-%m-%dT%H:%M:%S"
+        )
         return function_label_entry
 
     def __str__(self):

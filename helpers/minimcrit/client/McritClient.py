@@ -15,7 +15,9 @@ from smda.common.SmdaReport import SmdaReport
 from smda.Disassembler import Disassembler
 
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)-7s - %(name)-36s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)-7s - %(name)-36s - %(message)s"
+)
 LOGGER = logging.getLogger(__name__)
 
 
@@ -29,8 +31,10 @@ def isJobTerminated(job):
 
     return job.is_terminated
 
+
 def isJobFailed(job):
     return (job is not None) and (job.is_failed)
+
 
 def isJobFinishedTerminatedOrFailed(job):
     return isJobTerminated(job) or (job.result is not None) or isJobFailed(job)
@@ -69,7 +73,13 @@ class McritClient:
         self.headers.update({"username": username})
 
     def _getMatchingRequestParams(
-        self, minhash_threshold=None, pichash_size=None, force_recalculation=None, band_matches_required=None, exclude_self_matches=False, sample_group_only=False
+        self,
+        minhash_threshold=None,
+        pichash_size=None,
+        force_recalculation=None,
+        band_matches_required=None,
+        exclude_self_matches=False,
+        sample_group_only=False,
     ):
         params = {}
         if minhash_threshold is not None:
@@ -89,7 +99,7 @@ class McritClient:
     def respawn(self):
         response = requests.post(f"{self.mcrit_server}/respawn", headers=self.headers)
         return handle_response(response)
-    
+
     def completeMinhashes(self):
         response = requests.get(f"{self.mcrit_server}/complete_minhashes", headers=self.headers)
         if self.raw:
@@ -101,7 +111,7 @@ class McritClient:
         if self.raw:
             return response
         return handle_response(response)
-    
+
     def recalculatePicHashes(self):
         response = requests.get(f"{self.mcrit_server}/recalculate_pichashes", headers=self.headers)
         if self.raw:
@@ -116,7 +126,9 @@ class McritClient:
 
     def addReport(self, smda_report: SmdaReport) -> Tuple[SampleEntry, Optional[str]]:
         smda_json = smda_report.toDict()
-        response = requests.post(f"{self.mcrit_server}/samples", json=smda_json, headers=self.headers)
+        response = requests.post(
+            f"{self.mcrit_server}/samples", json=smda_json, headers=self.headers
+        )
         if self.raw:
             return response
         data = handle_response(response)
@@ -127,7 +139,16 @@ class McritClient:
                 job_id = None
             return SampleEntry.fromDict(data["sample_info"]), job_id
 
-    def addBinarySample(self, binary: bytes, filename=None, family=None, version=None, is_dump=False, base_addr=None, bitness=None) -> Tuple[SampleEntry, Optional[str]]:
+    def addBinarySample(
+        self,
+        binary: bytes,
+        filename=None,
+        family=None,
+        version=None,
+        is_dump=False,
+        base_addr=None,
+        bitness=None,
+    ) -> Tuple[SampleEntry, Optional[str]]:
         query_fields = []
         if filename is not None:
             query_fields.append(f"filename={filename}")
@@ -144,11 +165,13 @@ class McritClient:
         query_string = ""
         if len(query_fields) > 0:
             query_string = "?" + "&".join(query_fields)
-        response = requests.post(f"{self.mcrit_server}/samples/binary{query_string}", data=binary, headers=self.headers)
+        response = requests.post(
+            f"{self.mcrit_server}/samples/binary{query_string}", data=binary, headers=self.headers
+        )
         return handle_response(response)
 
     ###########################################
-    ### Families 
+    ### Families
     ###########################################
 
     def modifyFamily(self, family_id, family_name=None, is_library=None):
@@ -157,7 +180,9 @@ class McritClient:
             update_dict["family_name"] = family_name
         if is_library is not None:
             update_dict["is_library"] = is_library
-        response = requests.put(f"{self.mcrit_server}/families/{family_id}", update_dict, headers=self.headers)
+        response = requests.put(
+            f"{self.mcrit_server}/families/{family_id}", update_dict, headers=self.headers
+        )
         return handle_response(response)
 
     def getFamily(self, family_id: int, with_samples=True) -> Optional[FamilyEntry]:
@@ -166,7 +191,9 @@ class McritClient:
         Supported by mcritweb API pass-through
         """
         query_params = "?with_samples=true" if with_samples else "?with_samples=false"
-        response = requests.get(f"{self.mcrit_server}/families/{family_id}{query_params}", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/families/{family_id}{query_params}", headers=self.headers
+        )
         if self.raw:
             return response
         data = handle_response(response)
@@ -202,11 +229,13 @@ class McritClient:
 
     def deleteFamily(self, family_id, keep_samples=False):
         query_params = "?keep_samples=true" if keep_samples else "?keep_samples=false"
-        response = requests.delete(f"{self.mcrit_server}/families/{family_id}{query_params}", headers=self.headers)
+        response = requests.delete(
+            f"{self.mcrit_server}/families/{family_id}{query_params}", headers=self.headers
+        )
         return handle_response(response)
 
     ###########################################
-    ### Samples 
+    ### Samples
     ###########################################
 
     def isSampleId(self, sample_id):
@@ -222,7 +251,9 @@ class McritClient:
             return True
         return False
 
-    def modifySample(self, sample_id, family_name=None, version=None, component=None, is_library=None):
+    def modifySample(
+        self, sample_id, family_name=None, version=None, component=None, is_library=None
+    ):
         update_dict = {}
         if family_name is not None:
             update_dict["family_name"] = family_name
@@ -232,7 +263,9 @@ class McritClient:
             update_dict["component"] = component
         if is_library is not None:
             update_dict["is_library"] = is_library
-        response = requests.put(f"{self.mcrit_server}/samples/{sample_id}", update_dict, headers=self.headers)
+        response = requests.put(
+            f"{self.mcrit_server}/samples/{sample_id}", update_dict, headers=self.headers
+        )
         return handle_response(response)
 
     def deleteSample(self, sample_id):
@@ -280,14 +313,15 @@ class McritClient:
         Get a all FunctionEntries for a given <sample_id>
         Supported by mcritweb API pass-through
         """
-        response = requests.get(f"{self.mcrit_server}/samples/{sample_id}/functions", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/samples/{sample_id}/functions", headers=self.headers
+        )
         if self.raw:
             return response
         data = handle_response(response)
         if data is not None:
             return [
-                FunctionEntry.fromDict(function_entry_dict)
-                for function_entry_dict in data.values()
+                FunctionEntry.fromDict(function_entry_dict) for function_entry_dict in data.values()
             ]
 
     def getFunctions(self, start=0, limit=0):
@@ -298,21 +332,27 @@ class McritClient:
         query_string = ""
         if (isinstance(start, int) and start >= 0) and (isinstance(limit, int) and limit >= 0):
             query_string = f"?start={start}&limit={limit}"
-        response = requests.get(f"{self.mcrit_server}/functions{query_string}", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/functions{query_string}", headers=self.headers
+        )
         if self.raw:
             return response
         data = handle_response(response)
         if data is not None:
             return {int(k): FunctionEntry.fromDict(v) for k, v in data.items()}
-        
-    def getFunctionsByIds(self, function_ids:list, with_label_only=False):
+
+    def getFunctionsByIds(self, function_ids: list, with_label_only=False):
         """
         Get all FunctionEntries identified by the provided list of function_ids
         Supported by mcritweb API pass-through
         """
         query_with_label_only = "?with_label_only=True" if with_label_only else ""
         function_id_string = ",".join(["%d" % fid for fid in function_ids])
-        response = requests.post(f"{self.mcrit_server}/functions{query_with_label_only}", data=function_id_string, headers=self.headers)
+        response = requests.post(
+            f"{self.mcrit_server}/functions{query_with_label_only}",
+            data=function_id_string,
+            headers=self.headers,
+        )
         if self.raw:
             return response
         data = handle_response(response)
@@ -325,7 +365,9 @@ class McritClient:
         Check if a <function_id> is valid in MCRIT
         Supported by mcritweb API pass-through
         """
-        response = requests.get(f"{self.mcrit_server}/functions/{function_id}", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/functions/{function_id}", headers=self.headers
+        )
         if self.raw:
             return response
         data = handle_response(response)
@@ -341,7 +383,9 @@ class McritClient:
         Supported by mcritweb API pass-through
         """
         query_with_xcfg = "?with_xcfg=True" if with_xcfg else ""
-        response = requests.get(f"{self.mcrit_server}/functions/{function_id}{query_with_xcfg}", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/functions/{function_id}{query_with_xcfg}", headers=self.headers
+        )
         data = handle_response(response)
         if self.raw:
             return response
@@ -353,7 +397,7 @@ class McritClient:
         return handle_response(response)
 
     ###########################################
-    ### Matching 
+    ### Matching
     ###########################################
 
     def requestMatchesForSmdaReport(
@@ -368,7 +412,9 @@ class McritClient:
         params = self._getMatchingRequestParams(
             minhash_threshold, pichash_size, force_recalculation, band_matches_required
         )
-        response = requests.post(f"{self.mcrit_server}/query", json=smda_json, headers=self.headers, params=params)
+        response = requests.post(
+            f"{self.mcrit_server}/query", json=smda_json, headers=self.headers, params=params
+        )
         if self.raw:
             return response
         return handle_response(response)
@@ -399,7 +445,12 @@ class McritClient:
         params = self._getMatchingRequestParams(
             minhash_threshold, pichash_size, force_recalculation, band_matches_required
         )
-        response = requests.post(f"{self.mcrit_server}/query/binary/mapped/{base_address}", binary, headers=self.headers, params=params)
+        response = requests.post(
+            f"{self.mcrit_server}/query/binary/mapped/{base_address}",
+            binary,
+            headers=self.headers,
+            params=params,
+        )
         if self.raw:
             return response
         return handle_response(response)
@@ -430,7 +481,9 @@ class McritClient:
             minhash_threshold, pichash_size, force_recalculation, band_matches_required
         )
 
-        response = requests.post(f"{self.mcrit_server}/query/binary", binary, headers=self.headers, params=params)
+        response = requests.post(
+            f"{self.mcrit_server}/query/binary", binary, headers=self.headers, params=params
+        )
         if self.raw:
             return response
         return handle_response(response)
@@ -446,7 +499,9 @@ class McritClient:
         params = self._getMatchingRequestParams(
             minhash_threshold, pichash_size, force_recalculation, band_matches_required
         )
-        response = requests.get(f"{self.mcrit_server}/matches/sample/{sample_id}", headers=self.headers, params=params)
+        response = requests.get(
+            f"{self.mcrit_server}/matches/sample/{sample_id}", headers=self.headers, params=params
+        )
         if self.raw:
             return response
         return handle_response(response)
@@ -463,7 +518,11 @@ class McritClient:
         params = self._getMatchingRequestParams(
             minhash_threshold, pichash_size, force_recalculation, band_matches_required
         )
-        response = requests.get(f"{self.mcrit_server}/matches/sample/{sample_id}/{other_sample_id}", headers=self.headers, params=params)
+        response = requests.get(
+            f"{self.mcrit_server}/matches/sample/{sample_id}/{other_sample_id}",
+            headers=self.headers,
+            params=params,
+        )
         if self.raw:
             return response
         return handle_response(response)
@@ -478,38 +537,57 @@ class McritClient:
         force_recalculation=False,
     ) -> None:
         params = self._getMatchingRequestParams(
-            minhash_threshold, pichash_size, force_recalculation, band_matches_required, sample_group_only=sample_group_only
+            minhash_threshold,
+            pichash_size,
+            force_recalculation,
+            band_matches_required,
+            sample_group_only=sample_group_only,
         )
         response = requests.get(
-            f"{self.mcrit_server}/matches/sample/cross/{','.join([str(id) for id in sample_ids])}", 
+            f"{self.mcrit_server}/matches/sample/cross/{','.join([str(id) for id in sample_ids])}",
             headers=self.headers,
-            params=params
+            params=params,
         )
         if self.raw:
             return response
         return handle_response(response)
 
-    def getMatchFunctionVs(
-        self,
-        function_id_a:int,
-        function_id_b:int
-    ) -> None:
-        response = requests.get(f"{self.mcrit_server}/matches/function/{function_id_a}/{function_id_b}", headers=self.headers)
+    def getMatchFunctionVs(self, function_id_a: int, function_id_b: int) -> None:
+        response = requests.get(
+            f"{self.mcrit_server}/matches/function/{function_id_a}/{function_id_b}",
+            headers=self.headers,
+        )
         if self.raw:
             return response
         return handle_response(response)
 
-
-    def getMatchesForSmdaFunction(self, smda_report, minhash_threshold=None, pichash_size=None, force_recalculation=None, band_matches_required=None, exclude_self_matches=False):
+    def getMatchesForSmdaFunction(
+        self,
+        smda_report,
+        minhash_threshold=None,
+        pichash_size=None,
+        force_recalculation=None,
+        band_matches_required=None,
+        exclude_self_matches=False,
+    ):
         """
         Get all matches for a SmdaReport with a single SmdaFunction
         Supported by mcritweb API pass-through
         """
         # TODO add the same parameter possibilities that are used for regular full matching jobs
         params = self._getMatchingRequestParams(
-            minhash_threshold, pichash_size, force_recalculation, band_matches_required, exclude_self_matches
+            minhash_threshold,
+            pichash_size,
+            force_recalculation,
+            band_matches_required,
+            exclude_self_matches,
         )
-        response = requests.post(f"{self.mcrit_server}/query/function", json=smda_report.toDict(), headers=self.headers, params=params)
+        response = requests.post(
+            f"{self.mcrit_server}/query/function",
+            json=smda_report.toDict(),
+            headers=self.headers,
+            params=params,
+        )
         if self.raw:
             return response
         return handle_response(response)
@@ -520,7 +598,10 @@ class McritClient:
         Supported by mcritweb API pass-through
         """
         summary_string = "/summary" if summary else ""
-        response = requests.get(f"{self.mcrit_server}/query/pichash/{pichash:016x}{summary_string}", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/query/pichash/{pichash:016x}{summary_string}",
+            headers=self.headers,
+        )
         if self.raw:
             return response
         return handle_response(response)
@@ -531,7 +612,10 @@ class McritClient:
         Supported by mcritweb API pass-through
         """
         summary_string = "/summary" if summary else ""
-        response = requests.get(f"{self.mcrit_server}/query/picblockhash/{picblockhash:016x}{summary_string}", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/query/picblockhash/{picblockhash:016x}{summary_string}",
+            headers=self.headers,
+        )
         if self.raw:
             return response
         return handle_response(response)
@@ -541,7 +625,9 @@ class McritClient:
         Get a SampleEntry by its <sha256>
         Supported by mcritweb API pass-through
         """
-        response = requests.get(f"{self.mcrit_server}/samples/sha256/{sample_sha256}", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/samples/sha256/{sample_sha256}", headers=self.headers
+        )
         if self.raw:
             return response
         data = handle_response(response)
@@ -550,7 +636,7 @@ class McritClient:
         return SampleEntry.fromDict(data)
 
     ###########################################
-    ### Status, Results 
+    ### Status, Results
     ###########################################
 
     def getStatus(self, with_pichash=True):
@@ -602,11 +688,13 @@ class McritClient:
         if with_refresh:
             if len(query_string) == 0:
                 query_string = f"?with_refresh=True"
-        response = requests.get(f"{self.mcrit_server}/jobs/stats/{query_string}", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/jobs/stats/{query_string}", headers=self.headers
+        )
         if self.raw:
             return response
         return handle_response(response)
-        
+
     def getQueueData(self, start=0, limit=0, method=None, filter=None, state=None, ascending=False):
         """
         Get queue data, optionally from <start> and <limit> many
@@ -699,7 +787,9 @@ class McritClient:
         Supported by mcritweb API pass-through
         """
         query_string = "?compact=True" if compact else ""
-        response = requests.get(f"{self.mcrit_server}/jobs/{job_id}/result{query_string}", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/jobs/{job_id}/result{query_string}", headers=self.headers
+        )
         if self.raw:
             return response
         return handle_response(response)
@@ -710,7 +800,9 @@ class McritClient:
         Supported by mcritweb API pass-through
         """
         query_string = "?compact=True" if compact else ""
-        response = requests.get(f"{self.mcrit_server}/results/{result_id}{query_string}", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/results/{result_id}{query_string}", headers=self.headers
+        )
         if self.raw:
             return response
         return handle_response(response)
@@ -720,7 +812,9 @@ class McritClient:
         Get the Job for the Result with a given <result_id>
         Supported by mcritweb API pass-through
         """
-        response = requests.get(f"{self.mcrit_server}/results/{result_id}/job", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/results/{result_id}/job", headers=self.headers
+        )
         if self.raw:
             return response
         data = handle_response(response)
@@ -749,19 +843,26 @@ class McritClient:
         if sample_ids is not None:
             if isinstance(sample_ids, list) and all(isinstance(item, int) for item in sample_ids):
                 sample_ids_as_str = ",".join([str(sample_id) for sample_id in sample_ids])
-                response = requests.get(f"{self.mcrit_server}/export/{sample_ids_as_str}{compress_uri_param}", headers=self.headers)
+                response = requests.get(
+                    f"{self.mcrit_server}/export/{sample_ids_as_str}{compress_uri_param}",
+                    headers=self.headers,
+                )
                 result_data = handle_response(response)
             else:
                 raise ValueError("sample_ids must be a list of int.")
         else:
-            response = requests.get(f"{self.mcrit_server}/export{compress_uri_param}", headers=self.headers)
+            response = requests.get(
+                f"{self.mcrit_server}/export{compress_uri_param}", headers=self.headers
+            )
             result_data = handle_response(response)
         return result_data
 
     def addImportData(self, import_data):
         if not isinstance(import_data, dict):
             raise ValueError("Can only forward dictionaries with export data.")
-        response = requests.post(f"{self.mcrit_server}/import", json=import_data, headers=self.headers)
+        response = requests.post(
+            f"{self.mcrit_server}/import", json=import_data, headers=self.headers
+        )
         return handle_response(response)
 
     ###########################################
@@ -771,7 +872,10 @@ class McritClient:
     def requestUniqueBlocksForSamples(self, sample_ids: List[int]) -> Dict:
         if isinstance(sample_ids, list) and all(isinstance(item, int) for item in sample_ids):
             sample_ids_as_str = ",".join([str(sample_id) for sample_id in sample_ids])
-            response = requests.get(f"{self.mcrit_server}/uniqueblocks/samples/{sample_ids_as_str}", headers=self.headers)
+            response = requests.get(
+                f"{self.mcrit_server}/uniqueblocks/samples/{sample_ids_as_str}",
+                headers=self.headers,
+            )
             result_data = handle_response(response)
         else:
             raise ValueError("sample_ids must be a list of int.")
@@ -779,7 +883,9 @@ class McritClient:
 
     def requestUniqueBlocksForFamily(self, family_id: int) -> Dict:
         if isinstance(family_id, int):
-            response = requests.get(f"{self.mcrit_server}/uniqueblocks/family/{family_id}", headers=self.headers)
+            response = requests.get(
+                f"{self.mcrit_server}/uniqueblocks/family/{family_id}", headers=self.headers
+            )
             result_data = handle_response(response)
         else:
             raise ValueError("sample_ids must be a list of int.")
@@ -809,8 +915,10 @@ class McritClient:
     # IMPORTANT: A cursor shall only be used in combination with the same
     # search_term, is_ascending and sort_by value that were used when the cursor was returned from mcrit.
     # If those parameters are altered, mcrit's behavior is undefined.
-    
-    def _search_base(self, search_kind, search_term, cursor=None, is_ascending=True, sort_by=None, limit=None):
+
+    def _search_base(
+        self, search_kind, search_term, cursor=None, is_ascending=True, sort_by=None, limit=None
+    ):
         params = {
             "query": search_term,
             "is_ascending": is_ascending,
@@ -818,11 +926,13 @@ class McritClient:
         if cursor is not None:
             params["cursor"] = cursor
         if sort_by is not None:
-            params["sort_by"] = sort_by 
+            params["sort_by"] = sort_by
         if limit is not None:
-            params["limit"] = limit 
+            params["limit"] = limit
         encoded_params = urllib.parse.urlencode(params)
-        response = requests.get(f"{self.mcrit_server}/search/{search_kind}?{encoded_params}", headers=self.headers)
+        response = requests.get(
+            f"{self.mcrit_server}/search/{search_kind}?{encoded_params}", headers=self.headers
+        )
         return handle_response(response)
 
     search_families = functools.partialmethod(_search_base, "families")

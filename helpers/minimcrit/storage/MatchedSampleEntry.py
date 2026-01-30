@@ -9,6 +9,7 @@ if TYPE_CHECKING:  # pragma: no cover
 # constructor -> .fromSmdaFunction
 # assume sample_entry, smda_function always available
 
+
 class MatchedSampleEntry(object):
     # basic information
     family: str
@@ -43,7 +44,6 @@ class MatchedSampleEntry(object):
     def __init__(self, sample_id: int) -> None:
         self.sample_id = sample_id
 
-
     def getShortSha256(self, prefix=8, border=0):
         if border > 0:
             return self.sha256[:border] + "..." + self.sha256[-border:]
@@ -52,7 +52,7 @@ class MatchedSampleEntry(object):
         return self.sha256
 
     def getShortFilename(self, size_visible=20):
-        if (len(self.filename) > 2 * size_visible):
+        if len(self.filename) > 2 * size_visible:
             return self.filename[:size_visible] + "..." + self.filename[-size_visible:]
         return self.filename
 
@@ -80,7 +80,7 @@ class MatchedSampleEntry(object):
                     "frequency_weighted": self.matched_bytes_frequency_weighted,
                     "nonlib_unweighted": self.matched_bytes_nonlib_unweighted,
                     "nonlib_score_weighted": self.matched_bytes_nonlib_score_weighted,
-                    "nonlib_frequency_weighted": self.matched_bytes_nonlib_frequency_weighted
+                    "nonlib_frequency_weighted": self.matched_bytes_nonlib_frequency_weighted,
                 },
                 "percent": {
                     "unweighted": self.matched_percent_unweighted,
@@ -88,9 +88,9 @@ class MatchedSampleEntry(object):
                     "frequency_weighted": self.matched_percent_frequency_weighted,
                     "nonlib_unweighted": self.matched_percent_nonlib_unweighted,
                     "nonlib_score_weighted": self.matched_percent_nonlib_score_weighted,
-                    "nonlib_frequency_weighted": self.matched_percent_nonlib_frequency_weighted
-                }
-            }
+                    "nonlib_frequency_weighted": self.matched_percent_nonlib_frequency_weighted,
+                },
+            },
         }
         return matching_entry
 
@@ -106,7 +106,9 @@ class MatchedSampleEntry(object):
         matching_entry.sample_id = entry_dict["sample_id"]
         matching_entry.num_bytes = entry_dict["num_bytes"]
         matching_entry.num_functions = entry_dict["num_functions"]
-        matching_entry.is_library = entry_dict["is_library"] if "is_library" in entry_dict else False
+        matching_entry.is_library = (
+            entry_dict["is_library"] if "is_library" in entry_dict else False
+        )
 
         matching_entry.matched_functions_minhash = entry_dict["matched"]["functions"]["minhashes"]
         matching_entry.matched_functions_pichash = entry_dict["matched"]["functions"]["pichashes"]
@@ -114,18 +116,38 @@ class MatchedSampleEntry(object):
         matching_entry.matched_functions_library = entry_dict["matched"]["functions"]["library"]
 
         matching_entry.matched_bytes_unweighted = entry_dict["matched"]["bytes"]["unweighted"]
-        matching_entry.matched_bytes_score_weighted = entry_dict["matched"]["bytes"]["score_weighted"]
-        matching_entry.matched_bytes_frequency_weighted = entry_dict["matched"]["bytes"]["frequency_weighted"]
-        matching_entry.matched_bytes_nonlib_unweighted = entry_dict["matched"]["bytes"]["nonlib_unweighted"]
-        matching_entry.matched_bytes_nonlib_score_weighted = entry_dict["matched"]["bytes"]["nonlib_score_weighted"]
-        matching_entry.matched_bytes_nonlib_frequency_weighted = entry_dict["matched"]["bytes"]["nonlib_frequency_weighted"]
+        matching_entry.matched_bytes_score_weighted = entry_dict["matched"]["bytes"][
+            "score_weighted"
+        ]
+        matching_entry.matched_bytes_frequency_weighted = entry_dict["matched"]["bytes"][
+            "frequency_weighted"
+        ]
+        matching_entry.matched_bytes_nonlib_unweighted = entry_dict["matched"]["bytes"][
+            "nonlib_unweighted"
+        ]
+        matching_entry.matched_bytes_nonlib_score_weighted = entry_dict["matched"]["bytes"][
+            "nonlib_score_weighted"
+        ]
+        matching_entry.matched_bytes_nonlib_frequency_weighted = entry_dict["matched"]["bytes"][
+            "nonlib_frequency_weighted"
+        ]
 
         matching_entry.matched_percent_unweighted = entry_dict["matched"]["percent"]["unweighted"]
-        matching_entry.matched_percent_score_weighted = entry_dict["matched"]["percent"]["score_weighted"]
-        matching_entry.matched_percent_frequency_weighted = entry_dict["matched"]["percent"]["frequency_weighted"]
-        matching_entry.matched_percent_nonlib_unweighted = entry_dict["matched"]["percent"]["nonlib_unweighted"]
-        matching_entry.matched_percent_nonlib_score_weighted = entry_dict["matched"]["percent"]["nonlib_score_weighted"]
-        matching_entry.matched_percent_nonlib_frequency_weighted = entry_dict["matched"]["percent"]["nonlib_frequency_weighted"]
+        matching_entry.matched_percent_score_weighted = entry_dict["matched"]["percent"][
+            "score_weighted"
+        ]
+        matching_entry.matched_percent_frequency_weighted = entry_dict["matched"]["percent"][
+            "frequency_weighted"
+        ]
+        matching_entry.matched_percent_nonlib_unweighted = entry_dict["matched"]["percent"][
+            "nonlib_unweighted"
+        ]
+        matching_entry.matched_percent_nonlib_score_weighted = entry_dict["matched"]["percent"][
+            "nonlib_score_weighted"
+        ]
+        matching_entry.matched_percent_nonlib_frequency_weighted = entry_dict["matched"]["percent"][
+            "nonlib_frequency_weighted"
+        ]
 
         return matching_entry
 

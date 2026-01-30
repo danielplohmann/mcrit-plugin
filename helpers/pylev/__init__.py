@@ -17,6 +17,7 @@ Usage is fairly straightforward.::
     assert distance == 3
 
 """
+
 from .classic import classic_levenshtein
 from .recursive import recursive_levenshtein
 from .wf import wf_levenshtein, wfi_levenshtein

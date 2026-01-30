@@ -1,8 +1,11 @@
-import os
 import json
 import logging
+import os
+
 import ida_settings
+
 import helpers.McritTableColumn as McritTableColumn
+
 
 # --- Settings Wrapper ---
 class SettingsWrapper:
@@ -23,14 +26,14 @@ class SettingsWrapper:
             "overview_fetch_labels_automatically": False,
             "overview_filter_to_labels": False,
             "overview_filter_to_conflicts": False,
-            "overview_min_score": 50
+            "overview_min_score": 50,
         }
         # a little developer convenience to override settings without messing with IDA settings
         CONFIG_FILE_PATH = os.path.abspath(__file__)
         PROJECT_ROOT = os.path.dirname(CONFIG_FILE_PATH)
-        if os.path.exists(PROJECT_ROOT + os.sep  + "config_override.json"):
+        if os.path.exists(PROJECT_ROOT + os.sep + "config_override.json"):
             try:
-                with open(PROJECT_ROOT + os.sep  + "config_override.json", "r") as override_file:
+                with open(PROJECT_ROOT + os.sep + "config_override.json", "r") as override_file:
                     override_settings = json.load(override_file)
                     for key in self._defaults.keys():
                         self._defaults[key] = override_settings.get(key, self._defaults[key])
@@ -120,11 +123,12 @@ class SettingsWrapper:
         except (ValueError, TypeError):
             return 50
 
+
 settings = SettingsWrapper()
 
 
 # --- Original Config Constants ---
-VERSION = "1.1.0"
+VERSION = "1.1.4"
 # relevant paths
 CONFIG_FILE_PATH = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.dirname(CONFIG_FILE_PATH)
