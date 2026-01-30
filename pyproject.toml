@@ -4,6 +4,8 @@ line-length = 100
 exclude = [
     ".git",
     ".vscode",
+    "helpers/minimcrit",
+    "helpers/pylev",
     "helpers/pyperclip",
     "icons",
     "qt-designer-mockup",

@@ -6,7 +6,9 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)-7s - %(name)-36s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)-7s - %(name)-36s - %(message)s"
+)
 LOGGER = logging.getLogger(__name__)
 
 
@@ -15,6 +17,7 @@ class Job(object):
     """
     This class is also used to represent jobs to the outside
     """
+
     def __init__(self, data, queue):
         self._data = data
         self._queue = queue
@@ -72,12 +75,12 @@ class Job(object):
                 "modifyFamily",
                 "deleteFamily",
                 "rebuildIndex",
-            ]
+            ],
         }
 
     def __str__(self) -> str:
         return f"ID: {self.job_id} - {self.parameters} | created: {self.created_at}, finished: {self.finished_at}, result: {self.result}, progress: {self.progress}"
-    
+
     @property
     def family(self) -> str:
         if self.method in ["addBinarySample"]:
@@ -86,16 +89,21 @@ class Job(object):
 
     @property
     def sha256(self) -> str:
-        if self.method in ["getMatchesForUnmappedBinary", "getMatchesForMappedBinary", "getMatchesForSmdaReport", "addBinarySample"]:
+        if self.method in [
+            "getMatchesForUnmappedBinary",
+            "getMatchesForMappedBinary",
+            "getMatchesForSmdaReport",
+            "addBinarySample",
+        ]:
             descriptor = json.loads(self._data["payload"]["descriptor"])
             return descriptor[2]["0"]
-        
+
     @property
     def filename(self) -> str:
         if self.method in ["addBinarySample"]:
             descriptor = json.loads(self._data["payload"]["descriptor"])
             return descriptor[1]["1"]
-    
+
     @property
     def family_id(self):
         if self.method in self.method_types["family_id"]:
@@ -109,7 +117,7 @@ class Job(object):
         if self.method in self.method_types["family_id"] or self.method == "getUniqueBlocks":
             return True
         return False
-    
+
     @property
     def sample_ids(self):
         sample_ids = []
@@ -144,7 +152,7 @@ class Job(object):
         if self.method == "getMatchesForSampleVs":
             return int(self.arguments[1])
 
-    def has_sample_id(self, sample_id:int):
+    def has_sample_id(self, sample_id: int):
         if self.method in self.method_types["sample_id"]:
             if self.method == "getMatchesForSampleVs":
                 return int(self.arguments[0]) == sample_id or int(self.arguments[1]) == sample_id
@@ -156,7 +164,7 @@ class Job(object):
         if self.method in self.method_types["matching"]:
             return True
         return False
-    
+
     @property
     def is_minhashing_job(self):
         if self.method in self.method_types["minhashing"]:
@@ -168,7 +176,7 @@ class Job(object):
         if self.method in self.method_types["query"]:
             return True
         return False
-    
+
     @property
     def is_block_job(self):
         if self.method in self.method_types["blocks"]:
@@ -193,7 +201,11 @@ class Job(object):
     @property
     def arguments(self):
         combined_values = []
-        if "payload" in self._data and "params" in self._data["payload"] and "method" in self._data["payload"]:
+        if (
+            "payload" in self._data
+            and "params" in self._data["payload"]
+            and "method" in self._data["payload"]
+        ):
             payload_params = json.loads(self._data["payload"]["params"])
             indexed_key_values = []
             named_key_values = []
@@ -209,7 +221,11 @@ class Job(object):
     @property
     def parameters(self):
         method_str = ""
-        if "payload" in self._data and "params" in self._data["payload"] and "method" in self._data["payload"]:
+        if (
+            "payload" in self._data
+            and "params" in self._data["payload"]
+            and "method" in self._data["payload"]
+        ):
             method_str = self._data["payload"]["method"]
             method_str += "(" + ", ".join([str(v) for v in self.arguments]) + ")"
         return method_str
@@ -217,7 +233,11 @@ class Job(object):
     @property
     def short_parameters(self):
         method_str = ""
-        if "payload" in self._data and "params" in self._data["payload"] and "method" in self._data["payload"]:
+        if (
+            "payload" in self._data
+            and "params" in self._data["payload"]
+            and "method" in self._data["payload"]
+        ):
             method_str = self._data["payload"]["method"]
             method_str += "(" + ", ".join([str(v) for v in self.arguments]) + ")"
             if len(method_str) > 50:
@@ -277,10 +297,10 @@ class Job(object):
     @property
     def duration(self):
         if self.is_finished:
-            FMT = '%Y-%m-%d-%H:%M:%S'
+            FMT = "%Y-%m-%d-%H:%M:%S"
             finished_at = self.finished_at[:10] + "-" + self.finished_at[11:19]
             started_at = self.started_at[:10] + "-" + self.started_at[11:19]
-            duration = datetime.strptime(finished_at, FMT)-datetime.strptime(started_at, FMT)
+            duration = datetime.strptime(finished_at, FMT) - datetime.strptime(started_at, FMT)
             return duration
         return None
 
@@ -361,8 +381,8 @@ class LocalQueue(object):
         self._setup_empty_queue()
         self._worker = None
         self._job_counter = 0
-        self.clean_interval = 10 ** 9
-        self.cache_time = 10 ** 9
+        self.clean_interval = 10**9
+        self.cache_time = 10**9
         self.max_attempts = 1
 
     def _setup_empty_queue(self):
@@ -391,14 +411,16 @@ class LocalQueue(object):
         data = self._jobs[job_id]
         return data and Job(data, self)
 
-    def get_jobs(self, start_index: int, limit: int, method=None, state=None, filter=None, ascencing=False):
+    def get_jobs(
+        self, start_index: int, limit: int, method=None, state=None, filter=None, ascencing=False
+    ):
         # TODO implement all the filtering methods properly
         jobs = []
         for job_id, job_document in self._jobs.items():
             if method is not None and job_document["payload"]["method"] != method:
                 continue
             jobs.append(Job(job_document, self))
-        return jobs[start_index:start_index+limit]
+        return jobs[start_index : start_index + limit]
 
     def get_cached_job_id(self, payload):
         return self._descriptor_to_job[payload["descriptor"]]
@@ -522,6 +544,7 @@ class LocalQueue(object):
             LOGGER.debug("Job meta: %s", meta)
             meta["jobs"].remove(id)
         return 1
+
     delete_history = []
 
     def delete_jobs(self, method=None, created_before=None, finished_before=None):

@@ -4,12 +4,12 @@ from typing import Dict, TYPE_CHECKING
 
 from helpers.minimcrit.libs.utility import encode_two_complement, decode_two_complement
 
-if TYPE_CHECKING: # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
     from smda.common.SmdaReport import SmdaReport
 
-#@dataclass
-class SampleEntry(object):
 
+# @dataclass
+class SampleEntry(object):
     family_id: int
     sample_id: int
     architecture: str
@@ -83,7 +83,7 @@ class SampleEntry(object):
 
     @classmethod
     def fromDict(cls, entry_dict):
-        sample_entry = cls(None) #type: ignore
+        sample_entry = cls(None)  # type: ignore
         sample_entry.family_id = entry_dict["family_id"]
         sample_entry.sample_id = entry_dict["sample_id"]
         sample_entry.architecture = entry_dict["architecture"]
@@ -99,12 +99,14 @@ class SampleEntry(object):
         sample_entry.sha256 = entry_dict["sha256"]
         sample_entry.smda_version = entry_dict["smda_version"]
         sample_entry.statistics = entry_dict["statistics"]
-        sample_entry.timestamp = datetime.datetime.strptime(entry_dict["timestamp"], "%Y-%m-%dT%H-%M-%S")
+        sample_entry.timestamp = datetime.datetime.strptime(
+            entry_dict["timestamp"], "%Y-%m-%dT%H-%M-%S"
+        )
         return sample_entry
 
     @classmethod
     def fromAlchemySample(cls, sample):
-        sample_entry = cls(None) #type:ignore
+        sample_entry = cls(None)  # type:ignore
         sample_entry.sample_id = sample.id
         sample_entry.family_id = sample.family.id
         sample_entry.family = sample.family.name

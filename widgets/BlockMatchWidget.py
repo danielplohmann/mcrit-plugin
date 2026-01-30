@@ -9,10 +9,9 @@ try:
 except ImportError:
     ida_hexrays = None
 
-from helpers.minimcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
-
 import helpers.McritTableColumn as McritTableColumn
 import helpers.QtShim as QtShim
+from helpers.minimcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
 from helpers.ScoreColorProvider import ScoreColorProvider
 from widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
 from widgets.SmdaGraphViewer import SmdaGraphViewer

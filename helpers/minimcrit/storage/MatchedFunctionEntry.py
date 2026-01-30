@@ -9,6 +9,7 @@ if TYPE_CHECKING:  # pragma: no cover
 # constructor -> .fromSmdaFunction
 # assume sample_entry, smda_function always available
 
+
 class MatchedFunctionEntry(object):
     # basic information
     function_id: int
@@ -26,8 +27,7 @@ class MatchedFunctionEntry(object):
     match_is_pichash: bool
     match_is_library: bool
 
-
-    def __init__(self, function_id: int, num_bytes:int, offset:int, match_tuple: List) -> None:
+    def __init__(self, function_id: int, num_bytes: int, offset: int, match_tuple: List) -> None:
         self.function_id = function_id
         self.num_bytes = num_bytes
         self.offset = offset
@@ -45,27 +45,29 @@ class MatchedFunctionEntry(object):
 
     def getMatchTuple(self):
         return [
-                self.matched_family_id,
-                self.matched_sample_id,
-                self.matched_function_id,
-                self.matched_score,
-                self.match_is_minhash * MatcherFlags.IS_MINHASH_FLAG
-                + self.match_is_pichash * MatcherFlags.IS_PICHASH_FLAG
-                + self.match_is_library * MatcherFlags.IS_LIBRARY_FLAG
-            ]
+            self.matched_family_id,
+            self.matched_sample_id,
+            self.matched_function_id,
+            self.matched_score,
+            self.match_is_minhash * MatcherFlags.IS_MINHASH_FLAG
+            + self.match_is_pichash * MatcherFlags.IS_PICHASH_FLAG
+            + self.match_is_library * MatcherFlags.IS_LIBRARY_FLAG,
+        ]
 
     def toDict(self):
         matching_entry = {
             "fid": self.function_id,
             "num_bytes": self.num_bytes,
             "offset": self.offset,
-            "matches": self.getMatchTuple()
+            "matches": self.getMatchTuple(),
         }
         return matching_entry
 
     @classmethod
     def fromDict(cls, entry_dict):
-        matching_entry = cls(entry_dict["fid"], entry_dict["num_bytes"], entry_dict["offset"], entry_dict["matches"])
+        matching_entry = cls(
+            entry_dict["fid"], entry_dict["num_bytes"], entry_dict["offset"], entry_dict["matches"]
+        )
         return matching_entry
 
     def __str__(self):
@@ -79,5 +81,5 @@ class MatchedFunctionEntry(object):
             self.matched_sample_id,
             self.matched_function_id,
             self.matched_score,
-            flag_str
+            flag_str,
         )

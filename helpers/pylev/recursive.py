@@ -39,13 +39,9 @@ def recursive_levenshtein(
         cost = 1
 
     dist = min(
-        recursive_levenshtein(
-            string_1, string_2, len_1 - 1, len_2, offset_1 + 1, offset_2, memo
-        )
+        recursive_levenshtein(string_1, string_2, len_1 - 1, len_2, offset_1 + 1, offset_2, memo)
         + 1,
-        recursive_levenshtein(
-            string_1, string_2, len_1, len_2 - 1, offset_1, offset_2 + 1, memo
-        )
+        recursive_levenshtein(string_1, string_2, len_1, len_2 - 1, offset_1, offset_2 + 1, memo)
         + 1,
         recursive_levenshtein(
             string_1, string_2, len_1 - 1, len_2 - 1, offset_1 + 1, offset_2 + 1, memo
