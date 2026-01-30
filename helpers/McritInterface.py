@@ -235,7 +235,10 @@ class McritInterface(object):
 
     def querySmdaFunctionMatches(self, smda_report):
         try:
-            smda_function = [f for f in smda_report.getFunctions()][0]
+            functions = list(smda_report.getFunctions())
+            if not functions:
+                return None
+            smda_function = functions[0]
             if smda_function.offset not in self.parent.function_matches:
                 match_report_dict = self.mcrit_client.getMatchesForSmdaFunction(
                     smda_report, exclude_self_matches=False
