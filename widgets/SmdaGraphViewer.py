@@ -99,18 +99,22 @@ class SmdaGraphViewer(idaapi.GraphViewer):
         if not idaapi.GraphViewer.Show(self):
             return False
         self._close_action_name = "graph_closer:%d" % id(self)
-        ida_kernwin.register_action(
-            ida_kernwin.action_desc_t(
-                self._close_action_name,
-                "Close %s" % self.title,
-                GraphCloser(self),
+        try:
+            ida_kernwin.register_action(
+                ida_kernwin.action_desc_t(
+                    self._close_action_name,
+                    "Close %s" % self.title,
+                    GraphCloser(self),
+                )
             )
-        )
-        ida_kernwin.attach_action_to_popup(
-            self.GetTCustomControl(),
-            None,
-            self._close_action_name,
-        )
+            ida_kernwin.attach_action_to_popup(
+                self.GetTCustomControl(),
+                None,
+                self._close_action_name,
+            )
+        except Exception as e:
+            print("Failed to register action: %s" % str(e))
+            self._close_action_name = None
         return True
 
     def OnClose(self):
