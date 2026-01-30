@@ -61,7 +61,9 @@ jobs:
     - name: Create bundle
       run: |
         $bundleName = "mcrit-plugin-dependencies-${{ matrix.variant.name }}-winpy${{ matrix.python-version }}-${{ steps.get_tag.outputs.tag }}.zip"
-        Compress-Archive -Path "wheels/*" -DestinationPath $bundleName
+        Set-Location "wheels"
+        Compress-Archive -Path "*" -DestinationPath "../$bundleName"
+        Set-Location ".."
         echo "BUNDLE_NAME=$bundleName" >> $env:GITHUB_ENV
         
     - name: Upload bundle as artifact
@@ -76,5 +78,4 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: ${{ env.BUNDLE_NAME }}
-        tag_name: ${{ steps.get_tag.outputs.tag }}
         token: ${{ secrets.GITHUB_TOKEN }}
