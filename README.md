@@ -10,7 +10,7 @@
 MCRIT (MinHash-based Code Relationship & Investigation Toolkit) simplifies MinHash-based code similarity detection.
 This plugin seamlessly integrates MCRIT servers with IDA Pro for malware analysis and function identification.
 
-## âœ¨ Features
+## ✨ Features
 
 - **Code Similarity** - Compare functions/blocks against MCRIT.
 - **Function Matching** - Identify similar functions across binaries.
@@ -19,7 +19,7 @@ This plugin seamlessly integrates MCRIT servers with IDA Pro for malware analysi
 - **Integrated Settings** - Native configuration via `ida-settings`.
 - **HCLI Support** - Easy installation and updates.
 
-## ðŸš€ Installation
+## 🚀 Installation
 
 The recommended way to install is using [HCLI](https://hcli.docs.hex-rays.com/).
 
@@ -29,12 +29,12 @@ hcli plugin install mcrit-ida
 
 This automatically handles dependencies (including `smda` and `mcrit` client) and configuration.
 
-## âš™ï¸ Configuration
+## ⚙️ Configuration
 
 Configuration is managed via [ida-settings](https://github.com/williballenthin/ida-settings).
 
 ### Setup
-1.  **GUI (Recommended)**: Install `ida-settings-editor` (`hcli plugin install ida-settings-editor`) and configure via **Edit â†’ Plugins â†’ Plugin Settings Manager**.
+1.  **GUI (Recommended)**: Install `ida-settings-editor` (`hcli plugin install ida-settings-editor`) and configure via **Edit → Plugins → Plugin Settings Manager**.
 2.  **Interactive**: HCLI prompts for config values during installation.
 3.  **Manual**: Edit `$IDAUSR/ida-config.json` (discouraged).
 
@@ -49,24 +49,24 @@ Configure the plugin to connect to your MCRIT instance:
 
 **Note**: For MCRITweb, the username is inferred automatically by setting the API token.
 
-## ðŸ“– Usage
+## 📖 Usage
 
 1.  **Open Binary**: Load a file in IDA Pro.
-2.  **Open Widgets**: View â†’ Open subviews â†’ MCRIT widgets.
-3.  **Analyze**: Right-click a function â†’ **MCRIT** â†’ **Query function**.
+2.  **Open Widgets**: View → Open subviews → MCRIT widgets.
+3.  **Analyze**: Right-click a function → **MCRIT** → **Query function**.
 4.  **Matches**: Review results in the **Function Scope Widget**.
 
-## ðŸ”§ Development
+## 🔧 Development
 
 ### Project Structure
 ```text
 mcrit-plugin/
-â”œâ”€â”€ ida-plugin.json   # Plugin metadata
-â”œâ”€â”€ ida_mcrit.py      # Entry point
-â”œâ”€â”€ config.py         # Settings management
-â”œâ”€â”€ helpers/          # Utilities (incl. vendored pyperclip)
-â”œâ”€â”€ widgets/          # UI components
-â””â”€â”€ icons/            # Resources
+├── ida-plugin.json   # Plugin metadata
+├── ida_mcrit.py      # Entry point
+├── config.py         # Settings management
+├── helpers/          # Utilities (incl. vendored pyperclip)
+├── widgets/          # UI components
+└── icons/            # Resources
 ```
 
 ### Local Build & Install
@@ -94,28 +94,27 @@ hcli plugin install ../mcrit-ida.zip
 - Dev/CI: Added Ruff config + GitHub Action and reformatted the codebase.
 
 ### v1.1.3 (2026-01-28)
-- âœ¨ Significantly improved usablity of FunctionOverviewWidget by being able to deconflict multiple candidate labels.
+- ✨ Significantly improved usablity of FunctionOverviewWidget by being able to deconflict multiple candidate labels.
 
 ### v1.1.2 (2026-01-19)
-- âœ¨ Optionally use SMDA as backend analysis engine (consistency towards MCRIT server), even when in IDA Pro.
+- ✨ Optionally use SMDA as backend analysis engine (consistency towards MCRIT server), even when in IDA Pro.
 
 ### v1.1.1 (2026-01-15)
-- âœ¨ Now coloring results in BlockMatch (by frequency) and FunctionMatch (by score) widgets
-- âœ¨ Can now display offsets of matched functions in FunctionMatchWidget
+- ✨ Now coloring results in BlockMatch (by frequency) and FunctionMatch (by score) widgets
+- ✨ Can now display offsets of matched functions in FunctionMatchWidget
 
 ### v1.1.0 (2025-12-30)
-- âœ¨ Full HCLI Plugin Manager support.
-- âš™ï¸ Migrated configuration to `ida-settings`.
-- ðŸ”§ Code quality improvements.
-- âœ… Strict HCLI compliance.
+- ✨ Full HCLI Plugin Manager support.
+- ⚙️ Migrated configuration to `ida-settings`.
+- 🔧 Code quality improvements.
+- ✅ Strict HCLI compliance.
 
 ### v1.0.0 (2025-12-22)
-- ðŸŽ‰ Initial standalone release.
-- ðŸ”„ IDA 9.2 (PySide6) compatibility.
+- 🎉 Initial standalone release.
+- 🔄 IDA 9.2 (PySide6) compatibility.
 
-## ðŸ“„ License
+## 📄 License
 GPL-3.0. See [LICENSE](LICENSE) for details.
 
-## ðŸ‘¤ Author
+## 👤 Author
 **Daniel Plohmann** ([@danielplohmann](https://github.com/danielplohmann))
-
