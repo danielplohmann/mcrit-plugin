@@ -21,7 +21,6 @@
       "yara"
     ],
     "pythonDependencies": [
-      "mcrit>=1.4.3",
       "smda>=2.4.6",
       "ida-settings>=3.3.0"
     ],

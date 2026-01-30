@@ -9,7 +9,7 @@ try:
 except ImportError:
     ida_hexrays = None
 
-from mcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
+from helpers.minimcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
 
 import helpers.McritTableColumn as McritTableColumn
 import helpers.QtShim as QtShim

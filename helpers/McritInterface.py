@@ -2,8 +2,8 @@ import json
 import os
 import traceback
 
-from mcrit.client.McritClient import McritClient
-from mcrit.storage.MatchingResult import MatchingResult
+from helpers.minimcrit.client.McritClient import McritClient
+from helpers.minimcrit.storage.MatchingResult import MatchingResult
 
 try:
     from smda.common.BinaryInfo import BinaryInfo
