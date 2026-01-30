@@ -1,9 +1,9 @@
 name: Build Offline Dependencies
 
 on:
-  release:
-    types: 
-      - created
+  push:
+    tags:
+      - '*'
 
 jobs:
   build-dependencies:
