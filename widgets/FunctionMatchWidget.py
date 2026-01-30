@@ -2,9 +2,9 @@ import idaapi
 import ida_funcs
 import ida_kernwin
 
-from mcrit.storage.MatchingResult import MatchingResult
-from mcrit.storage.MatchedFunctionEntry import MatchedFunctionEntry
-from mcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
+from helpers.minimcrit.storage.MatchingResult import MatchingResult
+from helpers.minimcrit.storage.MatchedFunctionEntry import MatchedFunctionEntry
+from helpers.minimcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
 
 import helpers.QtShim as QtShim
 import helpers.McritTableColumn as McritTableColumn

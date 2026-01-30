@@ -2,7 +2,6 @@ import json
 import os
 import sys
 import traceback
-import requests
 
 try:
     from smda.Disassembler import Disassembler
@@ -11,10 +10,9 @@ try:
 except:
     print("SMDA not found, please install it (and its dependencies) as a python package to proceed!")
     sys.exit()
-#from helpers.SmdaConfig import SmdaConfig
 
-from mcrit.client.McritClient import McritClient
-from mcrit.storage.MatchingResult import MatchingResult
+from helpers.minimcrit.client.McritClient import McritClient
+from helpers.minimcrit.storage.MatchingResult import MatchingResult
 
 
 class McritInterface(object):

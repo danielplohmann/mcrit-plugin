@@ -86,6 +86,9 @@ hcli plugin install ../mcrit-ida.zip
 
 ##  Version History
 
+### v1.1.4 (2026-01-29)
+- ✨ Removed `mcrit` package dependency by internalizing McritClient and all needed DTOs.
+
 ### v1.1.3 (2026-01-28)
 - ✨ Significantly improved usablity of FunctionOverviewWidget by being able to deconflict multiple candidate labels.
 
