@@ -86,6 +86,12 @@ hcli plugin install ../mcrit-ida.zip
 
 ##  Version History
 
+### v1.1.4 (2026-01-30)
+- Restored plugin hotkey handler and added a close action to the graph context menu.
+- Improved resilience for missing or empty match data and guarded SMDA import paths.
+- Hardened UI flows around function labels and form handling.
+- Dev/CI: Added Ruff config + GitHub Action and reformatted the codebase.
+
 ### v1.1.3 (2026-01-28)
 - ✨ Significantly improved usablity of FunctionOverviewWidget by being able to deconflict multiple candidate labels.
 
