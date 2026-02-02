@@ -126,6 +126,40 @@ class BlockMatchWidget(QMainWindow):
         self.cb_activate_live_tracking.setEnabled(True)
         self.b_query_single.setEnabled(True)
 
+    def _get_entry_field(self, entry, field):
+        if entry is None:
+            return None
+        if hasattr(entry, field):
+            return getattr(entry, field)
+        if isinstance(entry, dict):
+            return entry.get(field)
+        return None
+
+    def _get_sample_entry(self, sample_id):
+        sample_infos = self.parent.sample_infos
+        if isinstance(sample_infos, dict):
+            return sample_infos.get(sample_id)
+        return None
+
+    def _get_family_entry(self, family_id):
+        family_infos = self.parent.family_infos
+        if isinstance(family_infos, dict):
+            return family_infos.get(family_id)
+        return None
+
+    def _ensure_remote_cache(self):
+        if self.parent.family_infos is None:
+            self.parent.mcrit_interface.queryAllFamilyEntries()
+        if self.parent.sample_infos is None:
+            self.parent.mcrit_interface.queryAllSampleEntries()
+        if self.parent.family_infos is None or self.parent.sample_infos is None:
+            self.clearTable()
+            self.label_current_function_matches.setText(
+                "Remote family/sample info unavailable. Check server connection."
+            )
+            return False
+        return True
+
     def updateCurrentBlock(self, view):
         """
         Courtesy of Alex Hanel's FunctionTrapperKeeper
@@ -217,8 +251,8 @@ class BlockMatchWidget(QMainWindow):
         self.table_block_matches.resizeRowToContents(0)
 
     def updateViewWithCurrentBlock(self):
-        if self.parent.family_infos is None:
-            self.parent.mcrit_interface.queryAllFamilyEntries()
+        if not self._ensure_remote_cache():
+            return
         self.last_viewed_function = self.parent.current_function
         self.last_viewed_block = self.parent.current_block
         if self.parent.current_block:
@@ -365,12 +399,17 @@ class BlockMatchWidget(QMainWindow):
     def generateMatchTableCellItem(self, column_type, match_entry):
         tmp_item = None
         if column_type == McritTableColumn.SHA256:
-            sample_sha256 = self.parent.sample_infos[match_entry[1]].sha256
-            tmp_item = self.cc.QTableWidgetItem(sample_sha256[:8])
+            sample_info = self._get_sample_entry(match_entry[1])
+            sample_sha256 = self._get_entry_field(sample_info, "sha256")
+            tmp_item = self.cc.QTableWidgetItem(sample_sha256[:8] if sample_sha256 else "unknown")
         elif column_type == McritTableColumn.OFFSET:
             tmp_item = self.cc.QTableWidgetItem("0x%x" % match_entry[3])
         elif column_type == McritTableColumn.FAMILY_NAME:
-            tmp_item = self.cc.QTableWidgetItem(self.parent.family_infos[match_entry[0]].family_name)
+            family_info = self._get_family_entry(match_entry[0])
+            family_name = self._get_entry_field(family_info, "family_name")
+            tmp_item = self.cc.QTableWidgetItem(
+                family_name if family_name else "unknown"
+            )
         elif column_type == McritTableColumn.FAMILY_ID:
             tmp_item = self.NumberQTableWidgetItem("%d" % match_entry[0])
         elif column_type == McritTableColumn.SAMPLE_ID:
@@ -458,9 +497,21 @@ class BlockMatchWidget(QMainWindow):
         # print("double clicked row for function_id", function_id_b)
         if block_offset_b is not None and function_id_b is not None:
             function_entry_b = self.parent.mcrit_interface.queryFunctionEntryById(function_id_b)
+            if function_entry_b is None:
+                self.parent.local_widget.updateActivityInfo(
+                    f"Failed to fetch function entry {function_id_b}."
+                )
+                return
             smda_function_b = function_entry_b.toSmdaFunction()
-            sample_entry_b = self.parent.mcrit_interface.querySampleEntryById(function_entry_b.sample_id)
-            # 
+            sample_entry_b = self.parent.mcrit_interface.querySampleEntryById(
+                function_entry_b.sample_id
+            )
+            if sample_entry_b is None:
+                self.parent.local_widget.updateActivityInfo(
+                    f"Failed to fetch sample entry {function_entry_b.sample_id}."
+                )
+                return
+            #
             coloring = {block_offset_b: 0x00DDFF}
             for offset, data in self._last_block_matches.items():
                 for match in data["matches"]:
@@ -478,6 +529,13 @@ class BlockMatchWidget(QMainWindow):
                 # TODO possibly can reconstruct clicked row from matching data, but let's keep it simple for now
                 print("Need a column with sample IDs to copy SHA256 to clipboard.")
             # copy to clipboard
-            sample_id = self.table_block_matches.item(self.table_block_matches.currentRow(), sample_id_column_index).text()
-            sha256 = self.parent.sample_infos[int(sample_id)].sha256
-            self.parent.copyStringToClipboard(sha256)
+            sample_id_item = self.table_block_matches.item(
+                self.table_block_matches.currentRow(), sample_id_column_index
+            )
+            if sample_id_item is None:
+                return
+            sample_id = sample_id_item.text()
+            sample_info = self._get_sample_entry(int(sample_id))
+            sample_sha256 = self._get_entry_field(sample_info, "sha256")
+            if sample_sha256:
+                self.parent.copyStringToClipboard(sample_sha256)
