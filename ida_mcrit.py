@@ -3,32 +3,27 @@
 MCRIT4IDA - integration with MCRIT server
 code inspired by and based on IDAscope
 """
-import os
-
+import ida_kernwin
+import idaapi
+from idaapi import PluginForm, plugin_t
 from smda.common.SmdaReport import SmdaReport
 from smda.ida.IdaInterface import IdaInterface
 
 import config
-from helpers.ClassCollection import ClassCollection
-from helpers.McritInterface import McritInterface
-from widgets.MainWidget import MainWidget
-from widgets.LocalInfoWidget import LocalInfoWidget
-from widgets.FunctionMatchWidget import FunctionMatchWidget
-from widgets.BlockMatchWidget import BlockMatchWidget
-from widgets.SampleInfoWidget import SampleInfoWidget
-from widgets.FunctionOverviewWidget import FunctionOverviewWidget
-
 import helpers.QtShim as QtShim
 import helpers.pyperclip as pyperclip
+from helpers.ClassCollection import ClassCollection
+from helpers.McritInterface import McritInterface
+from widgets.BlockMatchWidget import BlockMatchWidget
+from widgets.FunctionMatchWidget import FunctionMatchWidget
+from widgets.FunctionOverviewWidget import FunctionOverviewWidget
+from widgets.LocalInfoWidget import LocalInfoWidget
+from widgets.MainWidget import MainWidget
+from widgets.SampleInfoWidget import SampleInfoWidget
+
 QtGui = QtShim.get_QtGui()
 QtCore = QtShim.get_QtCore()
 QtWidgets = QtShim.get_QtWidgets()
-
-import idc
-import idaapi
-import ida_kernwin
-import idautils
-from idaapi import PluginForm, plugin_t
 
 
 
@@ -175,7 +170,7 @@ class Mcrit4IdaForm(PluginForm):
         self.ViewHook.hook()
         try:
             self.parent = self.FormToPySideWidget(form)
-        except Exception as exc:
+        except Exception:
             self.parent = self.FormToPyQtWidget(form)
         self.parent.setWindowIcon(self.icon)
         self.setupWidgets()

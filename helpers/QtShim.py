@@ -508,19 +508,6 @@ def get_QRadioButton():
         return QtWidgets.QRadioButton
 
 
-def get_QStyledItemDelegate():
-    if idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QStyledItemDelegate
-    elif 680 < idaapi.IDA_SDK_VERSION <= 910:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QStyledItemDelegate
-    else:
-        # IDA 9.2 and above
-        import PySide6.QtWidgets as QtWidgets
-        return QtWidgets.QStyledItemDelegate
-
-
 def get_QComboBox():
     if idaapi.IDA_SDK_VERSION <= 680:
         import PySide.QtGui as QtGui
@@ -532,19 +519,6 @@ def get_QComboBox():
         # IDA 9.2 and above
         import PySide6.QtWidgets as QtWidgets
         return QtWidgets.QComboBox
-
-
-def get_QCheckBox():
-    if idaapi.IDA_SDK_VERSION <= 680:
-        import PySide.QtGui as QtGui
-        return QtGui.QCheckBox
-    elif 680 < idaapi.IDA_SDK_VERSION <= 910:
-        import PyQt5.QtWidgets as QtWidgets
-        return QtWidgets.QCheckBox
-    else:
-        # IDA 9.2 and above
-        import PySide6.QtWidgets as QtWidgets
-        return QtWidgets.QCheckBox
 
 
 def get_QAction():

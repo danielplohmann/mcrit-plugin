@@ -4,7 +4,6 @@ import idaapi
 import ida_funcs
 import ida_kernwin
 
-from mcrit.storage.MatchingResult import MatchingResult
 from mcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
 
 import helpers.QtShim as QtShim
@@ -170,7 +169,7 @@ class BlockMatchWidget(QMainWindow):
         widgetType = idaapi.get_widget_type(view)
         if widgetType == idaapi.BWN_DISASM:
             ea = ida_kernwin.get_screen_ea()
-            if not ea:
+            if ea is None or ea == idaapi.BADADDR:
                 return
             # validate offset is within a function
             temp_current_function = ida_funcs.get_func(ea)
@@ -178,7 +177,7 @@ class BlockMatchWidget(QMainWindow):
                 return
             # get the start of the function
             temp_current_f = temp_current_function.start_ea
-            if not temp_current_f:
+            if temp_current_f is None or temp_current_f == idaapi.BADADDR:
                 return
             if temp_current_f != self.parent.current_function:
                 self.parent.current_function = temp_current_f
@@ -188,7 +187,7 @@ class BlockMatchWidget(QMainWindow):
 
         elif widgetType == idaapi.BWN_PSEUDOCODE:
             ea = ida_kernwin.get_screen_ea()
-            if not ea:
+            if ea is None or ea == idaapi.BADADDR:
                 return
             cfunc = idaapi.decompile(ea)
             for cc, item in enumerate(cfunc.treeitems):
@@ -201,7 +200,7 @@ class BlockMatchWidget(QMainWindow):
                             return
                             # get the start of the function
                         current_f = cur_func.start_ea
-                        if not current_f:
+                        if current_f is None or current_f == idaapi.BADADDR:
                             return
                         if current_f != self.parent.current_function:
                             self.parent.current_function = current_f
@@ -392,7 +391,6 @@ class BlockMatchWidget(QMainWindow):
         self.table_block_summary.setSelectionMode(self.cc.QAbstractItemView.SingleSelection)
         self.table_block_summary.resizeColumnsToContents()
         self.table_block_summary.setSortingEnabled(True)
-        header_view = self._QtShim.get_QHeaderView()
         header = self.table_block_summary.horizontalHeader()
         header.setStretchLastSection(True)
 
@@ -454,7 +452,6 @@ class BlockMatchWidget(QMainWindow):
         self.table_block_matches.setSelectionMode(self.cc.QAbstractItemView.SingleSelection)
         self.table_block_matches.resizeColumnsToContents()
         self.table_block_matches.setSortingEnabled(True)
-        header_view = self._QtShim.get_QHeaderView()
         header = self.table_block_matches.horizontalHeader()
         header.setStretchLastSection(True)
 

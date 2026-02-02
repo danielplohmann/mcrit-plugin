@@ -4,35 +4,31 @@
 # (c) Hex-Rays
 # adopted for rendering GraphDiffing in MCRIT
 
+import ida_kernwin
 import idaapi
-
-
 from smda.common.SmdaFunction import SmdaFunction
 from smda.common.SmdaReport import SmdaReport
-from smda.common.BinaryInfo import BinaryInfo
 
-from idaapi import *
-
-
-class GraphCloser(action_handler_t):
+class GraphCloser(ida_kernwin.action_handler_t):
     def __init__(self, graph):
-        action_handler_t.__init__(self)
+        super().__init__()
         self.graph = graph
 
     def activate(self, ctx):
         self.graph.Close()
+        return 1
 
     def update(self, ctx):
-        return AST_ENABLE_ALWAYS
+        return ida_kernwin.AST_ENABLE_ALWAYS
         
         
-class SmdaGraphViewer(GraphViewer):
+class SmdaGraphViewer(idaapi.GraphViewer):
 
     def __init__(self, parent, sample_entry, function_entry, smda_function: SmdaFunction, coloring):
         self.title = "No Function"
         if smda_function is not None:
             self.title = f"CFG for sample {sample_entry.sample_id} ({sample_entry.family}); function: {function_entry.function_id}@0x{smda_function.offset:x}"
-        GraphViewer.__init__(self, self.title)
+        idaapi.GraphViewer.__init__(self, self.title)
         self.parent = parent
         self.name = "SmdaGraphViewer"
         self.smda_function = smda_function
@@ -98,10 +94,12 @@ class SmdaGraphViewer(GraphViewer):
         return "0x%x %s" % (self._node_id_to_offset[node_id], "some text")
 
     def Show(self):
-        if not GraphViewer.Show(self):
+        if not idaapi.GraphViewer.Show(self):
             return False
         actname = "graph_closer:%s" % self.title
-        register_action(action_desc_t(actname, "Close %s" % self.title, GraphCloser(self)))
+        ida_kernwin.register_action(
+            ida_kernwin.action_desc_t(actname, "Close %s" % self.title, GraphCloser(self))
+        )
         # attach_action_to_popup(self.GetTCustomControl(), None, actname)
         return True
 

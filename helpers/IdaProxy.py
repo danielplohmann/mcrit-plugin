@@ -248,7 +248,7 @@ class IdaProxy():
         function_chart = []
         try:
             function_chart = self.idaapi.FlowChart(function_address)
-        except:
+        except Exception:
             if self.verbose:
                 if function_address is not None:
                     print ("[!] Trying to resolve an API address in non-function code at location: 0x%x, continuing " \

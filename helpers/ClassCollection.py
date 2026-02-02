@@ -5,8 +5,6 @@ import time
 import re
 from collections import deque
 
-import helpers.QtShim as QtShim
-
 from helpers.IdaProxy import IdaProxy
 
 

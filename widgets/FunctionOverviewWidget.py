@@ -90,7 +90,7 @@ class ColoredComboBox(QComboBox):
         # and text didn't change, then user just clicked away
         if hasattr(self, 'dropdown_was_opened') and self.dropdown_was_opened:
             if not self.user_made_selection:
-                print(f"User opened dropdown but made no selection")
+                print("User opened dropdown but made no selection")
             self.dropdown_was_opened = False
     
     def setCurrentText(self, text):
@@ -331,6 +331,16 @@ class FunctionOverviewWidget(QMainWindow):
     def importSelectedLabels(self):
         # get currently selected names from all dropdowns in the table
         label_score_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+        if label_score_column_index is None:
+            self.parent.local_widget.updateActivityInfo(
+                "No label column configured; cannot import labels."
+            )
+            return
+        if not self.function_name_mapping:
+            self.parent.local_widget.updateActivityInfo(
+                "No labels loaded. Fetch labels first."
+            )
+            return
         num_names_applied = 0
         num_names_skipped = 0
         for row_id in range(self.table_local_functions.rowCount()):
@@ -338,7 +348,7 @@ class FunctionOverviewWidget(QMainWindow):
             label_via_table = self.table_local_functions.item(row_id, label_score_column_index).text()
             result_label = label_via_table
             label_via_mapping = "-"
-            map_entry = self.function_name_mapping[(row_id, label_score_column_index)]
+            map_entry = self.function_name_mapping.get((row_id, label_score_column_index), [])
             if len(map_entry) > 0:
                 label_via_mapping = map_entry[0]
             if label_via_table == "-":
@@ -363,9 +373,13 @@ class FunctionOverviewWidget(QMainWindow):
                 self.cc.ida_proxy.set_name(offset, result_label, self.cc.ida_proxy.SN_NOWARN)
                 num_names_applied += 1
         if num_names_applied:
-            self.parent.local_widget.updateActivityInfo(f"Success! Imported {num_names_applied} function names (skipped: {num_names_skipped}).")
+            self.parent.local_widget.updateActivityInfo(
+                f"Success! Imported {num_names_applied} function names (skipped: {num_names_skipped})."
+            )
         else:
-            self.parent.local_widget.updateActivityInfo(f"No suitable function names found to import.")
+            self.parent.local_widget.updateActivityInfo(
+                "No suitable function names found to import."
+            )
 
     def _updateLabelFunctionMatches(self, num_functions_matched):
         local_smda_report = self.parent.getLocalSmdaReport()
@@ -462,7 +476,6 @@ class FunctionOverviewWidget(QMainWindow):
         # count matched functions
         matched_function_ids_per_function_id = {}
         matches_beyond_filters = 0
-        total_matches = 0
         functions_beyond_filters = set()
         aggregated_matches = {}
         for function_match in match_report.function_matches:
@@ -471,7 +484,10 @@ class FunctionOverviewWidget(QMainWindow):
             if function_match.matched_function_id not in matched_function_ids_per_function_id[function_match.function_id]:
                 matched_function_ids_per_function_id[function_match.function_id].append(function_match.matched_function_id)
             if function_match.matched_score >= threshold_value:
-                if self.getSelectedFilter() != "none" and not function_match.matched_function_id in function_entries_with_labels:
+                if (
+                    self.getSelectedFilter() != "none"
+                    and function_match.matched_function_id not in function_entries_with_labels
+                ):
                     continue
                 matches_beyond_filters += 1
                 functions_beyond_filters.add(function_match.function_id)
@@ -565,7 +581,6 @@ class FunctionOverviewWidget(QMainWindow):
         self.table_local_functions.setRowCount(len(aggregated_matches))
         self.table_local_functions.resizeRowToContents(0)
         row = 0
-        first_function = None
         self.function_name_mapping = {}
         self.row_criticality_mapping = {}
         self.current_rows = aggregated_matches
@@ -619,7 +634,7 @@ class FunctionOverviewWidget(QMainWindow):
                 else:
                     # Fallback for any other columns
                     header.setSectionResizeMode(header_id, header_view.ResizeToContents)
-            except:
+            except Exception:
                 # Fallback for older Qt versions
                 if header_id in [offset_column_index, families_column_index, samples_column_index, functions_column_index, library_column_index]:
                     header.setResizeMode(header_id, header_view.ResizeToContents)
@@ -640,7 +655,7 @@ class FunctionOverviewWidget(QMainWindow):
             selected_row = self.table_local_functions.selectedItems()[0].row()
             function_offset_column = McritTableColumn.columnTypeToIndex(McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS)
             if function_offset_column is not None:
-                function_offset = int(self.table_local_functions.item(selected_row, function_offset_column).text(), 16)
+                int(self.table_local_functions.item(selected_row, function_offset_column).text(), 16)
         except IndexError:
             # we can ignore this, as it may happen when a popup window is closed
             pass

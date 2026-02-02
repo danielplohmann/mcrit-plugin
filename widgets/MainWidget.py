@@ -2,15 +2,14 @@ import json
 import os
 
 import idaapi
-import idc
 import ida_kernwin
 
 import helpers.QtShim as QtShim
-QMainWindow = QtShim.get_QMainWindow()
-
-from widgets.SmdaInfoDialog import SmdaInfoDialog
 from widgets.ResultChooserDialog import ResultChooserDialog
+from widgets.SmdaInfoDialog import SmdaInfoDialog
 from widgets.YaraStringBuilderDialog import YaraStringBuilderDialog
+
+QMainWindow = QtShim.get_QMainWindow()
 
 
 class MainWidget(QMainWindow):
@@ -32,7 +31,7 @@ class MainWidget(QMainWindow):
         self.ResultChooserDialog = ResultChooserDialog
         self.YaraStringBuilderDialog = YaraStringBuilderDialog
         self._createGui()
-        self.parent.mcrit_interface.checkConnection()
+        self.parent.mcrit_interface.checkConnection(async_=True)
         # IDA 6.x Windows workaronud to avoid lost imports
         self.os = os
         self.os_path = os.path

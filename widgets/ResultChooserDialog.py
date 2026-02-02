@@ -102,18 +102,18 @@ class ResultChooserDialog(QDialog):
                     tmp_item = self.cc.QTableWidgetItem(job_info.parameters)
                 elif column == 2:
                     date_str = "Not started yet."
-                    if job_info.started_at == None:
+                    if job_info.started_at is None:
                         queued_rows.append(row)
-                    elif job_info.finished_at != None:
+                    elif job_info.finished_at is not None:
                         date_str = job_info.finished_at[:19]
                         finished_rows.append(row)
-                    elif job_info.started_at != None:
+                    elif job_info.started_at is not None:
                         date_str = job_info.started_at[:19]
                         progress_rows.append(row)
                     tmp_item = self.cc.QTableWidgetItem(date_str)
                 elif column == 3:
                     progress_value = 0
-                    if job_info.started_at != None:
+                    if job_info.started_at is not None:
                         progress_value = 100 * job_info.progress
                         if progress_value == 100 and preselected is None:
                             preselected = row
@@ -129,7 +129,6 @@ class ResultChooserDialog(QDialog):
         self.table_jobs.setSelectionMode(self.cc.QAbstractItemView.SingleSelection)
         self.table_jobs.resizeColumnsToContents()
         self.table_jobs.setSortingEnabled(True)
-        header_view = self._QtShim.get_QHeaderView()
         header = self.table_jobs.horizontalHeader()
         header.setStretchLastSection(True)
 

@@ -170,7 +170,7 @@ class FunctionMatchWidget(QMainWindow):
         widgetType = idaapi.get_widget_type(view)
         if widgetType == idaapi.BWN_DISASM:
             ea = ida_kernwin.get_screen_ea()
-            if not ea:
+            if ea is None or ea == idaapi.BADADDR:
                 return
             # validate offset is within a function
             temp_current_function = ida_funcs.get_func(ea)
@@ -178,14 +178,14 @@ class FunctionMatchWidget(QMainWindow):
                 return
             # get the start of the function
             temp_current_f = temp_current_function.start_ea
-            if not temp_current_f:
+            if temp_current_f is None or temp_current_f == idaapi.BADADDR:
                 return
             if temp_current_f != self.parent.current_function:
                 self.parent.current_function = temp_current_f
 
         elif widgetType == idaapi.BWN_PSEUDOCODE:
             ea = ida_kernwin.get_screen_ea()
-            if not ea:
+            if ea is None or ea == idaapi.BADADDR:
                 return
             cfunc = idaapi.decompile(ea)
             for cc, item in enumerate(cfunc.treeitems):
@@ -198,7 +198,7 @@ class FunctionMatchWidget(QMainWindow):
                             return
                             # get the start of the function
                         current_f = cur_func.start_ea
-                        if not current_f:
+                        if current_f is None or current_f == idaapi.BADADDR:
                             return
                         if current_f != self.parent.current_function:
                             self.parent.current_function = current_f
@@ -250,6 +250,7 @@ class FunctionMatchWidget(QMainWindow):
             return
         if not self._ensure_remote_cache():
             return
+        self.current_function_offset = self.parent.current_function
         match_report = None
         single_function_smda_report = self.parent.getLocalSmdaReportOutline()
         single_function_smda_report.xcfg = {smda_function.offset: smda_function}
@@ -342,7 +343,6 @@ class FunctionMatchWidget(QMainWindow):
         self.table_function_matches.setSelectionMode(self.cc.QAbstractItemView.SingleSelection)
         self.table_function_matches.resizeColumnsToContents()
         self.table_function_matches.setSortingEnabled(True)
-        header_view = self._QtShim.get_QHeaderView()
         header = self.table_function_matches.horizontalHeader()
         header.setStretchLastSection(True)
 
@@ -401,7 +401,6 @@ class FunctionMatchWidget(QMainWindow):
         self.table_function_names.setSelectionMode(self.cc.QAbstractItemView.SingleSelection)
         self.table_function_names.resizeColumnsToContents()
         self.table_function_names.setSortingEnabled(True)
-        header_view = self._QtShim.get_QHeaderView()
         header = self.table_function_names.horizontalHeader()
         header.setStretchLastSection(True)
 

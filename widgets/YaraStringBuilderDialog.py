@@ -188,7 +188,7 @@ class YaraStringBuilderDialog(QDialog):
                     hex_bytes = "".join(escaped_bytes)
                     disasm = f"{instruction.mnemonic} {instruction.operands}" if hasattr(instruction, 'operands') and instruction.operands else instruction.mnemonic
                     hex_lines.append((hex_bytes, f"0x{instruction.offset:08X}: {disasm}"))
-                except:
+                except Exception:
                     # Fallback to raw bytes if escaping fails
                     hex_bytes = instruction.bytes
                     disasm = f"{instruction.mnemonic} {instruction.operands}" if hasattr(instruction, 'operands') and instruction.operands else instruction.mnemonic
