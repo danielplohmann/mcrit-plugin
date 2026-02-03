@@ -4,23 +4,9 @@
 # (c) Hex-Rays
 # adopted for rendering GraphDiffing in MCRIT
 
-import ida_kernwin
 import idaapi
 from smda.common.SmdaFunction import SmdaFunction
 from smda.common.SmdaReport import SmdaReport
-
-
-class GraphCloser(ida_kernwin.action_handler_t):
-    def __init__(self, graph):
-        super().__init__()
-        self.graph = graph
-
-    def activate(self, ctx):
-        self.graph.Close()
-        return 1
-
-    def update(self, ctx):
-        return ida_kernwin.AST_ENABLE_ALWAYS
 
 
 class SmdaGraphViewer(idaapi.GraphViewer):
@@ -35,7 +21,7 @@ class SmdaGraphViewer(idaapi.GraphViewer):
         self._offset_to_node_id = {}
         self._node_id_to_offset = {}
         self._offset_to_color = coloring
-        self._close_action_name = None
+
 
     def draw(self):
         if self.smda_function is None:
@@ -98,30 +84,9 @@ class SmdaGraphViewer(idaapi.GraphViewer):
     def Show(self):
         if not idaapi.GraphViewer.Show(self):
             return False
-        self._close_action_name = "graph_closer:%d" % id(self)
-        try:
-            ida_kernwin.register_action(
-                ida_kernwin.action_desc_t(
-                    self._close_action_name,
-                    "Close %s" % self.title,
-                    GraphCloser(self),
-                )
-            )
-            ida_kernwin.attach_action_to_popup(
-                self.GetTCustomControl(),
-                None,
-                self._close_action_name,
-            )
-        except Exception as e:
-            print("Failed to register action: %s" % str(e))
-            self._close_action_name = None
         return True
 
-    def OnClose(self):
-        if self._close_action_name:
-            ida_kernwin.unregister_action(self._close_action_name)
-            self._close_action_name = None
-        return True
+
 
 
 def show_example():
