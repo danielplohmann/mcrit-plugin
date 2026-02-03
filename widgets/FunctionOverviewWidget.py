@@ -92,8 +92,6 @@ class ColoredComboBox(QComboBox):
         # If dropdown was opened but no selection was made via activated signal,
         # and text didn't change, then user just clicked away
         if hasattr(self, "dropdown_was_opened") and self.dropdown_was_opened:
-            if not self.user_made_selection:
-                print("User opened dropdown but made no selection")
             self.dropdown_was_opened = False
 
     def setCurrentText(self, text):
