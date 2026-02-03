@@ -22,7 +22,6 @@ class SmdaGraphViewer(idaapi.GraphViewer):
         self._node_id_to_offset = {}
         self._offset_to_color = coloring
 
-
     def draw(self):
         if self.smda_function is None:
             return
@@ -85,8 +84,6 @@ class SmdaGraphViewer(idaapi.GraphViewer):
         if not idaapi.GraphViewer.Show(self):
             return False
         return True
-
-
 
 
 def show_example():
