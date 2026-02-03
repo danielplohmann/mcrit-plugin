@@ -103,6 +103,14 @@ class McritInterface(object):
         self.parent.local_widget.updateActivityInfo("Converting to SMDA report using SMDA...")
         binary_info = self.getIdaBinaryInfo()
         backend = self._select_smda_backend(binary_info)
+        if backend:
+            self.parent.local_widget.updateActivityInfo(
+                f"SMDA backend selected: {backend}"
+            )
+        else:
+            self.parent.local_widget.updateActivityInfo(
+                "SMDA backend selected: auto"
+            )
         try:
             smda_disassembler = Disassembler(backend=backend) if backend else Disassembler()
         except Exception:
