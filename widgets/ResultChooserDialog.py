@@ -1,6 +1,6 @@
-
 import helpers.QtShim as QtShim
 from widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
+
 QDialog = QtShim.get_QDialog()
 QStyledItemDelegate = QtShim.get_QStyledItemDelegate()
 QColor = QtShim.get_QColor()
@@ -15,14 +15,14 @@ class StatusRowDelegate(QStyledItemDelegate):
         self.finished_rows = finished_rows
 
     def paint_rect(self, painter, option, index, r, g, b):
-            painter.save()
-            palette = option.palette
-            bg_color = QColor(r, g, b)
-            palette.setColor(QPalette.Base, bg_color)
-            painter.setPen(QColor(0, 0, 0))  # Set text color to black explicitly
-            painter.fillRect(option.rect, bg_color)
-            painter.drawText(option.rect, option.displayAlignment, index.data())
-            painter.restore()
+        painter.save()
+        palette = option.palette
+        bg_color = QColor(r, g, b)
+        palette.setColor(QPalette.Base, bg_color)
+        painter.setPen(QColor(0, 0, 0))  # Set text color to black explicitly
+        painter.fillRect(option.rect, bg_color)
+        painter.drawText(option.rect, option.displayAlignment, index.data())
+        painter.restore()
 
     def paint(self, painter, option, index):
         if index.row() in self.queued_rows:
@@ -36,9 +36,7 @@ class StatusRowDelegate(QStyledItemDelegate):
             super().paint(painter, option, index)
 
 
-
 class ResultChooserDialog(QDialog):
-
     def __init__(self, parent, job_infos):
         self.cc = parent.cc
         self.cc.QDialog.__init__(self, parent)
@@ -151,7 +149,10 @@ class ResultChooserDialog(QDialog):
         Use the row with that was double clicked to directly select the job
         """
         selected_row = mi.row()
-        if self.job_infos[selected_row].finished_at is not None and self.job_infos[selected_row].progress == 1:
+        if (
+            self.job_infos[selected_row].finished_at is not None
+            and self.job_infos[selected_row].progress == 1
+        ):
             self._selected_job_id = self.job_infos[selected_row].job_id
             self.done(1)
 
@@ -161,16 +162,19 @@ class ResultChooserDialog(QDialog):
             # fetch the row from the table
             if self.table_jobs.selectedItems():
                 selected_row = self.table_jobs.selectedItems()[0].row()
-                if self.job_infos[selected_row].finished_at is not None and self.job_infos[selected_row].progress == 1:
+                if (
+                    self.job_infos[selected_row].finished_at is not None
+                    and self.job_infos[selected_row].progress == 1
+                ):
                     self._selected_job_id = self.job_infos[selected_row].job_id
                     self.done(1)
 
     def accept_create(self):
-            self._is_requesting_matching_job = True
-            self.done(1)
+        self._is_requesting_matching_job = True
+        self.done(1)
 
     def getResultChosen(self):
         return {
             "selected_job_id": self._selected_job_id,
-            "is_requesting_matching_job": self._is_requesting_matching_job
+            "is_requesting_matching_job": self._is_requesting_matching_job,
         }

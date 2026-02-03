@@ -1,4 +1,4 @@
-# MCRIT IDA Plugin
+﻿# MCRIT IDA Plugin
 
 [![IDA Version](https://img.shields.io/badge/IDA-9.0%2B-blue.svg)](https://hex-rays.com/ida-pro/)
 [![Python](https://img.shields.io/badge/python-3.x-blue.svg)](https://www.python.org/)
@@ -21,6 +21,8 @@ This plugin seamlessly integrates MCRIT servers with IDA Pro for malware analysi
 
 ## 🚀 Installation
 
+### HCLI
+
 The recommended way to install is using [HCLI](https://hcli.docs.hex-rays.com/).
 
 ```bash
@@ -29,6 +31,29 @@ hcli plugin install mcrit-ida
 
 This automatically handles dependencies (including `smda` and `mcrit` client) and configuration.
 
+### As a Script
+
+When using HCLI is not an option, you can also simply check out the repository or grab a source bundle from the releases.  
+In this case, you need to ensure presence of the dependencies manually:
+
+```bash
+python -m pip install smda
+```
+
+and optionally
+
+```bash
+python -m pip install ida-settings>=3.3.0
+```
+
+If your installation of IDA Pro is situated in an offline Windows VM, there are dependency packages available to facilitate the setup (covering Python 3.10-3.13).  
+After unpacking the wheelhouse, navigate to the folder and install them using:  
+
+```bash
+python -m pip install --no-index --find-links=. -r requirements.txt
+```
+
+
 ## ⚙️ Configuration
 
 Configuration is managed via [ida-settings](https://github.com/williballenthin/ida-settings).
@@ -36,7 +61,7 @@ Configuration is managed via [ida-settings](https://github.com/williballenthin/i
 ### Setup
 1.  **GUI (Recommended)**: Install `ida-settings-editor` (`hcli plugin install ida-settings-editor`) and configure via **Edit → Plugins → Plugin Settings Manager**.
 2.  **Interactive**: HCLI prompts for config values during installation.
-3.  **Manual**: Edit `$IDAUSR/ida-config.json` (discouraged).
+3.  **Manual**: Edit `$IDAUSR/ida-config.json`, `config.py` or better, derive a `config_override.json` (discouraged)
 
 ### Connecting to Server
 Configure the plugin to connect to your MCRIT instance:
@@ -64,7 +89,7 @@ mcrit-plugin/
 ├── ida-plugin.json   # Plugin metadata
 ├── ida_mcrit.py      # Entry point
 ├── config.py         # Settings management
-├── helpers/          # Utilities (incl. vendored pyperclip)
+├── helpers/          # Utilities (incl. vendored pyperclip and pylev)
 ├── widgets/          # UI components
 └── icons/            # Resources
 ```
@@ -86,22 +111,33 @@ hcli plugin install ../mcrit-ida.zip
 
 ##  Version History
 
+### v1.1.4 (2026-01-30)
+- added Github action to build dependency packages to facilitate installation in offline environments.
+- Removed the mcrit package dependency by internalizing McritClient and required DTOs.
+- Restored plugin hotkey handler and added a close action to the graph context menu.
+- Improved resilience for missing or empty match data and guarded SMDA import paths.
+- Hardened UI flows around function labels and form handling.
+- Dev/CI: Added Ruff config + GitHub Action and reformatted the codebase.
+
+### v1.1.3 (2026-01-28)
+- Significantly improved usablity of FunctionOverviewWidget by being able to deconflict multiple candidate labels.
+
 ### v1.1.2 (2026-01-19)
-- ✨ Optionally use SMDA as backend analysis engine (consistency towards MCRIT server), even when in IDA Pro.
+- Optionally use SMDA as backend analysis engine (consistency towards MCRIT server), even when in IDA Pro.
 
 ### v1.1.1 (2026-01-15)
-- ✨ Now coloring results in BlockMatch (by frequency) and FunctionMatch (by score) widgets
-- ✨ Can now display offsets of matched functions in FunctionMatchWidget
+- Now coloring results in BlockMatch (by frequency) and FunctionMatch (by score) widgets
+- Can now display offsets of matched functions in FunctionMatchWidget
 
 ### v1.1.0 (2025-12-30)
-- ✨ Full HCLI Plugin Manager support.
-- ⚙️ Migrated configuration to `ida-settings`.
-- 🔧 Code quality improvements.
-- ✅ Strict HCLI compliance.
+- Full HCLI Plugin Manager support.
+- Migrated configuration to `ida-settings`.
+- Code quality improvements.
+- Strict HCLI compliance.
 
 ### v1.0.0 (2025-12-22)
-- 🎉 Initial standalone release.
-- 🔄 IDA 9.2 (PySide6) compatibility.
+- Initial standalone release.
+- IDA 9.2 (PySide6) compatibility.
 
 ## 📄 License
 GPL-3.0. See [LICENSE](LICENSE) for details.

@@ -1,15 +1,14 @@
 import json
 import os
+import re
 import sys
 import time
-import re
 from collections import deque
 
 from helpers.IdaProxy import IdaProxy
 
 
-class ClassCollection():
-
+class ClassCollection:
     def __init__(self, shim):
         # python imports
         self.json = json

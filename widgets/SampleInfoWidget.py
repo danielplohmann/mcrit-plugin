@@ -5,7 +5,6 @@ QMainWindow = QtShim.get_QMainWindow()
 
 
 class SampleInfoWidget(QMainWindow):
-
     def __init__(self, parent):
         self.cc = parent.cc
         self.cc.QMainWindow.__init__(self)
@@ -27,11 +26,15 @@ class SampleInfoWidget(QMainWindow):
         # upper table
         self.label_best_matches = self.cc.QLabel("Best Matches per Family")
         self.table_best_family_matches = self.cc.QTableWidget()
-        self.table_best_family_matches.selectionModel().selectionChanged.connect(self._onTableBestFamilySelectionChanged)
+        self.table_best_family_matches.selectionModel().selectionChanged.connect(
+            self._onTableBestFamilySelectionChanged
+        )
         self.table_best_family_matches.clicked.connect(self._onTableBestFamilyClicked)
         self.table_best_family_matches.doubleClicked.connect(self._onTableBestFamilyDoubleClicked)
         # lower table
-        self.label_sample_matches_family = self.cc.QLabel("All Sample Matches within Family: <family_name>")
+        self.label_sample_matches_family = self.cc.QLabel(
+            "All Sample Matches within Family: <family_name>"
+        )
         self.table_family_sample_matches = self.cc.QTableWidget()
         # static links to objects to help IDA
         self.NumberQTableWidgetItem = NumberQTableWidgetItem
@@ -52,9 +55,9 @@ class SampleInfoWidget(QMainWindow):
         sample_info_layout.addWidget(self.table_family_sample_matches)
         self.central_widget.setLayout(sample_info_layout)
 
-################################################################################
-# Rendering and state keeping
-################################################################################
+    ################################################################################
+    # Rendering and state keeping
+    ################################################################################
 
     def update(self):
         self.populateBestMatchTable()
@@ -79,7 +82,7 @@ class SampleInfoWidget(QMainWindow):
         self.label_sample_matches_family.setText(text)
 
     def _aggregatedMatchingData(self):
-        """ TODO refactor to somewhere else or re-use from mcrit core """
+        """TODO refactor to somewhere else or re-use from mcrit core"""
         match_report = self.parent.getMatchingReport()
         if not match_report:
             return {}
@@ -138,20 +141,39 @@ class SampleInfoWidget(QMainWindow):
                 "bytescore": 0,
                 "bytescore_adjusted": 0,
                 "percent": 0,
-                "percent_adjusted": 0
+                "percent_adjusted": 0,
             }
             for own_function_id, matches in matches_per_sample[foreign_sample_id].items():
                 has_library_match = "library" in [match[0] for match in matches]
-                sample_summary[foreign_sample_id]["library_matches"] += 1 if has_library_match else 0
+                sample_summary[foreign_sample_id]["library_matches"] += (
+                    1 if has_library_match else 0
+                )
                 if self.cb_filter_library.isChecked() and has_library_match:
                     continue
-                sample_summary[foreign_sample_id]["minhash_matches"] += 1 if "minhash" in [match[0] for match in matches] else 0
-                sample_summary[foreign_sample_id]["pichash_matches"] += 1 if "pichash" in [match[0] for match in matches] else 0
+                sample_summary[foreign_sample_id]["minhash_matches"] += (
+                    1 if "minhash" in [match[0] for match in matches] else 0
+                )
+                sample_summary[foreign_sample_id]["pichash_matches"] += (
+                    1 if "pichash" in [match[0] for match in matches] else 0
+                )
                 sample_summary[foreign_sample_id]["combined_matches"] += 1
-                sample_summary[foreign_sample_id]["bytescore"] += function_num_bytes[own_function_id]
-                sample_summary[foreign_sample_id]["bytescore_adjusted"] += 1.0 * function_num_bytes[own_function_id] * max([match[1] for match in matches]) / 100.0
-            sample_summary[foreign_sample_id]["percent"] = 100.0 * sample_summary[foreign_sample_id]["bytescore"] / own_sample_num_bytes
-            sample_summary[foreign_sample_id]["percent_adjusted"] = 100.0 * sample_summary[foreign_sample_id]["bytescore_adjusted"] / own_sample_num_bytes
+                sample_summary[foreign_sample_id]["bytescore"] += function_num_bytes[
+                    own_function_id
+                ]
+                sample_summary[foreign_sample_id]["bytescore_adjusted"] += (
+                    1.0
+                    * function_num_bytes[own_function_id]
+                    * max([match[1] for match in matches])
+                    / 100.0
+                )
+            sample_summary[foreign_sample_id]["percent"] = (
+                100.0 * sample_summary[foreign_sample_id]["bytescore"] / own_sample_num_bytes
+            )
+            sample_summary[foreign_sample_id]["percent_adjusted"] = (
+                100.0
+                * sample_summary[foreign_sample_id]["bytescore_adjusted"]
+                / own_sample_num_bytes
+            )
         return sample_summary
 
     def populateBestMatchTable(self):
@@ -163,10 +185,23 @@ class SampleInfoWidget(QMainWindow):
 
         matching_data = self._aggregatedMatchingData()
         self.table_best_family_matches.setSortingEnabled(False)
-        self.best_family_matches_header_labels = ["ID", "Samples", "Family", "Version", "PicHash", "MinHash", "Combined", "Library", "Score", "Percent"]
+        self.best_family_matches_header_labels = [
+            "ID",
+            "Samples",
+            "Family",
+            "Version",
+            "PicHash",
+            "MinHash",
+            "Combined",
+            "Library",
+            "Score",
+            "Percent",
+        ]
         self.table_best_family_matches.clear()
         self.table_best_family_matches.setColumnCount(len(self.best_family_matches_header_labels))
-        self.table_best_family_matches.setHorizontalHeaderLabels(self.best_family_matches_header_labels)
+        self.table_best_family_matches.setHorizontalHeaderLabels(
+            self.best_family_matches_header_labels
+        )
         # Identify number of table entries and prepare addresses to display
         families_to_samples = {}
         for sample_id, sample_entry in matching_data.items():
@@ -179,7 +214,9 @@ class SampleInfoWidget(QMainWindow):
         row = 0
         families_covered = set([])
         best_family = ""
-        for sample_id, sample_entry in sorted(matching_data.items(), key=lambda x: x[1]["bytescore"], reverse=True):
+        for sample_id, sample_entry in sorted(
+            matching_data.items(), key=lambda x: x[1]["bytescore"], reverse=True
+        ):
             if sample_entry["family"] in families_covered:
                 continue
             if not best_family:
@@ -190,7 +227,9 @@ class SampleInfoWidget(QMainWindow):
                 if column == 0:
                     tmp_item = self.NumberQTableWidgetItem("%d" % sample_id)
                 elif column == 1:
-                    tmp_item = self.NumberQTableWidgetItem("%d" % families_to_samples[sample_entry["family"]])
+                    tmp_item = self.NumberQTableWidgetItem(
+                        "%d" % families_to_samples[sample_entry["family"]]
+                    )
                 elif column == 2:
                     tmp_item = self.cc.QTableWidgetItem(sample_entry["family"])
                 elif column == 3:
@@ -232,17 +271,37 @@ class SampleInfoWidget(QMainWindow):
         """
         matching_data = self._aggregatedMatchingData()
         self.table_family_sample_matches.setSortingEnabled(False)
-        self.family_sample_matches_header_labels = ["ID", "SHA256", "Version", "PicHash", "MinHash", "Combined", "Library", "Score", "Percent"]
+        self.family_sample_matches_header_labels = [
+            "ID",
+            "SHA256",
+            "Version",
+            "PicHash",
+            "MinHash",
+            "Combined",
+            "Library",
+            "Score",
+            "Percent",
+        ]
         self.table_family_sample_matches.clear()
-        self.table_family_sample_matches.setColumnCount(len(self.family_sample_matches_header_labels))
-        self.table_family_sample_matches.setHorizontalHeaderLabels(self.family_sample_matches_header_labels)
+        self.table_family_sample_matches.setColumnCount(
+            len(self.family_sample_matches_header_labels)
+        )
+        self.table_family_sample_matches.setHorizontalHeaderLabels(
+            self.family_sample_matches_header_labels
+        )
         # Identify number of table entries and prepare addresses to display
-        num_entries = len(set([v["sample_id"] for k, v in matching_data.items() if v["family"] == family]))
-        self._updateLabelSampleMatches("All Sample Matches within Family: \"%s\" (%d)" % (family, num_entries))
+        num_entries = len(
+            set([v["sample_id"] for k, v in matching_data.items() if v["family"] == family])
+        )
+        self._updateLabelSampleMatches(
+            'All Sample Matches within Family: "%s" (%d)' % (family, num_entries)
+        )
         self.table_family_sample_matches.setRowCount(num_entries)
         self.table_family_sample_matches.resizeRowToContents(0)
         row = 0
-        for sample_id, sample_entry in sorted(matching_data.items(), key=lambda x: x[1]["bytescore"], reverse=True):
+        for sample_id, sample_entry in sorted(
+            matching_data.items(), key=lambda x: x[1]["bytescore"], reverse=True
+        ):
             if sample_entry["family"] != family:
                 continue
             for column, column_name in enumerate(self.family_sample_matches_header_labels):
@@ -280,9 +339,9 @@ class SampleInfoWidget(QMainWindow):
             except Exception:
                 header.setResizeMode(header_id, header_view.Stretch)
 
-################################################################################
-# Buttons and Actions
-################################################################################
+    ################################################################################
+    # Buttons and Actions
+    ################################################################################
 
     def _onTableBestFamilySelectionChanged(self, selected, deselected):
         selected_row = self.table_best_family_matches.selectedItems()[0].row()
@@ -300,6 +359,6 @@ class SampleInfoWidget(QMainWindow):
 
     def _onTableBestFamilyDoubleClicked(self, mi):
         """
-        TODO: open a popup with the detailed sample info 
+        TODO: open a popup with the detailed sample info
         """
         pass

@@ -1,13 +1,17 @@
-import idaapi
 import ida_funcs
 import ida_kernwin
+import idaapi
 
-from mcrit.storage.MatchingResult import MatchingResult
-from mcrit.storage.MatchedFunctionEntry import MatchedFunctionEntry
-from mcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
+try:
+    import ida_hexrays
+except ImportError:
+    ida_hexrays = None
 
-import helpers.QtShim as QtShim
 import helpers.McritTableColumn as McritTableColumn
+import helpers.QtShim as QtShim
+from helpers.minimcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
+from helpers.minimcrit.storage.MatchedFunctionEntry import MatchedFunctionEntry
+from helpers.minimcrit.storage.MatchingResult import MatchingResult
 from helpers.ScoreColorProvider import ScoreColorProvider
 from widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
 from widgets.SmdaGraphViewer import SmdaGraphViewer
@@ -17,7 +21,6 @@ QColor = QtShim.get_QColor()
 
 
 class FunctionMatchWidget(QMainWindow):
-
     def __init__(self, parent):
         self.cc = parent.cc
         self.cc.QMainWindow.__init__(self)
@@ -60,7 +63,9 @@ class FunctionMatchWidget(QMainWindow):
         self.table_function_matches = self.cc.QTableWidget()
         self.table_function_matches.doubleClicked.connect(self._onTableFunctionMatchDoubleClicked)
         self.table_function_matches.setContextMenuPolicy(self.cc.QtCore.Qt.CustomContextMenu)
-        self.table_function_matches.customContextMenuRequested.connect(self._onTableFunctionMatchRightClicked)
+        self.table_function_matches.customContextMenuRequested.connect(
+            self._onTableFunctionMatchRightClicked
+        )
 
         # lower table
         self.label_function_names = self.cc.QLabel("Names from Matched Functions")
@@ -185,9 +190,12 @@ class FunctionMatchWidget(QMainWindow):
 
         elif widgetType == idaapi.BWN_PSEUDOCODE:
             ea = ida_kernwin.get_screen_ea()
-            if ea is None or ea == idaapi.BADADDR:
+            if not ea or ida_hexrays is None:
                 return
-            cfunc = idaapi.decompile(ea)
+            try:
+                cfunc = ida_hexrays.decompile(ea)
+            except ida_hexrays.DecompilationFailure:
+                return
             for cc, item in enumerate(cfunc.treeitems):
                 if item.ea != idaapi.BADADDR:
                     if cfunc.treeitems.at(cc).ea == ea:
@@ -210,7 +218,9 @@ class FunctionMatchWidget(QMainWindow):
 
     def hook_refresh(self, view, use_current_function=False):
         if self.parent.local_smda_report is None:
-            self.label_current_function_matches.setText("Cannot check for matches, need to convert IDB to SMDA report first.")
+            self.label_current_function_matches.setText(
+                "Cannot check for matches, need to convert IDB to SMDA report first."
+            )
             return
         # get current function from cursor position
         if self.updateCurrentFunction(view) is None and not use_current_function:
@@ -222,12 +232,15 @@ class FunctionMatchWidget(QMainWindow):
             self.label_current_function_matches.setText("Live Function Queries are deactivated.")
             return
         self.updateViewWithCurrentFunction()
-        
+
     def clearTable(self):
         # upper table
         self.table_function_matches.clear()
         self.table_function_matches.setSortingEnabled(False)
-        self.function_matches_header_labels = [McritTableColumn.MAP_COLUMN_TO_HEADER_STRING[col] for col in self.parent.config.FUNCTION_MATCHES_TABLE_COLUMNS]
+        self.function_matches_header_labels = [
+            McritTableColumn.MAP_COLUMN_TO_HEADER_STRING[col]
+            for col in self.parent.config.FUNCTION_MATCHES_TABLE_COLUMNS
+        ]
         self.table_function_matches.setColumnCount(len(self.function_matches_header_labels))
         self.table_function_matches.setHorizontalHeaderLabels(self.function_matches_header_labels)
         self.table_function_matches.setRowCount(0)
@@ -235,7 +248,10 @@ class FunctionMatchWidget(QMainWindow):
         # lower table
         self.table_function_names.clear()
         self.table_function_names.setSortingEnabled(False)
-        self.function_names_header_labels = [McritTableColumn.MAP_COLUMN_TO_HEADER_STRING[col] for col in self.parent.config.FUNCTION_NAMES_TABLE_COLUMNS]
+        self.function_names_header_labels = [
+            McritTableColumn.MAP_COLUMN_TO_HEADER_STRING[col]
+            for col in self.parent.config.FUNCTION_NAMES_TABLE_COLUMNS
+        ]
         self.table_function_names.setColumnCount(len(self.function_names_header_labels))
         self.table_function_names.setHorizontalHeaderLabels(self.function_names_header_labels)
         self.table_function_names.setRowCount(0)
@@ -246,7 +262,9 @@ class FunctionMatchWidget(QMainWindow):
         smda_function = self.parent.local_smda_report.getFunction(self.parent.current_function)
         if smda_function is None or smda_function.num_instructions < 10:
             self.clearTable()
-            self.label_current_function_matches.setText("Can only query functions with 10 instructions or more.")
+            self.label_current_function_matches.setText(
+                "Can only query functions with 10 instructions or more."
+            )
             return
         if not self._ensure_remote_cache():
             return
@@ -258,22 +276,52 @@ class FunctionMatchWidget(QMainWindow):
         if smda_function.offset not in self.parent.function_matches:
             self.parent.mcrit_interface.querySmdaFunctionMatches(single_function_smda_report)
         if smda_function.offset in self.parent.function_matches:
-            match_report = MatchingResult.fromDict(self.parent.function_matches[smda_function.offset])
+            match_report = MatchingResult.fromDict(
+                self.parent.function_matches[smda_function.offset]
+            )
             match_report.filterToFunctionScore(int(self.sb_score_threshold.value()))
             num_all_functions = len(match_report.function_matches)
             if self.cb_filter_library.isChecked():
-                num_functions = len([m for m in match_report.filtered_function_matches if not m.match_is_library])
-                self.label_current_function_matches.setText("Matches for Function: 0x%x -- %d families, %d samples, %d functions (%d filtered)." % (self.parent.current_function, match_report.num_original_family_matches, match_report.num_original_sample_matches, num_functions, num_all_functions - num_functions))
+                num_functions = len(
+                    [m for m in match_report.filtered_function_matches if not m.match_is_library]
+                )
+                self.label_current_function_matches.setText(
+                    "Matches for Function: 0x%x -- %d families, %d samples, %d functions (%d filtered)."
+                    % (
+                        self.parent.current_function,
+                        match_report.num_original_family_matches,
+                        match_report.num_original_sample_matches,
+                        num_functions,
+                        num_all_functions - num_functions,
+                    )
+                )
             elif len(match_report.filtered_function_matches) < len(match_report.function_matches):
-                self.label_current_function_matches.setText("Matches for Function: 0x%x -- %d families, %d samples, %d functions (%d filtered)." % (self.parent.current_function, match_report.num_original_family_matches, match_report.num_original_sample_matches, len(match_report.filtered_function_matches), num_all_functions - len(match_report.filtered_function_matches)))
+                self.label_current_function_matches.setText(
+                    "Matches for Function: 0x%x -- %d families, %d samples, %d functions (%d filtered)."
+                    % (
+                        self.parent.current_function,
+                        match_report.num_original_family_matches,
+                        match_report.num_original_sample_matches,
+                        len(match_report.filtered_function_matches),
+                        num_all_functions - len(match_report.filtered_function_matches),
+                    )
+                )
                 self.current_function_offset = self.parent.current_function
             else:
-                self.label_current_function_matches.setText("Matches for Function: 0x%x -- %d families, %d samples, %d functions." % (self.parent.current_function, match_report.num_original_family_matches, match_report.num_original_sample_matches, num_all_functions))
+                self.label_current_function_matches.setText(
+                    "Matches for Function: 0x%x -- %d families, %d samples, %d functions."
+                    % (
+                        self.parent.current_function,
+                        match_report.num_original_family_matches,
+                        match_report.num_original_sample_matches,
+                        num_all_functions,
+                    )
+                )
                 self.current_function_offset = self.parent.current_function
-        if match_report:
+        if match_report is not None:
             # populate tables with data
             self.populateFunctionMatchTable(match_report)
-            # TODO fetch all labels to populate lower table as soon as we support this 
+            # TODO fetch all labels to populate lower table as soon as we support this
             self.populateFunctionNameTable(match_report)
 
     def generateMatchTableCellItem(self, column_type, function_match_entry: MatchedFunctionEntry):
@@ -281,7 +329,9 @@ class FunctionMatchWidget(QMainWindow):
         if column_type == McritTableColumn.FUNCTION_ID:
             tmp_item = self.NumberQTableWidgetItem("%d" % function_match_entry.matched_function_id)
         elif column_type == McritTableColumn.OFFSET:
-            function_offset = self.parent.function_id_to_offset.get(function_match_entry.matched_function_id, 0)
+            function_offset = self.parent.function_id_to_offset.get(
+                function_match_entry.matched_function_id, 0
+            )
             tmp_item = self.NumberQTableWidgetItem("0x%x" % function_offset)
         elif column_type == McritTableColumn.SHA256:
             sample_info = self._get_sample_entry(function_match_entry.matched_sample_id)
@@ -300,7 +350,9 @@ class FunctionMatchWidget(QMainWindow):
             sample_version = self._get_entry_field(sample_info, "version")
             tmp_item = self.cc.QTableWidgetItem(sample_version if sample_version else "-")
         elif column_type == McritTableColumn.PIC_HASH_MATCH:
-            tmp_item = self.cc.QTableWidgetItem("YES" if function_match_entry.match_is_pichash else "NO")
+            tmp_item = self.cc.QTableWidgetItem(
+                "YES" if function_match_entry.match_is_pichash else "NO"
+            )
         elif column_type == McritTableColumn.SCORE:
             tmp_item = self.NumberQTableWidgetItem("%d" % function_match_entry.matched_score)
         elif column_type == McritTableColumn.IS_LIBRARY:
@@ -313,19 +365,30 @@ class FunctionMatchWidget(QMainWindow):
         Populate the function match table with all matches for the selected function_id
         """
         self.table_function_matches.setSortingEnabled(False)
-        self.function_matches_header_labels = [McritTableColumn.MAP_COLUMN_TO_HEADER_STRING[col] for col in self.parent.config.FUNCTION_MATCHES_TABLE_COLUMNS]
+        self.function_matches_header_labels = [
+            McritTableColumn.MAP_COLUMN_TO_HEADER_STRING[col]
+            for col in self.parent.config.FUNCTION_MATCHES_TABLE_COLUMNS
+        ]
         self.table_function_matches.clear()
         self.table_function_matches.setColumnCount(len(self.function_matches_header_labels))
         self.table_function_matches.setHorizontalHeaderLabels(self.function_matches_header_labels)
         # Identify number of table entries and prepare addresses to display
         if self.cb_filter_library.isChecked():
-            self.table_function_matches.setRowCount(len([m for m in match_report.filtered_function_matches if not m.match_is_library]))
+            self.table_function_matches.setRowCount(
+                len([m for m in match_report.filtered_function_matches if not m.match_is_library])
+            )
         else:
             self.table_function_matches.setRowCount(len(match_report.filtered_function_matches))
         self.table_function_matches.resizeRowToContents(0)
 
         row = 0
-        sorted_entries = sorted(match_report.filtered_function_matches, key=lambda x: x.matched_score + (1 if x.match_is_pichash else 0)+ (1 if x.match_is_library else 0), reverse=True)
+        sorted_entries = sorted(
+            match_report.filtered_function_matches,
+            key=lambda x: x.matched_score
+            + (1 if x.match_is_pichash else 0)
+            + (1 if x.match_is_library else 0),
+            reverse=True,
+        )
         for function_match_entry in sorted_entries:
             if self.cb_filter_library.isChecked() and function_match_entry.match_is_library:
                 continue
@@ -365,14 +428,26 @@ class FunctionMatchWidget(QMainWindow):
         """
         Populate the function name table with all names for the matches we found
         """
-        function_matches_by_id = {match.matched_function_id: match for match in match_report.filtered_function_matches}
-        self.parent.mcrit_interface.queryFunctionEntriesById([i for i in function_matches_by_id.keys()])
+        function_matches_by_id = {
+            match.matched_function_id: match for match in match_report.filtered_function_matches
+        }
+        function_entries = self.parent.mcrit_interface.queryFunctionEntriesById(
+            [i for i in function_matches_by_id.keys()]
+        )
+        if not function_entries:
+            return
         matched_entries = {}
         for function_id in function_matches_by_id.keys():
-            matched_entries[function_id] = self.parent.matched_function_entries[function_id]
+            matched_entry = self.parent.matched_function_entries.get(function_id)
+            if matched_entry is None:
+                continue
+            matched_entries[function_id] = matched_entry
         function_label_entries = []
         for function_id, entry in matched_entries.items():
-            if self.cb_filter_library.isChecked() and function_matches_by_id[entry.function_id].match_is_library:
+            if (
+                self.cb_filter_library.isChecked()
+                and function_matches_by_id[entry.function_id].match_is_library
+            ):
                 continue
             if entry.function_labels:
                 for function_label in entry.function_labels:
@@ -380,7 +455,10 @@ class FunctionMatchWidget(QMainWindow):
                     function_label_entries.append(function_label)
 
         self.table_function_names.setSortingEnabled(False)
-        self.function_matches_header_labels = [McritTableColumn.MAP_COLUMN_TO_HEADER_STRING[col] for col in self.parent.config.FUNCTION_NAMES_TABLE_COLUMNS]
+        self.function_matches_header_labels = [
+            McritTableColumn.MAP_COLUMN_TO_HEADER_STRING[col]
+            for col in self.parent.config.FUNCTION_NAMES_TABLE_COLUMNS
+        ]
         self.table_function_names.clear()
         self.table_function_names.setColumnCount(len(self.function_matches_header_labels))
         self.table_function_names.setHorizontalHeaderLabels(self.function_matches_header_labels)
@@ -389,7 +467,9 @@ class FunctionMatchWidget(QMainWindow):
         self.table_function_names.resizeRowToContents(0)
 
         row = 0
-        sorted_entries = sorted(function_label_entries, key=lambda x: (x.score, x.username, x.timestamp), reverse=True)
+        sorted_entries = sorted(
+            function_label_entries, key=lambda x: (x.score, x.username, x.timestamp), reverse=True
+        )
         for function_label_entry in sorted_entries:
             for column, column_name in enumerate(self.function_matches_header_labels):
                 column_type = self.parent.config.FUNCTION_NAMES_TABLE_COLUMNS[column]
@@ -404,12 +484,13 @@ class FunctionMatchWidget(QMainWindow):
         header = self.table_function_names.horizontalHeader()
         header.setStretchLastSection(True)
 
-
     def _onTableFunctionMatchDoubleClicked(self, mi):
         """
         Use the row with that was double clicked to import the function_name to the current function
         """
-        function_id_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.FUNCTION_ID, self.parent.config.FUNCTION_MATCHES_TABLE_COLUMNS)
+        function_id_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.FUNCTION_ID, self.parent.config.FUNCTION_MATCHES_TABLE_COLUMNS
+        )
         if function_id_column_index is not None:
             remote_function_id = int(
                 self.table_function_matches.item(mi.row(), function_id_column_index).text()
@@ -452,8 +533,12 @@ class FunctionMatchWidget(QMainWindow):
         """
         Use the row with that was double clicked to import the function_name to the current function
         """
-        function_id_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.FUNCTION_ID, self.parent.config.FUNCTION_NAMES_TABLE_COLUMNS)
-        function_label_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.FUNCTION_LABEL, self.parent.config.FUNCTION_NAMES_TABLE_COLUMNS)
+        function_id_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.FUNCTION_ID, self.parent.config.FUNCTION_NAMES_TABLE_COLUMNS
+        )
+        function_label_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.FUNCTION_LABEL, self.parent.config.FUNCTION_NAMES_TABLE_COLUMNS
+        )
         if function_id_column_index is not None and mi.column() == function_id_column_index:
             smda_function_a = self.parent.local_smda_report.getFunction(
                 self.current_function_offset
@@ -492,7 +577,9 @@ class FunctionMatchWidget(QMainWindow):
             g = SmdaGraphViewer(self, sample_entry_b, function_entry_b, smda_function_b, coloring)
             g.Show()
         elif function_label_column_index is not None and mi.column() == function_label_column_index:
-            function_name = self.table_function_names.item(mi.row(), function_label_column_index).text()
+            function_name = self.table_function_names.item(
+                mi.row(), function_label_column_index
+            ).text()
             # print(function_name)
             self.cc.ida_proxy.set_name(self.last_viewed, function_name, self.cc.ida_proxy.SN_NOWARN)
 
@@ -500,9 +587,16 @@ class FunctionMatchWidget(QMainWindow):
         """
         Right click context menu for function matches
         """
-        sha256_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.SHA256, self.parent.config.FUNCTION_MATCHES_TABLE_COLUMNS)
-        sample_id_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.SAMPLE_ID, self.parent.config.FUNCTION_MATCHES_TABLE_COLUMNS)
-        if sha256_column_index is not None and self.table_function_matches.currentColumn() == sha256_column_index:
+        sha256_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.SHA256, self.parent.config.FUNCTION_MATCHES_TABLE_COLUMNS
+        )
+        sample_id_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.SAMPLE_ID, self.parent.config.FUNCTION_MATCHES_TABLE_COLUMNS
+        )
+        if (
+            sha256_column_index is not None
+            and self.table_function_matches.currentColumn() == sha256_column_index
+        ):
             if sample_id_column_index is None:
                 # TODO possibly can reconstruct clicked row from matching data, but let's keep it simple for now
                 print("Need a column with sample IDs to copy SHA256 to clipboard.")

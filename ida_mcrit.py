@@ -3,15 +3,24 @@
 MCRIT4IDA - integration with MCRIT server
 code inspired by and based on IDAscope
 """
+import ida_idaapi
 import ida_kernwin
 import idaapi
-from idaapi import PluginForm, plugin_t
-from smda.common.SmdaReport import SmdaReport
-from smda.ida.IdaInterface import IdaInterface
+from ida_kernwin import PluginForm
+
+try:
+    from smda.common.SmdaReport import SmdaReport
+    from smda.ida.IdaInterface import IdaInterface
+except Exception as exc:
+    SmdaReport = None
+    IdaInterface = None
+    _SMDA_IMPORT_ERROR = exc
+else:
+    _SMDA_IMPORT_ERROR = None
 
 import config
-import helpers.QtShim as QtShim
 import helpers.pyperclip as pyperclip
+import helpers.QtShim as QtShim
 from helpers.ClassCollection import ClassCollection
 from helpers.McritInterface import McritInterface
 from widgets.BlockMatchWidget import BlockMatchWidget
@@ -24,7 +33,6 @@ from widgets.SampleInfoWidget import SampleInfoWidget
 QtGui = QtShim.get_QtGui()
 QtCore = QtShim.get_QtCore()
 QtWidgets = QtShim.get_QtWidgets()
-
 
 
 ################################################################################
@@ -43,6 +51,11 @@ class IdaViewHooks(idaapi.View_Hooks):
     Courtesy of Alex Hanel's FunctionTrapperKeeper
     https://github.com/alexander-hanel/FunctionTrapperKeeper/blob/main/function_trapper_keeper.py
     """
+
+    def __init__(self, form):
+        super().__init__()
+        self.form = form
+
     def view_curpos(self, view):
         self.refresh_widget(view)
 
@@ -56,8 +69,9 @@ class IdaViewHooks(idaapi.View_Hooks):
         self.refresh_widget(view)
 
     def refresh_widget(self, view):
-        global G_FORM
-        for widget in G_FORM.hook_subscribed_widgets:
+        if not self.form:
+            return
+        for widget in self.form.hook_subscribed_widgets:
             widget.hook_refresh(view)
 
 
@@ -105,11 +119,12 @@ class Mcrit4IdaForm(PluginForm):
         self.icon = self.cc.QIcon(config.ICON_FILE_PATH + "relationship.png")
         self.mcrit_interface = McritInterface(self)
         self.hook_subscribed_widgets = []
+        self.view_hook = None
 
     def copyStringToClipboard(self, string_to_copy: str):
         if string_to_copy is not None:
             pyperclip.copy(string_to_copy)
-            print("Copied \"%s\" to clipboard." % string_to_copy)
+            print('Copied "%s" to clipboard.' % string_to_copy)
 
     def getMatchingReport(self):
         return self.matching_report
@@ -164,10 +179,10 @@ class Mcrit4IdaForm(PluginForm):
         """
         When creating the form, setup the shared modules and widgets
         """
-        print ("[+] Loading MCRIT4IDA")
+        print("[+] Loading MCRIT4IDA")
         # compatibility with IDA < 6.9
-        self.ViewHook = IdaViewHooks()
-        self.ViewHook.hook()
+        self.view_hook = IdaViewHooks(self)
+        self.view_hook.hook()
         try:
             self.parent = self.FormToPySideWidget(form)
         except Exception:
@@ -190,22 +205,37 @@ class Mcrit4IdaForm(PluginForm):
             ida_function_names = ida_interface.getFunctionSymbols()
             print("Checking for unsynced function names...")
             if self.local_smda_report is not None:
-                smda_report_function_names = {func.offset: func.function_name for func in self.local_smda_report.getFunctions() if func.function_name}
+                smda_report_function_names = {
+                    func.offset: func.function_name
+                    for func in self.local_smda_report.getFunctions()
+                    if func.function_name
+                }
                 unsynced_function_names = []
                 for offset, ida_function_name in ida_function_names.items():
                     smda_function_name = smda_report_function_names.get(offset, None)
                     if smda_function_name is not None and smda_function_name != ida_function_name:
-                        unsynced_function_names.append((offset, smda_function_name, ida_function_name))
+                        unsynced_function_names.append(
+                            (offset, smda_function_name, ida_function_name)
+                        )
                     if offset not in smda_report_function_names:
                         unsynced_function_names.append((offset, None, ida_function_name))
                 if len(unsynced_function_names) > 0:
                     # currently this loops infinitely?!
-                    res = ida_kernwin.ask_yn(0, "There are new function name changes in the IDB. Do you want to upload an updated report to the MCRIT server before closing?")
+                    res = ida_kernwin.ask_yn(
+                        0,
+                        "There are new function name changes in the IDB. Do you want to upload an updated report to the MCRIT server before closing?",
+                    )
                     if res == ida_kernwin.ASKBTN_YES:
                         # save metadata before upload to not overwrite it
-                        local_family = self.parent.local_smda_report.family if self.parent.local_smda_report else ""
-                        local_version = self.parent.local_smda_report.version if self.parent.local_smda_report else ""
-                        local_library = self.parent.local_smda_report.is_library if self.parent.local_smda_report else False
+                        local_family = (
+                            self.local_smda_report.family if self.local_smda_report else ""
+                        )
+                        local_version = (
+                            self.local_smda_report.version if self.local_smda_report else ""
+                        )
+                        local_library = (
+                            self.local_smda_report.is_library if self.local_smda_report else False
+                        )
                         # update before export, to ensure we have all most recent function label information
                         self.local_smda_report = self.main_widget.getLocalSmdaReport()
                         self.local_smda_report.family = local_family
@@ -213,21 +243,33 @@ class Mcrit4IdaForm(PluginForm):
                         self.local_smda_report.is_library = local_library
                         self.mcrit_interface.uploadReport(self.local_smda_report)
             else:
-                # we need to decide if we want to prompt the user in order to push an initial SMDA report to MCRIT or not 
+                # we need to decide if we want to prompt the user in order to push an initial SMDA report to MCRIT or not
                 pass
+        if self.view_hook is not None:
+            self.view_hook.unhook()
+            self.view_hook = None
+        self.hook_subscribed_widgets = []
         global G_FORM
-        G_FORM.hook_subscribed_widgets = []
+        if G_FORM is self:
+            G_FORM = None
         global MCRIT4IDA
-        del MCRIT4IDA
+        if MCRIT4IDA is self:
+            MCRIT4IDA = None
 
     def Show(self):
         if self.cc.ida_proxy.GetInputMD5() is not None:
-            return PluginForm.Show(self, NAME, options=(PluginForm.WCLS_CLOSE_LATER | PluginForm.WOPN_RESTORE | PluginForm.WCLS_SAVE))
+            return PluginForm.Show(
+                self,
+                NAME,
+                options=(
+                    PluginForm.WCLS_CLOSE_LATER | PluginForm.WOPN_RESTORE | PluginForm.WCLS_SAVE
+                ),
+            )
         return None
 
-################################################################################
-# functionality offered to MCRIT4IDA's widgets
-################################################################################
+    ################################################################################
+    # functionality offered to MCRIT4IDA's widgets
+    ################################################################################
 
     def registerHotkey(self, shortcut, py_function_pointer):
         """
@@ -243,8 +285,11 @@ class Mcrit4IdaForm(PluginForm):
         hotkey_index = len(HOTKEYS)
         hotkey_name = "MCRIT4IDA_HOTKEY_%d" % hotkey_index
         HOTKEYS.append(py_function_pointer)
-        self.cc.ida_proxy.CompileLine('static %s() { RunPythonStatement("HOTKEYS[%d]()"); }' % (hotkey_name, hotkey_index))
+        self.cc.ida_proxy.CompileLine(
+            'static %s() { RunPythonStatement("HOTKEYS[%d]()"); }' % (hotkey_name, hotkey_index)
+        )
         self.cc.ida_proxy.AddHotkey(shortcut, hotkey_name)
+
 
 ################################################################################
 # Usage as plugin
@@ -255,11 +300,45 @@ def PLUGIN_ENTRY():
     return Mcrit4IdaPlugin()
 
 
-class Mcrit4IdaPlugin(plugin_t):
+def show_mcrit_form():
+    global MCRIT4IDA
+    created_form = False
+    if MCRIT4IDA is None:
+        try:
+            MCRIT4IDA = Mcrit4IdaForm()
+            created_form = True
+        except ImportError as exc:
+            ida_kernwin.warning(str(exc))
+            return None
+    if MCRIT4IDA.Show() is None:
+        if created_form:
+            try:
+                MCRIT4IDA.OnClose(MCRIT4IDA)
+            except Exception as exc:
+                print(f"[!] Error closing MCRIT4IDA after failed show: {exc}")
+            MCRIT4IDA = None
+        return None
+    global G_FORM
+    G_FORM = MCRIT4IDA
+    return MCRIT4IDA
+
+
+class Mcrit4IdaPlugmod(ida_idaapi.plugmod_t):
+    def __init__(self):
+        super().__init__()
+        self.form = None
+
+    def run(self, arg):
+        self.form = show_mcrit_form()
+        return True
+
+
+class Mcrit4IdaPlugin(ida_idaapi.plugin_t):
     """
     Plugin version of MCRIT4IDA. Use this to deploy MCRIT4IDA via IDA plugins folder.
     """
-    flags = idaapi.PLUGIN_UNL
+
+    flags = ida_idaapi.PLUGIN_MULTI
     comment = NAME
     help = "MCRIT4IDA - Plugin to interact with a MCRIT server."
     wanted_name = "MCRIT4IDA"
@@ -268,19 +347,12 @@ class Mcrit4IdaPlugin(plugin_t):
     def init(self):
         # Some initialization
         self.icon_id = 0
-        return idaapi.PLUGIN_OK
+        return Mcrit4IdaPlugmod()
 
-    def run(self, arg=0):
-        # Create form
-        f = Mcrit4IdaForm()
-        global G_FORM
-        G_FORM = f
-        # Show the form
-        f.Show()
-        return
+    def run(self, arg):
+        show_mcrit_form()
+        return True
 
-    def term(self):
-        pass
 
 ################################################################################
 # Usage as script
@@ -289,20 +361,19 @@ class Mcrit4IdaPlugin(plugin_t):
 
 def main():
     global MCRIT4IDA
-    try:
-        MCRIT4IDA.OnClose(MCRIT4IDA)
-        print("reloading MCRIT4IDA")
-        MCRIT4IDA = Mcrit4IdaForm()
-        return
-    except Exception:
-        MCRIT4IDA = Mcrit4IdaForm()
+    if MCRIT4IDA is not None:
+        try:
+            MCRIT4IDA.OnClose(MCRIT4IDA)
+            print("reloading MCRIT4IDA")
+        except Exception:
+            pass
+        MCRIT4IDA = None
 
     if config.MCRIT4IDA_PLUGIN_ONLY:
         print("MCRIT4IDA: configured as plugin-only mode, ignoring main function of script.")
-    else:
-        global G_FORM
-        G_FORM = MCRIT4IDA
-        MCRIT4IDA.Show()
+        return
+
+    show_mcrit_form()
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
   "IDAMetadataDescriptorVersion": 1,
   "plugin": {
     "name": "mcrit-ida",
-    "version": "1.1.2",
+    "version": "1.1.4",
     "entryPoint": "ida_mcrit.py",
     "idaVersions": ">=8.4",
     "description": "Integration with MCRIT server for code similarity analysis.",
@@ -21,7 +21,6 @@
       "yara"
     ],
     "pythonDependencies": [
-      "mcrit>=1.4.3",
       "smda>=2.4.6",
       "ida-settings>=3.3.0"
     ],
@@ -74,6 +73,14 @@
         "default": false,
         "name": "Auto Analyze SMDA on Startup",
         "documentation": "Automatically convert IDB to SMDA on plugin startup."
+      },
+      {
+        "key": "use_smda_for_analysis",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "name": "Use SMDA for Analysis",
+        "documentation": "Use SMDA for code analysis instead of IDA's engine."
       },
       {
         "key": "submit_function_names_on_close",
