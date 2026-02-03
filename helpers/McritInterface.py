@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 import threading
 import traceback
 
@@ -66,14 +65,17 @@ class McritInterface(object):
     def _run_on_ui_thread(self, func):
         try:
             import ida_kernwin
+
             mff_flag = getattr(ida_kernwin, "MFF_FAST", None)
             if mff_flag is None:
                 import idaapi
+
                 mff_flag = idaapi.MFF_FAST
             return ida_kernwin.execute_sync(func, mff_flag)
         except Exception:
             try:
                 import idaapi
+
                 return idaapi.execute_sync(func, idaapi.MFF_FAST)
             except Exception:
                 return func()
@@ -111,13 +113,9 @@ class McritInterface(object):
         binary_info = self.getIdaBinaryInfo()
         backend = self._select_smda_backend(binary_info)
         if backend:
-            self.parent.local_widget.updateActivityInfo(
-                f"SMDA backend selected: {backend}"
-            )
+            self.parent.local_widget.updateActivityInfo(f"SMDA backend selected: {backend}")
         else:
-            self.parent.local_widget.updateActivityInfo(
-                "SMDA backend selected: auto"
-            )
+            self.parent.local_widget.updateActivityInfo("SMDA backend selected: auto")
         try:
             smda_disassembler = Disassembler(backend=backend) if backend else Disassembler()
         except Exception:
@@ -140,7 +138,10 @@ class McritInterface(object):
             return None, exc
 
     def checkConnection(self, async_=False):
-        self.parent.local_widget.updateActivityInfo("Checking connection to server: %s" % self._getMcritServerAddress())
+        self.parent.local_widget.updateActivityInfo(
+            "Checking connection to server: %s" % self._getMcritServerAddress()
+        )
+
         def apply_result(result):
             mcrit_version, err = result
             if mcrit_version:
@@ -150,15 +151,21 @@ class McritInterface(object):
                 )
             else:
                 if err is None:
-                    self.parent.local_widget.updateActivityInfo("Connection check failed (status code).")
+                    self.parent.local_widget.updateActivityInfo(
+                        "Connection check failed (status code)."
+                    )
                 else:
-                    self.parent.local_widget.updateActivityInfo("Connection check failed (unreachable).")
+                    self.parent.local_widget.updateActivityInfo(
+                        "Connection check failed (unreachable)."
+                    )
                 self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
 
         if async_:
+
             def runner():
                 result = self._check_connection_impl()
                 self._run_on_ui_thread(lambda: apply_result(result))
+
             thread = threading.Thread(target=runner, daemon=True)
             thread.start()
             return

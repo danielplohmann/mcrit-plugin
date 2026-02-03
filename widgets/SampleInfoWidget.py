@@ -108,7 +108,9 @@ class SampleInfoWidget(QMainWindow):
                         matches_per_sample[foreign_sample_id] = {}
                     if own_function_id not in matches_per_sample[foreign_sample_id]:
                         matches_per_sample[foreign_sample_id][own_function_id] = []
-                    matches_per_sample[foreign_sample_id][own_function_id].append(("pichash", match[1]))
+                    matches_per_sample[foreign_sample_id][own_function_id].append(
+                        ("pichash", match[1])
+                    )
                 if match_data.get("has_library_match"):
                     matches_per_sample[foreign_sample_id][own_function_id].append(("library", 0))
         minhash_matches = match_report.get("minhash", {}).get("minhash_matches") or {}
@@ -121,7 +123,9 @@ class SampleInfoWidget(QMainWindow):
                         matches_per_sample[foreign_sample_id] = {}
                     if own_function_id not in matches_per_sample[foreign_sample_id]:
                         matches_per_sample[foreign_sample_id][own_function_id] = []
-                    matches_per_sample[foreign_sample_id][own_function_id].append(("minhash", match[1]))
+                    matches_per_sample[foreign_sample_id][own_function_id].append(
+                        ("minhash", match[1])
+                    )
                 if match_data.get("has_library_match"):
                     matches_per_sample[foreign_sample_id][own_function_id].append(("library", 0))
 

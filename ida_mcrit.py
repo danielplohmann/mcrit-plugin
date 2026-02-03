@@ -3,6 +3,7 @@
 MCRIT4IDA - integration with MCRIT server
 code inspired by and based on IDAscope
 """
+
 import ida_idaapi
 import ida_kernwin
 import idaapi

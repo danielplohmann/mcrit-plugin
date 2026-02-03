@@ -467,9 +467,7 @@ class BlockMatchWidget(QMainWindow):
         elif column_type == McritTableColumn.FAMILY_NAME:
             family_info = self._get_family_entry(match_entry[0])
             family_name = self._get_entry_field(family_info, "family_name")
-            tmp_item = self.cc.QTableWidgetItem(
-                family_name if family_name else "unknown"
-            )
+            tmp_item = self.cc.QTableWidgetItem(family_name if family_name else "unknown")
         elif column_type == McritTableColumn.FAMILY_ID:
             tmp_item = self.NumberQTableWidgetItem("%d" % match_entry[0])
         elif column_type == McritTableColumn.SAMPLE_ID:

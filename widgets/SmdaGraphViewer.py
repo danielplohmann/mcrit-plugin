@@ -10,7 +10,6 @@ from smda.common.SmdaFunction import SmdaFunction
 from smda.common.SmdaReport import SmdaReport
 
 
-
 class GraphCloser(ida_kernwin.action_handler_t):
     def __init__(self, graph):
         super().__init__()
@@ -22,7 +21,6 @@ class GraphCloser(ida_kernwin.action_handler_t):
 
     def update(self, ctx):
         return ida_kernwin.AST_ENABLE_ALWAYS
-
 
 
 class SmdaGraphViewer(idaapi.GraphViewer):

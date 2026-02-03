@@ -1,7 +1,6 @@
 import json
 import os
 
-
 import ida_kernwin
 import idaapi
 

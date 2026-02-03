@@ -91,7 +91,7 @@ class ColoredComboBox(QComboBox):
         super().hidePopup()
         # If dropdown was opened but no selection was made via activated signal,
         # and text didn't change, then user just clicked away
-        if hasattr(self, 'dropdown_was_opened') and self.dropdown_was_opened:
+        if hasattr(self, "dropdown_was_opened") and self.dropdown_was_opened:
             if not self.user_made_selection:
                 print("User opened dropdown but made no selection")
             self.dropdown_was_opened = False
@@ -417,16 +417,16 @@ class FunctionOverviewWidget(QMainWindow):
 
     def importSelectedLabels(self):
         # get currently selected names from all dropdowns in the table
-        label_score_column_index = McritTableColumn.columnTypeToIndex(McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS)
+        label_score_column_index = McritTableColumn.columnTypeToIndex(
+            McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS
+        )
         if label_score_column_index is None:
             self.parent.local_widget.updateActivityInfo(
                 "No label column configured; cannot import labels."
             )
             return
         if not self.function_name_mapping:
-            self.parent.local_widget.updateActivityInfo(
-                "No labels loaded. Fetch labels first."
-            )
+            self.parent.local_widget.updateActivityInfo("No labels loaded. Fetch labels first.")
             return
         num_names_applied = 0
         num_names_skipped = 0
