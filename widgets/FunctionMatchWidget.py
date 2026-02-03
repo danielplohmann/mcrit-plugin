@@ -382,9 +382,11 @@ class FunctionMatchWidget(QMainWindow):
         row = 0
         sorted_entries = sorted(
             match_report.filtered_function_matches,
-            key=lambda x: x.matched_score
-            + (1 if x.match_is_pichash else 0)
-            + (1 if x.match_is_library else 0),
+            key=lambda x: (
+                x.matched_score
+                + (1 if x.match_is_pichash else 0)
+                + (1 if x.match_is_library else 0)
+            ),
             reverse=True,
         )
         for function_match_entry in sorted_entries:
