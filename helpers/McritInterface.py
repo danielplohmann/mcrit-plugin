@@ -36,12 +36,12 @@ class McritInterface(object):
         except (TypeError, ValueError):
             timeout_value = None
         if timeout_value and timeout_value > 0:
-            if hasattr(self.mcrit_client, "setTimeout"): 
+            if hasattr(self.mcrit_client, "setTimeout"):
                 try:
                     self.mcrit_client.setTimeout(timeout_value)
                 except Exception as e:
                     print(f"[MCRIT] Failed to set timeout via setTimeout: {e}")
-            elif hasattr(self.mcrit_client, "timeout"): 
+            elif hasattr(self.mcrit_client, "timeout"):
                 try:
                     self.mcrit_client.timeout = timeout_value
                 except Exception as e:
@@ -79,7 +79,9 @@ class McritInterface(object):
 
                 return idaapi.execute_sync(func, idaapi.MFF_FAST)
             except Exception as e2:
-                print(f"[MCRIT] Failed to run on UI thread via idaapi, running directly. Error: {e2}")
+                print(
+                    f"[MCRIT] Failed to run on UI thread via idaapi, running directly. Error: {e2}"
+                )
                 return func()
 
     def _select_smda_backend(self, binary_info):
@@ -121,7 +123,9 @@ class McritInterface(object):
         try:
             smda_disassembler = Disassembler(backend=backend) if backend else Disassembler()
         except Exception as e:
-            print(f"[MCRIT] Failed to initialize Disassembler with backend '{backend}', falling back to 'intel'. Error: {e}")
+            print(
+                f"[MCRIT] Failed to initialize Disassembler with backend '{backend}', falling back to 'intel'. Error: {e}"
+            )
             smda_disassembler = Disassembler(backend="intel")
         report = smda_disassembler._disassemble(binary_info, timeout=300)
         function_symbols = self.smda_ida.getFunctionSymbols()
