@@ -124,7 +124,7 @@ class ResultChooserDialog(QDialog):
 
         delegate = StatusRowDelegate(queued_rows, progress_rows, finished_rows)
         self.table_jobs.setItemDelegate(delegate)
-        if preselected:
+        if preselected is not None:
             self.table_jobs.setCurrentCell(preselected, 0)
         self.table_jobs.setSelectionMode(self.cc.QAbstractItemView.SingleSelection)
         self.table_jobs.resizeColumnsToContents()
