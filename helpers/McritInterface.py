@@ -36,16 +36,16 @@ class McritInterface(object):
         except (TypeError, ValueError):
             timeout_value = None
         if timeout_value and timeout_value > 0:
-            if hasattr(self.mcrit_client, "setTimeout"):
+            if hasattr(self.mcrit_client, "setTimeout"): 
                 try:
                     self.mcrit_client.setTimeout(timeout_value)
-                except Exception:
-                    pass
-            elif hasattr(self.mcrit_client, "timeout"):
+                except Exception as e:
+                    print(f"[MCRIT] Failed to set timeout via setTimeout: {e}")
+            elif hasattr(self.mcrit_client, "timeout"): 
                 try:
                     self.mcrit_client.timeout = timeout_value
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"[MCRIT] Failed to set timeout via timeout attribute: {e}")
         if self.config.MCRITWEB_API_TOKEN:
             self.mcrit_client.setApitoken(self.config.MCRITWEB_API_TOKEN)
         if self.config.MCRITWEB_USERNAME:
@@ -72,12 +72,14 @@ class McritInterface(object):
 
                 mff_flag = idaapi.MFF_FAST
             return ida_kernwin.execute_sync(func, mff_flag)
-        except Exception:
+        except Exception as e:
+            print(f"[MCRIT] Failed to run on UI thread via ida_kernwin, falling back. Error: {e}")
             try:
                 import idaapi
 
                 return idaapi.execute_sync(func, idaapi.MFF_FAST)
-            except Exception:
+            except Exception as e2:
+                print(f"[MCRIT] Failed to run on UI thread via idaapi, running directly. Error: {e2}")
                 return func()
 
     def _select_smda_backend(self, binary_info):
@@ -118,7 +120,8 @@ class McritInterface(object):
             self.parent.local_widget.updateActivityInfo("SMDA backend selected: auto")
         try:
             smda_disassembler = Disassembler(backend=backend) if backend else Disassembler()
-        except Exception:
+        except Exception as e:
+            print(f"[MCRIT] Failed to initialize Disassembler with backend '{backend}', falling back to 'intel'. Error: {e}")
             smda_disassembler = Disassembler(backend="intel")
         report = smda_disassembler._disassemble(binary_info, timeout=300)
         function_symbols = self.smda_ida.getFunctionSymbols()
