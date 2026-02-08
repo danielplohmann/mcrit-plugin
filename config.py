@@ -63,7 +63,7 @@ class SettingsWrapper:
     def MCRIT_REQUEST_TIMEOUT(self):
         value = self._get("mcrit_request_timeout")
         try:
-            return int(value) if not isinstance(value, int) else value
+            return int(value)
         except (ValueError, TypeError):
             return 10
 
