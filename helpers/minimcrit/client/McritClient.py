@@ -569,18 +569,19 @@ class McritClient:
         force_recalculation=None,
         band_matches_required=None,
         exclude_self_matches=False,
+        sample_group_only=False,
     ):
         """
         Get all matches for a SmdaReport with a single SmdaFunction
         Supported by mcritweb API pass-through
         """
-        # TODO add the same parameter possibilities that are used for regular full matching jobs
         params = self._getMatchingRequestParams(
             minhash_threshold,
             pichash_size,
             force_recalculation,
             band_matches_required,
             exclude_self_matches,
+            sample_group_only=sample_group_only,
         )
         response = requests.post(
             f"{self.mcrit_server}/query/function",
