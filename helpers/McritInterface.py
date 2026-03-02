@@ -30,11 +30,7 @@ class McritInterface(object):
         self.config = parent.config
         self._mcrit_server = self.config.MCRIT_SERVER
         self.mcrit_client = McritClient(self.config.MCRIT_SERVER)
-        timeout_value = getattr(self.config, "MCRIT_REQUEST_TIMEOUT", None)
-        try:
-            timeout_value = int(timeout_value) if timeout_value is not None else None
-        except (TypeError, ValueError):
-            timeout_value = None
+        timeout_value = self.config.MCRIT_REQUEST_TIMEOUT
         if timeout_value and timeout_value > 0:
             if hasattr(self.mcrit_client, "setTimeout"):
                 try:
