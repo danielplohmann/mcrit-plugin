@@ -112,16 +112,16 @@ hcli plugin install ../mcrit-ida.zip
 ##  Version History
 
 ### v1.1.5 (2026-02-27)
-- Asynchronous connection check on startup to prevent UI blocking.
-- Configurable request timeout for MCRIT API calls (`mcrit_request_timeout`).
-- Architecture-aware SMDA backend selection (ARM, MIPS, PPC) with fallback to Intel.
-- Hardened error handling and logging in McritInterface, FunctionMatchWidget, SampleInfoWidget, and FunctionOverviewWidget.
-- Guarded remote metadata access to prevent crashes on missing or malformed data.
-- Fixed job preselect when first row (index 0) is selected.
-- Removed custom close action from SmdaGraphViewer to fix AttributeError.
-- Added guard for missing label column and empty label mapping in FunctionOverviewWidget.
-- Improved pyperclip Python 3 compatibility.
-- Ruff linting fixes and code formatting cleanup.
+- Added configurable MCRIT request timeouts via `mcrit_request_timeout` and aligned numeric setting defaults with the plugin settings metadata.
+- Refactored `McritClient` HTTP calls through shared request helpers and added centralized timeout support via `setTimeout()`.
+- Moved the initial server connection check off the UI thread and improved startup status reporting.
+- Added architecture-aware SMDA backend selection with logging and fallback handling during IDB-to-SMDA conversion.
+- Hardened `McritInterface` connection error handling and UI-thread dispatch for background updates.
+- Guarded remote metadata lookups and empty/missing response data in `BlockMatchWidget`, `FunctionMatchWidget`, and `SampleInfoWidget` to avoid crashes when server state is incomplete.
+- Added safety checks before applying labels in `FunctionOverviewWidget` when no label column is configured or no labels have been fetched.
+- Fixed job dialog preselection when the selected row index is `0`.
+- Removed the custom graph close action from `SmdaGraphViewer` to avoid the `AttributeError` path there.
+- Cleaned up vendored `pyperclip` compatibility handling for newer Python versions and removed stray debug/formatting issues from the batch.
 
 ### v1.1.4 (2026-01-30)
 - added Github action to build dependency packages to facilitate installation in offline environments.
