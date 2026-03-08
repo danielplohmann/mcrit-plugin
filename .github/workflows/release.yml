@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install release tooling
+        run: python -m pip install --upgrade pip hcli ruff
+
+      - name: Derive release version
+        id: version
+        run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify metadata sync
+        run: python scripts/verify_metadata_sync.py --repo . --expected-version "${{ steps.version.outputs.value }}"
+
+      - name: Verify settings sync
+        run: python scripts/verify_settings_sync.py --repo .
+
+      - name: Run quality checks
+        run: python scripts/run_quality_checks.py --repo .
+
+      - name: Build plugin archive
+        run: python scripts/package_plugin.py --repo . --output dist/mcrit-ida-${{ steps.version.outputs.value }}.zip
+
+      - name: Lint HCLI package metadata
+        run: |
+          hcli plugin lint .
+          hcli plugin lint dist/mcrit-ida-${{ steps.version.outputs.value }}.zip
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: mcrit-ida ${{ github.ref_name }}
+          generate_release_notes: true
+          files: dist/mcrit-ida-${{ steps.version.outputs.value }}.zip

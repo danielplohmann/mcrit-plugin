@@ -99,15 +99,37 @@ To install a development version from source:
 
 ```bash
 # 1. Clone
-git clone https://github.com/danielplohmann/mcrit-plugins.git
-cd mcrit-plugins
+git clone https://github.com/danielplohmann/mcrit-plugin.git
+cd mcrit-plugin
 
 # 2. Package
-zip -r ../mcrit-ida.zip .
+python scripts/package_plugin.py --repo . --output ../mcrit-ida.zip
 
 # 3. Install
 hcli plugin install ../mcrit-ida.zip
 ```
+
+### Validation
+Run the local checks before publishing:
+
+```bash
+python scripts/verify_metadata_sync.py --repo .
+python scripts/verify_settings_sync.py --repo .
+python scripts/run_quality_checks.py --repo .
+python scripts/package_plugin.py --repo . --output dist/mcrit-ida.zip
+hcli plugin lint .
+hcli plugin lint dist/mcrit-ida.zip
+```
+
+### Release Workflow
+This plugin publishes a dedicated plugin ZIP as the HCLI package artifact.
+
+```bash
+git tag v1.1.5
+git push origin v1.1.5
+```
+
+The tag-driven release workflow validates metadata, builds `mcrit-ida-<version>.zip`, lints both the repo and the ZIP with `hcli`, and then creates the GitHub release with the plugin archive attached. The offline dependency workflow runs after the release is published and attaches the optional wheelhouse bundles.
 
 ##  Version History
 
