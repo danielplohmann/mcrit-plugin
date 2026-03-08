@@ -21,10 +21,10 @@ jobs:
           python-version: "3.11"
 
       - name: Install release tooling
-        run: python -m pip install --upgrade pip hcli requests ruff
+        run: python -m pip install --upgrade pip ida-hcli ruff
 
       - name: Verify HCLI runtime imports
-        run: python -c "import hcli.main, requests"
+        run: python -c "import hcli.main"
 
       - name: Derive release version
         id: version
