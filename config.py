@@ -14,19 +14,20 @@ class SettingsWrapper:
             "mcritweb_username": "",
             "mcrit_server": "http://127.0.0.1:8000/",
             "mcritweb_api_token": "",
+            "mcrit_request_timeout": "10",
             "auto_analyze_smda_on_startup": False,
             "use_smda_for_analysis": False,
             "submit_function_names_on_close": False,
             "blocks_filter_library_functions": False,
             "blocks_live_query": False,
-            "blocks_min_size": 4,
+            "blocks_min_size": "4",
             "function_filter_library_functions": False,
             "function_live_query": False,
-            "function_min_score": 50,
+            "function_min_score": "50",
             "overview_fetch_labels_automatically": False,
             "overview_filter_to_labels": False,
             "overview_filter_to_conflicts": False,
-            "overview_min_score": 50,
+            "overview_min_score": "50",
         }
         # a little developer convenience to override settings without messing with IDA settings
         CONFIG_FILE_PATH = os.path.abspath(__file__)
@@ -57,6 +58,14 @@ class SettingsWrapper:
     @property
     def MCRITWEB_API_TOKEN(self):
         return self._get("mcritweb_api_token")
+
+    @property
+    def MCRIT_REQUEST_TIMEOUT(self):
+        value = self._get("mcrit_request_timeout")
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return 10
 
     @property
     def AUTO_ANALYZE_SMDA_ON_STARTUP(self):
@@ -148,6 +157,7 @@ MCRIT4IDA_PLUGIN_ONLY = False
 MCRITWEB_USERNAME = settings.MCRITWEB_USERNAME
 MCRIT_SERVER = settings.MCRIT_SERVER
 MCRITWEB_API_TOKEN = settings.MCRITWEB_API_TOKEN
+MCRIT_REQUEST_TIMEOUT = settings.MCRIT_REQUEST_TIMEOUT
 
 ### UI behavior configurations
 ## General behavior

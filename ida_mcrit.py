@@ -35,6 +35,7 @@ QtGui = QtShim.get_QtGui()
 QtCore = QtShim.get_QtCore()
 QtWidgets = QtShim.get_QtWidgets()
 
+
 ################################################################################
 # Core of the MCRIT4IDA GUI.
 ################################################################################

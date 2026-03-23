@@ -33,7 +33,7 @@ class MainWidget(QMainWindow):
         self.ResultChooserDialog = ResultChooserDialog
         self.YaraStringBuilderDialog = YaraStringBuilderDialog
         self._createGui()
-        self.parent.mcrit_interface.checkConnection()
+        self.parent.mcrit_interface.checkConnection(async_=True)
         # IDA 6.x Windows workaronud to avoid lost imports
         self.os = os
         self.os_path = os.path

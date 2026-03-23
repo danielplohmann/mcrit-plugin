@@ -54,7 +54,10 @@ import time
 import warnings
 
 from ctypes import c_size_t, sizeof, c_wchar_p, get_errno, c_wchar
-from typing import Union, Optional
+try:
+    unicode  # type: ignore[name-defined]
+except NameError:
+    unicode = str  # type: ignore[assignment]
 
 
 _IS_RUNNING_PYTHON_2 = sys.version_info[0] == 2  # type: bool
@@ -136,7 +139,7 @@ def init_qt_clipboard():
     # Try to import from qtpy, but if that fails try PyQt5
     try:
         from qtpy.QtWidgets import QApplication
-    except:
+    except Exception:
         from PyQt5.QtWidgets import QApplication
 
     app = QApplication.instance()

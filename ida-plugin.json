@@ -51,6 +51,14 @@
         "documentation": "URL of the MCRIT server."
       },
       {
+        "key": "mcrit_request_timeout",
+        "type": "string",
+        "required": false,
+        "default": "10",
+        "name": "MCRIT Request Timeout (seconds)",
+        "documentation": "Timeout for MCRIT API requests."
+      },
+      {
         "key": "mcritweb_api_token",
         "type": "string",
         "required": false,

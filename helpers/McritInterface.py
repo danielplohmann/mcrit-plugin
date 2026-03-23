@@ -1,5 +1,6 @@
 import json
 import os
+import threading
 import traceback
 
 from helpers.minimcrit.client.McritClient import McritClient
@@ -29,6 +30,18 @@ class McritInterface(object):
         self.config = parent.config
         self._mcrit_server = self.config.MCRIT_SERVER
         self.mcrit_client = McritClient(self.config.MCRIT_SERVER)
+        timeout_value = self.config.MCRIT_REQUEST_TIMEOUT
+        if timeout_value and timeout_value > 0:
+            if hasattr(self.mcrit_client, "setTimeout"):
+                try:
+                    self.mcrit_client.setTimeout(timeout_value)
+                except Exception as e:
+                    print(f"[MCRIT] Failed to set timeout via setTimeout: {e}")
+            elif hasattr(self.mcrit_client, "timeout"):
+                try:
+                    self.mcrit_client.timeout = timeout_value
+                except Exception as e:
+                    print(f"[MCRIT] Failed to set timeout via timeout attribute: {e}")
         if self.config.MCRITWEB_API_TOKEN:
             self.mcrit_client.setApitoken(self.config.MCRITWEB_API_TOKEN)
         if self.config.MCRITWEB_USERNAME:
@@ -44,6 +57,40 @@ class McritInterface(object):
 
     def _getMcritServerAddress(self):
         return self._mcrit_server
+
+    def _run_on_ui_thread(self, func):
+        try:
+            import ida_kernwin
+
+            mff_flag = getattr(ida_kernwin, "MFF_FAST", None)
+            if mff_flag is None:
+                import idaapi
+
+                mff_flag = idaapi.MFF_FAST
+            return ida_kernwin.execute_sync(func, mff_flag)
+        except Exception as e:
+            print(f"[MCRIT] Failed to run on UI thread via ida_kernwin, falling back. Error: {e}")
+            try:
+                import idaapi
+
+                return idaapi.execute_sync(func, idaapi.MFF_FAST)
+            except Exception as e2:
+                print(
+                    f"[MCRIT] Failed to run on UI thread via idaapi, running directly. Error: {e2}"
+                )
+                return func()
+
+    def _select_smda_backend(self, binary_info):
+        arch = (binary_info.architecture or "").lower()
+        if "x86" in arch or "amd64" in arch or "i386" in arch or "intel" in arch:
+            return "intel"
+        if "arm" in arch:
+            return "arm"
+        if "mips" in arch:
+            return "mips"
+        if "ppc" in arch or "powerpc" in arch:
+            return "ppc"
+        return None
 
     def convertIdbToSmda(self):
         self.parent.local_widget.updateActivityInfo("Converting to SMDA report...")
@@ -63,8 +110,19 @@ class McritInterface(object):
 
     def convertIdbToSmdaUsingSmda(self):
         self.parent.local_widget.updateActivityInfo("Converting to SMDA report using SMDA...")
-        smda_disassembler = Disassembler(backend="intel")
         binary_info = self.getIdaBinaryInfo()
+        backend = self._select_smda_backend(binary_info)
+        if backend:
+            self.parent.local_widget.updateActivityInfo(f"SMDA backend selected: {backend}")
+        else:
+            self.parent.local_widget.updateActivityInfo("SMDA backend selected: auto")
+        try:
+            smda_disassembler = Disassembler(backend=backend) if backend else Disassembler()
+        except Exception as e:
+            print(
+                f"[MCRIT] Failed to initialize Disassembler with backend '{backend}', falling back to 'intel'. Error: {e}"
+            )
+            smda_disassembler = Disassembler(backend="intel")
         report = smda_disassembler._disassemble(binary_info, timeout=300)
         function_symbols = self.smda_ida.getFunctionSymbols()
         for smda_function in report.getFunctions():
@@ -73,27 +131,49 @@ class McritInterface(object):
         self.parent.local_widget.updateActivityInfo("Conversion from IDB to SMDA finished.")
         return report
 
-    def checkConnection(self):
+    def _check_connection_impl(self):
+        try:
+            mcrit_version = self.mcrit_client.getVersion()
+            return mcrit_version, None
+        except Exception as exc:
+            if self._withTraceback:
+                traceback.print_exc()
+            return None, exc
+
+    def checkConnection(self, async_=False):
         self.parent.local_widget.updateActivityInfo(
             "Checking connection to server: %s" % self._getMcritServerAddress()
         )
-        try:
-            mcrit_version = self.mcrit_client.getVersion()
+
+        def apply_result(result):
+            mcrit_version, err = result
             if mcrit_version:
                 self.parent.local_widget.updateActivityInfo("Connection check successful!")
                 self.parent.local_widget.updateServerInfo(
                     self._getMcritServerAddress(), version=mcrit_version
                 )
             else:
-                self.parent.local_widget.updateActivityInfo(
-                    "Connection check failed (status code)."
-                )
+                if err is None:
+                    self.parent.local_widget.updateActivityInfo(
+                        "Connection check failed (status code)."
+                    )
+                else:
+                    self.parent.local_widget.updateActivityInfo(
+                        "Connection check failed (unreachable)."
+                    )
                 self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo("Connection check failed (unreachable).")
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+
+        if async_:
+
+            def runner():
+                result = self._check_connection_impl()
+                self._run_on_ui_thread(lambda: apply_result(result))
+
+            thread = threading.Thread(target=runner, daemon=True)
+            thread.start()
+            return
+
+        apply_result(self._check_connection_impl())
 
     def querySampleSha256(self, sha256):
         self.parent.local_widget.updateActivityInfo("Querying for SHA256")

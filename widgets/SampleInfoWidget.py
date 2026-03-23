@@ -63,6 +63,18 @@ class SampleInfoWidget(QMainWindow):
         self.populateBestMatchTable()
         self.updateFunctionsLabel()
 
+    def _get_entry_field(self, entry, field):
+        if entry is None:
+            return None
+        if isinstance(entry, dict):
+            return entry.get(field)
+        return getattr(entry, field, None)
+
+    def _get_sample_entry(self, sample_infos, sample_id):
+        if isinstance(sample_infos, dict):
+            return sample_infos.get(sample_id) or sample_infos.get(str(sample_id))
+        return None
+
     def _updateLabelBestMatches(self, text):
         self.label_best_matches.setText(text)
 
@@ -72,11 +84,22 @@ class SampleInfoWidget(QMainWindow):
     def _aggregatedMatchingData(self):
         """TODO refactor to somewhere else or re-use from mcrit core"""
         match_report = self.parent.getMatchingReport()
+        if not match_report:
+            return {}
+        if not isinstance(match_report, dict):
+            if hasattr(match_report, "toDict"):
+                match_report = match_report.toDict()
+            else:
+                return {}
         sample_infos = self.parent.getSampleInfos()
-        own_sample_num_bytes = match_report["sample_info"]["binweight"]
+        sample_info = match_report.get("sample_info") or {}
+        own_sample_num_bytes = sample_info.get("binweight") or 0
+        if own_sample_num_bytes <= 0:
+            return {}
         function_num_bytes = {}
         matches_per_sample = {}
-        for own_function_id, match_data in match_report["pichash"]["pichash_matches"].items():
+        pichash_matches = match_report.get("pichash", {}).get("pichash_matches") or {}
+        for own_function_id, match_data in pichash_matches.items():
             function_num_bytes[own_function_id] = match_data["num_bytes"]
             for foreign_sample_id, foreign_matches in match_data["matches"].items():
                 foreign_sample_id = int(foreign_sample_id)
@@ -88,9 +111,10 @@ class SampleInfoWidget(QMainWindow):
                     matches_per_sample[foreign_sample_id][own_function_id].append(
                         ("pichash", match[1])
                     )
-                if match_data["has_library_match"]:
+                if match_data.get("has_library_match"):
                     matches_per_sample[foreign_sample_id][own_function_id].append(("library", 0))
-        for own_function_id, match_data in match_report["minhash"]["minhash_matches"].items():
+        minhash_matches = match_report.get("minhash", {}).get("minhash_matches") or {}
+        for own_function_id, match_data in minhash_matches.items():
             function_num_bytes[own_function_id] = match_data["num_bytes"]
             for foreign_sample_id, foreign_matches in match_data["matches"].items():
                 foreign_sample_id = int(foreign_sample_id)
@@ -102,17 +126,17 @@ class SampleInfoWidget(QMainWindow):
                     matches_per_sample[foreign_sample_id][own_function_id].append(
                         ("minhash", match[1])
                     )
-                if match_data["has_library_match"]:
+                if match_data.get("has_library_match"):
                     matches_per_sample[foreign_sample_id][own_function_id].append(("library", 0))
 
         sample_summary = {}
         for foreign_sample_id in matches_per_sample:
-            sample_info = sample_infos[int(foreign_sample_id)]
+            sample_info = self._get_sample_entry(sample_infos, int(foreign_sample_id))
             sample_summary[foreign_sample_id] = {
-                "family": sample_info["family"],
-                "version": sample_info["version"],
-                "sha256": sample_info["sha256"],
-                "filename": sample_info["filename"],
+                "family": self._get_entry_field(sample_info, "family") or "-",
+                "version": self._get_entry_field(sample_info, "version") or "-",
+                "sha256": self._get_entry_field(sample_info, "sha256") or "",
+                "filename": self._get_entry_field(sample_info, "filename") or "",
                 "sample_id": foreign_sample_id,
                 "minhash_matches": 0,
                 "pichash_matches": 0,

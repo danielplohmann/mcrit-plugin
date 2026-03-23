@@ -111,6 +111,18 @@ hcli plugin install ../mcrit-ida.zip
 
 ##  Version History
 
+### v1.1.5 (2026-02-27)
+- Added configurable MCRIT request timeouts via `mcrit_request_timeout` and aligned numeric setting defaults with the plugin settings metadata.
+- Refactored `McritClient` HTTP calls through shared request helpers and added centralized timeout support via `setTimeout()`.
+- Moved the initial server connection check off the UI thread and improved startup status reporting.
+- Added architecture-aware SMDA backend selection with logging and fallback handling during IDB-to-SMDA conversion.
+- Hardened `McritInterface` connection error handling and UI-thread dispatch for background updates.
+- Guarded remote metadata lookups and empty/missing response data in `BlockMatchWidget`, `FunctionMatchWidget`, and `SampleInfoWidget` to avoid crashes when server state is incomplete.
+- Added safety checks before applying labels in `FunctionOverviewWidget` when no label column is configured or no labels have been fetched.
+- Fixed job dialog preselection when the selected row index is `0`.
+- Removed the custom graph close action from `SmdaGraphViewer` to avoid the `AttributeError` path there.
+- Cleaned up vendored `pyperclip` compatibility handling for newer Python versions and removed stray debug/formatting issues from the batch.
+
 ### v1.1.4 (2026-01-30)
 - added Github action to build dependency packages to facilitate installation in offline environments.
 - Removed the mcrit package dependency by internalizing McritClient and required DTOs.

@@ -418,6 +418,14 @@ class FunctionOverviewWidget(QMainWindow):
         label_score_column_index = McritTableColumn.columnTypeToIndex(
             McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS
         )
+        if label_score_column_index is None:
+            self.parent.local_widget.updateActivityInfo(
+                "No label column configured; cannot import labels."
+            )
+            return
+        if not self.function_name_mapping:
+            self.parent.local_widget.updateActivityInfo("No labels loaded. Fetch labels first.")
+            return
         num_names_applied = 0
         num_names_skipped = 0
         for row_id in range(self.table_local_functions.rowCount()):
