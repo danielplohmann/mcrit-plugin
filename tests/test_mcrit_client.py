@@ -136,6 +136,68 @@ class TestSampleGroupOnly:
 
         assert "sample_group_only" not in captured["kwargs"]["params"]
 
+    def test_request_matches_for_smda_report_passes_sample_group_only(self, client, monkeypatch):
+        captured = {}
+
+        def fake_post(url, **kwargs):
+            captured["url"] = url
+            captured["kwargs"] = kwargs
+            return _make_response()
+
+        monkeypatch.setattr(client, "_post", fake_post)
+
+        smda_report = MagicMock()
+        smda_report.toDict.return_value = {"foo": "bar"}
+
+        client.requestMatchesForSmdaReport(smda_report, sample_group_only=True)
+
+        assert captured["url"].endswith("/query")
+        assert captured["kwargs"]["params"]["sample_group_only"] is True
+
+    def test_request_matches_for_smda_report_default_omits_param(self, client, monkeypatch):
+        captured = {}
+
+        def fake_post(url, **kwargs):
+            captured["kwargs"] = kwargs
+            return _make_response()
+
+        monkeypatch.setattr(client, "_post", fake_post)
+
+        smda_report = MagicMock()
+        smda_report.toDict.return_value = {}
+
+        client.requestMatchesForSmdaReport(smda_report)
+
+        assert "sample_group_only" not in captured["kwargs"]["params"]
+
+    def test_request_matches_for_sample_passes_sample_group_only(self, client, monkeypatch):
+        captured = {}
+
+        def fake_get(url, **kwargs):
+            captured["url"] = url
+            captured["kwargs"] = kwargs
+            return _make_response()
+
+        monkeypatch.setattr(client, "_get", fake_get)
+
+        client.requestMatchesForSample(42, sample_group_only=True)
+
+        assert captured["url"].endswith("/matches/sample/42")
+        assert captured["kwargs"]["params"]["sample_group_only"] is True
+
+    def test_request_matches_for_sample_default_omits_param(self, client, monkeypatch):
+        captured = {}
+
+        def fake_get(url, **kwargs):
+            captured["kwargs"] = kwargs
+            return _make_response()
+
+        monkeypatch.setattr(client, "_get", fake_get)
+
+        client.requestMatchesForSample(42)
+
+        assert "sample_group_only" not in captured["kwargs"]["params"]
+
 
 class TestHandleResponse:
     def test_successful_response_returns_data(self):

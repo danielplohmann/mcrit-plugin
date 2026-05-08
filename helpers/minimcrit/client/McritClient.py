@@ -427,10 +427,15 @@ class McritClient:
         pichash_size=None,
         band_matches_required=None,
         force_recalculation=False,
+        sample_group_only=False,
     ) -> str:
         smda_json = smda_report.toDict()
         params = self._getMatchingRequestParams(
-            minhash_threshold, pichash_size, force_recalculation, band_matches_required
+            minhash_threshold,
+            pichash_size,
+            force_recalculation,
+            band_matches_required,
+            sample_group_only=sample_group_only,
         )
         response = self._post(
             f"{self.mcrit_server}/query", json=smda_json, headers=self.headers, params=params
@@ -515,9 +520,14 @@ class McritClient:
         pichash_size=None,
         band_matches_required=None,
         force_recalculation=False,
+        sample_group_only=False,
     ) -> None:
         params = self._getMatchingRequestParams(
-            minhash_threshold, pichash_size, force_recalculation, band_matches_required
+            minhash_threshold,
+            pichash_size,
+            force_recalculation,
+            band_matches_required,
+            sample_group_only=sample_group_only,
         )
         response = self._get(
             f"{self.mcrit_server}/matches/sample/{sample_id}", headers=self.headers, params=params
@@ -591,9 +601,12 @@ class McritClient:
         exclude_self_matches=False,
         sample_group_only=False,
     ):
-        """
-        Get all matches for a SmdaReport with a single SmdaFunction
-        Supported by mcritweb API pass-through
+        """Get all matches for a SmdaReport with a single SmdaFunction.
+
+        Supported by mcritweb API pass-through.
+
+        :param sample_group_only: when True, restrict matches to samples in the
+            caller's sample group on the server side.
         """
         params = self._getMatchingRequestParams(
             minhash_threshold,
