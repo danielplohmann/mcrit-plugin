@@ -32,10 +32,7 @@ class McritInterface(object):
         self.mcrit_client = McritClient(self.config.MCRIT_SERVER)
         timeout_value = self.config.MCRIT_REQUEST_TIMEOUT
         if timeout_value and timeout_value > 0:
-            try:
-                self.mcrit_client.setTimeout(timeout_value)
-            except Exception as e:
-                print(f"[MCRIT] Failed to set request timeout: {e}")
+            self.mcrit_client.setTimeout(timeout_value)
         if self.config.MCRITWEB_API_TOKEN:
             self.mcrit_client.setApitoken(self.config.MCRITWEB_API_TOKEN)
         if self.config.MCRITWEB_USERNAME:
