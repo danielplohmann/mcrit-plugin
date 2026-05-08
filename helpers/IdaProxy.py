@@ -255,8 +255,8 @@ class IdaProxy:
             if self.verbose:
                 if function_address is not None:
                     print(
-                        "[!] Trying to resolve an API address in non-function code at location: 0x%x, continuing "
-                        + "analysis..." % function_address
+                        "[!] Trying to resolve an API address in non-function code at location: "
+                        "0x%x, continuing analysis..." % function_address
                     )
                 else:
                     print(
