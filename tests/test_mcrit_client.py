@@ -198,6 +198,59 @@ class TestSampleGroupOnly:
 
         assert "sample_group_only" not in captured["kwargs"]["params"]
 
+    def test_request_matches_for_mapped_binary_passes_sample_group_only(self, client, monkeypatch):
+        captured = {}
+
+        def fake_post(url, *args, **kwargs):
+            captured["url"] = url
+            captured["args"] = args
+            captured["kwargs"] = kwargs
+            return _make_response()
+
+        monkeypatch.setattr(client, "_post", fake_post)
+
+        client.requestMatchesForMappedBinary(
+            b"binary", 0x401000, disassemble_locally=False, sample_group_only=True
+        )
+
+        assert captured["url"].endswith("/query/binary/mapped/4198400")
+        assert captured["args"] == (b"binary",)
+        assert captured["kwargs"]["params"]["sample_group_only"] is True
+
+    def test_request_matches_for_unmapped_binary_passes_sample_group_only(self, client, monkeypatch):
+        captured = {}
+
+        def fake_post(url, *args, **kwargs):
+            captured["url"] = url
+            captured["args"] = args
+            captured["kwargs"] = kwargs
+            return _make_response()
+
+        monkeypatch.setattr(client, "_post", fake_post)
+
+        client.requestMatchesForUnmappedBinary(
+            b"binary", disassemble_locally=False, sample_group_only=True
+        )
+
+        assert captured["url"].endswith("/query/binary")
+        assert captured["args"] == (b"binary",)
+        assert captured["kwargs"]["params"]["sample_group_only"] is True
+
+    def test_request_matches_for_sample_vs_passes_sample_group_only(self, client, monkeypatch):
+        captured = {}
+
+        def fake_get(url, **kwargs):
+            captured["url"] = url
+            captured["kwargs"] = kwargs
+            return _make_response()
+
+        monkeypatch.setattr(client, "_get", fake_get)
+
+        client.requestMatchesForSampleVs(42, 43, sample_group_only=True)
+
+        assert captured["url"].endswith("/matches/sample/42/43")
+        assert captured["kwargs"]["params"]["sample_group_only"] is True
+
 
 class TestHandleResponse:
     def test_successful_response_returns_data(self):

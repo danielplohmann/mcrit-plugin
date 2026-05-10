@@ -453,6 +453,7 @@ class McritClient:
         band_matches_required=None,
         disassemble_locally=True,
         force_recalculation=False,
+        sample_group_only=False,
     ) -> str:
         if disassemble_locally:
             disassembler = Disassembler()
@@ -465,10 +466,15 @@ class McritClient:
                 pichash_size=pichash_size,
                 band_matches_required=band_matches_required,
                 force_recalculation=force_recalculation,
+                sample_group_only=sample_group_only,
             )
 
         params = self._getMatchingRequestParams(
-            minhash_threshold, pichash_size, force_recalculation, band_matches_required
+            minhash_threshold,
+            pichash_size,
+            force_recalculation,
+            band_matches_required,
+            sample_group_only=sample_group_only,
         )
         response = self._post(
             f"{self.mcrit_server}/query/binary/mapped/{base_address}",
@@ -488,6 +494,7 @@ class McritClient:
         band_matches_required=None,
         disassemble_locally=True,
         force_recalculation=False,
+        sample_group_only=False,
     ) -> str:
         if disassemble_locally:
             disassembler = Disassembler()
@@ -500,10 +507,15 @@ class McritClient:
                 pichash_size=pichash_size,
                 band_matches_required=band_matches_required,
                 force_recalculation=force_recalculation,
+                sample_group_only=sample_group_only,
             )
 
         params = self._getMatchingRequestParams(
-            minhash_threshold, pichash_size, force_recalculation, band_matches_required
+            minhash_threshold,
+            pichash_size,
+            force_recalculation,
+            band_matches_required,
+            sample_group_only=sample_group_only,
         )
 
         response = self._post(
@@ -544,9 +556,14 @@ class McritClient:
         pichash_size=None,
         band_matches_required=None,
         force_recalculation=False,
+        sample_group_only=False,
     ) -> str:
         params = self._getMatchingRequestParams(
-            minhash_threshold, pichash_size, force_recalculation, band_matches_required
+            minhash_threshold,
+            pichash_size,
+            force_recalculation,
+            band_matches_required,
+            sample_group_only=sample_group_only,
         )
         response = self._get(
             f"{self.mcrit_server}/matches/sample/{sample_id}/{other_sample_id}",
