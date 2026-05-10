@@ -217,7 +217,9 @@ class TestSampleGroupOnly:
         assert captured["args"] == (b"binary",)
         assert captured["kwargs"]["params"]["sample_group_only"] is True
 
-    def test_request_matches_for_unmapped_binary_passes_sample_group_only(self, client, monkeypatch):
+    def test_request_matches_for_unmapped_binary_passes_sample_group_only(
+        self, client, monkeypatch
+    ):
         captured = {}
 
         def fake_post(url, *args, **kwargs):
