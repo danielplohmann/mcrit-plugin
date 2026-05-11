@@ -431,10 +431,10 @@ class McritClient:
     ) -> str:
         smda_json = smda_report.toDict()
         params = self._getMatchingRequestParams(
-            minhash_threshold,
-            pichash_size,
-            force_recalculation,
-            band_matches_required,
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
             sample_group_only=sample_group_only,
         )
         response = self._post(
@@ -470,10 +470,10 @@ class McritClient:
             )
 
         params = self._getMatchingRequestParams(
-            minhash_threshold,
-            pichash_size,
-            force_recalculation,
-            band_matches_required,
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
             sample_group_only=sample_group_only,
         )
         response = self._post(
@@ -511,10 +511,10 @@ class McritClient:
             )
 
         params = self._getMatchingRequestParams(
-            minhash_threshold,
-            pichash_size,
-            force_recalculation,
-            band_matches_required,
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
             sample_group_only=sample_group_only,
         )
 
@@ -535,10 +535,10 @@ class McritClient:
         sample_group_only=False,
     ) -> None:
         params = self._getMatchingRequestParams(
-            minhash_threshold,
-            pichash_size,
-            force_recalculation,
-            band_matches_required,
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
             sample_group_only=sample_group_only,
         )
         response = self._get(
@@ -559,10 +559,10 @@ class McritClient:
         sample_group_only=False,
     ) -> str:
         params = self._getMatchingRequestParams(
-            minhash_threshold,
-            pichash_size,
-            force_recalculation,
-            band_matches_required,
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
             sample_group_only=sample_group_only,
         )
         response = self._get(
@@ -584,10 +584,10 @@ class McritClient:
         force_recalculation=False,
     ) -> None:
         params = self._getMatchingRequestParams(
-            minhash_threshold,
-            pichash_size,
-            force_recalculation,
-            band_matches_required,
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
             sample_group_only=sample_group_only,
         )
         response = self._get(
@@ -642,11 +642,11 @@ class McritClient:
             was rejected.
         """
         params = self._getMatchingRequestParams(
-            minhash_threshold,
-            pichash_size,
-            force_recalculation,
-            band_matches_required,
-            exclude_self_matches,
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
+            exclude_self_matches=exclude_self_matches,
             sample_group_only=sample_group_only,
         )
         response = self._post(
