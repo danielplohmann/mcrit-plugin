@@ -429,6 +429,7 @@ class McritClient:
         force_recalculation=False,
         sample_group_only=False,
     ) -> str:
+        smda_json = smda_report.toDict()
         params = self._getMatchingRequestParams(
             minhash_threshold=minhash_threshold,
             pichash_size=pichash_size,
