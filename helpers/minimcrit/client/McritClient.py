@@ -622,8 +622,24 @@ class McritClient:
 
         Supported by mcritweb API pass-through.
 
-        :param sample_group_only: when True, restrict matches to samples in the
-            caller's sample group on the server side.
+        :param smda_report: SmdaReport containing a single SmdaFunction to query
+            for matches; serialized via ``toDict()`` and POSTed to the server.
+        :param minhash_threshold: optional minimum MinHash similarity score
+            (0-100) below which matches are filtered out server-side.
+        :param pichash_size: optional minimum PicHash size (number of
+            instructions) required for PicHash matches.
+        :param force_recalculation: when True, ask the server to recompute
+            matches rather than reuse cached results.
+        :param band_matches_required: optional minimum number of band hits
+            required to consider a candidate function a MinHash match.
+        :param exclude_self_matches: when True, omit matches against the
+            same sample/function as the query.
+        :param sample_group_only: when True, restrict matches to samples in
+            the caller's sample group on the server side.
+        :return: when ``self.raw`` is True, the raw ``requests.Response``;
+            otherwise the parsed ``data`` payload (typically a dict
+            representing a ``MatchingResult``) or ``None`` if the request
+            was rejected.
         """
         params = self._getMatchingRequestParams(
             minhash_threshold,
