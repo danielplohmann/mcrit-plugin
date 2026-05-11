@@ -146,12 +146,15 @@ class TestSampleGroupOnly:
 
         monkeypatch.setattr(client, "_post", fake_post)
 
+        smda_json = {"foo": "bar"}
         smda_report = MagicMock()
-        smda_report.toDict.return_value = {"foo": "bar"}
+        smda_report.toDict.return_value = smda_json
 
         client.requestMatchesForSmdaReport(smda_report, sample_group_only=True)
 
         assert captured["url"].endswith("/query")
+        smda_report.toDict.assert_called_once_with()
+        assert captured["kwargs"]["json"] == smda_json
         assert captured["kwargs"]["params"]["sample_group_only"] is True
 
     def test_request_matches_for_smda_report_default_omits_param(self, client, monkeypatch):
