@@ -56,6 +56,30 @@ def test_mcrit_request_timeout_invalid_falls_back_to_default(fresh_config, raw_v
         assert settings.MCRIT_REQUEST_TIMEOUT == 10
 
 
+def test_sample_group_only_default(fresh_config):
+    settings = fresh_config.SettingsWrapper()
+    assert settings.SAMPLE_GROUP_ONLY is False
+
+
+@pytest.mark.parametrize(
+    "raw_value, expected",
+    [
+        (False, False),
+        (True, True),
+        ("false", False),
+        ("False", False),
+        ("0", False),
+        ("true", True),
+        ("yes", True),
+        (1, True),
+    ],
+)
+def test_sample_group_only_coerces_setting_value(fresh_config, raw_value, expected):
+    settings = fresh_config.SettingsWrapper()
+    with patch.object(settings, "_get", return_value=raw_value):
+        assert settings.SAMPLE_GROUP_ONLY is expected
+
+
 def test_blocks_min_size_default(fresh_config):
     settings = fresh_config.SettingsWrapper()
     assert settings.BLOCKS_MIN_SIZE == 4
@@ -98,3 +122,27 @@ def test_version_matches_ida_plugin_json():
         manifest = json.load(fh)
     config = _reload_config()
     assert manifest["plugin"]["version"] == config.VERSION
+
+
+def test_manifest_declares_sample_group_only_setting():
+    import json
+    import os
+
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+    with open(os.path.join(project_root, "ida-plugin.json"), "r") as fh:
+        manifest = json.load(fh)
+
+    settings = {setting["key"]: setting for setting in manifest["plugin"]["settings"]}
+    assert settings["sample_group_only"]["type"] == "boolean"
+    assert settings["sample_group_only"]["default"] is False
+
+
+def test_override_template_declares_sample_group_only_default():
+    import json
+    import os
+
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+    with open(os.path.join(project_root, "config_override.json.template"), "r") as fh:
+        override_template = json.load(fh)
+
+    assert override_template["sample_group_only"] is False

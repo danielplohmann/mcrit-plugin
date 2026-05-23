@@ -20,12 +20,31 @@ class _FakeBinaryInfo:
         self.architecture = architecture
 
 
-def _make_interface(timeout=10):
+class _FakeSmdaFunction:
+    def __init__(self, offset):
+        self.offset = offset
+
+
+class _FakeSmdaReport:
+    def __init__(self, functions):
+        self._functions = functions
+
+    def getFunctions(self):
+        return self._functions
+
+
+def _make_interface(timeout=10, sample_group_only=False):
     """Build an instance bypassing __init__ to avoid IDA-specific setup."""
     inst = McritInterface.__new__(McritInterface)
     inst.parent = SimpleNamespace(
         local_widget=MagicMock(),
-        config=SimpleNamespace(MCRIT_REQUEST_TIMEOUT=timeout),
+        config=SimpleNamespace(
+            MCRIT_REQUEST_TIMEOUT=timeout,
+            SAMPLE_GROUP_ONLY=sample_group_only,
+        ),
+        remote_sample_id=23,
+        function_matches={},
+        function_id_to_offset={},
     )
     inst.config = inst.parent.config
     inst.mcrit_client = MagicMock()
@@ -88,3 +107,62 @@ class TestCheckConnectionImpl:
         version, err = interface._check_connection_impl()
         assert version is None
         assert err is boom
+
+
+class TestSampleGroupOnly:
+    @pytest.mark.parametrize(
+        "raw_value, expected",
+        [
+            (False, False),
+            (True, True),
+            ("false", False),
+            ("true", True),
+            ("0", False),
+            ("1", True),
+            (None, False),
+        ],
+    )
+    def test_is_sample_group_only_coerces_config_value(self, raw_value, expected):
+        interface = _make_interface()
+        interface.config.SAMPLE_GROUP_ONLY = raw_value
+
+        assert interface._isSampleGroupOnly() is expected
+
+    def test_request_matching_job_passes_configured_sample_group_only(self):
+        interface = _make_interface(sample_group_only=True)
+        interface.mcrit_client.requestMatchesForSample.return_value = "job-1"
+
+        interface.requestMatchingJob(23, force_update=True)
+
+        interface.mcrit_client.requestMatchesForSample.assert_called_once_with(
+            23,
+            band_matches_required=2,
+            force_recalculation=True,
+            sample_group_only=True,
+        )
+
+    def test_request_matching_job_defaults_sample_group_only_to_false(self):
+        interface = _make_interface()
+        interface.mcrit_client.requestMatchesForSample.return_value = "job-1"
+
+        interface.requestMatchingJob(23)
+
+        interface.mcrit_client.requestMatchesForSample.assert_called_once_with(
+            23,
+            band_matches_required=2,
+            force_recalculation=False,
+            sample_group_only=False,
+        )
+
+    def test_query_smda_function_matches_passes_configured_sample_group_only(self):
+        interface = _make_interface(sample_group_only=True)
+        interface.mcrit_client.getMatchesForSmdaFunction.return_value = None
+        smda_report = _FakeSmdaReport([_FakeSmdaFunction(0x401000)])
+
+        interface.querySmdaFunctionMatches(smda_report)
+
+        interface.mcrit_client.getMatchesForSmdaFunction.assert_called_once_with(
+            smda_report,
+            exclude_self_matches=False,
+            sample_group_only=True,
+        )

@@ -3,6 +3,7 @@
     "mcrit_server": "http://127.0.0.1:8000/",
     "mcritweb_api_token": "",
     "mcrit_request_timeout": 10,
+    "sample_group_only": false,
     "auto_analyze_smda_on_startup": false,
     "use_smda_for_analysis": false,
     "submit_function_names_on_close": false,

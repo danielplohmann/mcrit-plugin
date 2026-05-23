@@ -15,6 +15,7 @@ class SettingsWrapper:
             "mcrit_server": "http://127.0.0.1:8000/",
             "mcritweb_api_token": "",
             "mcrit_request_timeout": "10",
+            "sample_group_only": False,
             "auto_analyze_smda_on_startup": False,
             "use_smda_for_analysis": False,
             "submit_function_names_on_close": False,
@@ -47,6 +48,14 @@ class SettingsWrapper:
         except (KeyError, AttributeError, ValueError, TypeError, RuntimeError):
             return self._defaults.get(key)
 
+    def _get_bool(self, key):
+        value = self._get(key)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "on"}
+        return bool(value)
+
     @property
     def MCRITWEB_USERNAME(self):
         return self._get("mcritweb_username")
@@ -66,6 +75,10 @@ class SettingsWrapper:
             return int(value)
         except (ValueError, TypeError):
             return 10
+
+    @property
+    def SAMPLE_GROUP_ONLY(self):
+        return self._get_bool("sample_group_only")
 
     @property
     def AUTO_ANALYZE_SMDA_ON_STARTUP(self):
@@ -158,6 +171,7 @@ MCRITWEB_USERNAME = settings.MCRITWEB_USERNAME
 MCRIT_SERVER = settings.MCRIT_SERVER
 MCRITWEB_API_TOKEN = settings.MCRITWEB_API_TOKEN
 MCRIT_REQUEST_TIMEOUT = settings.MCRIT_REQUEST_TIMEOUT
+SAMPLE_GROUP_ONLY = settings.SAMPLE_GROUP_ONLY
 
 ### UI behavior configurations
 ## General behavior

@@ -59,6 +59,14 @@
         "documentation": "Timeout for MCRIT API requests."
       },
       {
+        "key": "sample_group_only",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "name": "Restrict Matches to Sample Group",
+        "documentation": "Restrict MCRIT matching requests to samples in the server-side sample group."
+      },
+      {
         "key": "mcritweb_api_token",
         "type": "string",
         "required": false,
