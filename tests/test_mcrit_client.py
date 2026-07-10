@@ -15,10 +15,20 @@ from helpers.minimcrit.client.McritClient import McritClient, handle_response
 
 @pytest.fixture
 def client():
+    """Fixture providing a McritClient instance for testing."""
     return McritClient(mcrit_server="http://example.test:8000")
 
 
 def _make_response(status_code=200, json_data=None):
+    """Create a mock HTTP response object.
+
+    Args:
+        status_code: HTTP status code (default 200).
+        json_data: Dictionary to return from response.json() call.
+
+    Returns:
+        Mock response object configured with the given parameters.
+    """
     response = MagicMock()
     response.status_code = status_code
     response.json.return_value = json_data or {"status": "successful", "data": {}}

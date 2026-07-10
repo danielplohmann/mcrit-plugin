@@ -13,6 +13,11 @@ import pytest
 
 
 def _reload_config():
+    """Reload the config module to reset module-level state.
+
+    Returns:
+        The reloaded config module.
+    """
     if "config" in sys.modules:
         del sys.modules["config"]
     return importlib.import_module("config")
@@ -20,6 +25,7 @@ def _reload_config():
 
 @pytest.fixture
 def fresh_config():
+    """Fixture that provides a freshly loaded config module for testing."""
     return _reload_config()
 
 

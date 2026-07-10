@@ -16,25 +16,43 @@ from helpers.McritInterface import McritInterface
 
 
 class _FakeBinaryInfo:
+    """Fake BinaryInfo for testing architecture detection."""
+
     def __init__(self, architecture):
+        """Initialize with an architecture string."""
         self.architecture = architecture
 
 
 class _FakeSmdaFunction:
+    """Fake SmdaFunction for testing."""
+
     def __init__(self, offset):
+        """Initialize with a function offset."""
         self.offset = offset
 
 
 class _FakeSmdaReport:
+    """Fake SmdaReport for testing."""
+
     def __init__(self, functions):
+        """Initialize with a list of functions."""
         self._functions = functions
 
     def getFunctions(self):
+        """Return the list of functions."""
         return self._functions
 
 
 def _make_interface(timeout=10, sample_group_only=False):
-    """Build an instance bypassing __init__ to avoid IDA-specific setup."""
+    """Build a McritInterface instance bypassing __init__ to avoid IDA-specific setup.
+
+    Args:
+        timeout: MCRIT request timeout in seconds.
+        sample_group_only: Whether to restrict to sample group.
+
+    Returns:
+        A partially initialized McritInterface for testing.
+    """
     inst = McritInterface.__new__(McritInterface)
     inst.parent = SimpleNamespace(
         local_widget=MagicMock(),
