@@ -1,9 +1,9 @@
 name: Build Offline Dependencies
 
 on:
-  push:
-    tags:
-      - '*'
+  release:
+    types:
+      - published
 
 permissions:
   contents: write
@@ -22,10 +22,12 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
+      with:
+        ref: ${{ github.event.release.tag_name }}
       
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
         
@@ -55,7 +57,7 @@ jobs:
     - name: Get release tag
       id: get_tag
       run: |
-        $tag = "${{ github.ref_name }}"
+        $tag = "${{ github.event.release.tag_name }}"
         echo "tag=$tag" >> $env:GITHUB_OUTPUT
         
     - name: Create bundle
@@ -74,8 +76,8 @@ jobs:
         retention-days: 90
         
     - name: Upload bundle to release
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
       with:
+        tag_name: ${{ github.event.release.tag_name }}
         files: ${{ env.BUNDLE_NAME }}
         token: ${{ secrets.GITHUB_TOKEN }}
