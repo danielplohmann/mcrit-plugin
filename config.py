@@ -9,12 +9,16 @@ import helpers.McritTableColumn as McritTableColumn
 
 # --- Settings Wrapper ---
 class SettingsWrapper:
+    """Wrapper around ida_settings that coerces types and provides defaults."""
+
     def __init__(self):
+        """Initialize the wrapper with default settings values."""
         self._defaults = {
             "mcritweb_username": "",
             "mcrit_server": "http://127.0.0.1:8000/",
             "mcritweb_api_token": "",
             "mcrit_request_timeout": "10",
+            "sample_group_only": False,
             "auto_analyze_smda_on_startup": False,
             "use_smda_for_analysis": False,
             "submit_function_names_on_close": False,
@@ -42,25 +46,53 @@ class SettingsWrapper:
                 pass
 
     def _get(self, key):
+        """Get a setting from IDA settings, falling back to defaults on error.
+
+        Args:
+            key: Setting key to retrieve.
+
+        Returns:
+            The setting value or its default.
+        """
         try:
             return ida_settings.get_current_plugin_setting(key)
         except (KeyError, AttributeError, ValueError, TypeError, RuntimeError):
             return self._defaults.get(key)
 
+    def _get_bool(self, key):
+        """Get a setting and coerce it to boolean.
+
+        Args:
+            key: Setting key to retrieve.
+
+        Returns:
+            Boolean value of the setting.
+        """
+        value = self._get(key)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "on"}
+        return bool(value)
+
     @property
     def MCRITWEB_USERNAME(self):
+        """MCRITWeb username for authentication."""
         return self._get("mcritweb_username")
 
     @property
     def MCRIT_SERVER(self):
+        """URL of the MCRIT server."""
         return self._get("mcrit_server")
 
     @property
     def MCRITWEB_API_TOKEN(self):
+        """API token for MCRITWeb authentication."""
         return self._get("mcritweb_api_token")
 
     @property
     def MCRIT_REQUEST_TIMEOUT(self):
+        """Timeout in seconds for MCRIT API requests."""
         value = self._get("mcrit_request_timeout")
         try:
             return int(value)
@@ -68,28 +100,39 @@ class SettingsWrapper:
             return 10
 
     @property
+    def SAMPLE_GROUP_ONLY(self):
+        """Restrict matching results to samples in the current sample group."""
+        return self._get_bool("sample_group_only")
+
+    @property
     def AUTO_ANALYZE_SMDA_ON_STARTUP(self):
+        """Auto-convert IDB to SMDA representation on plugin startup."""
         return self._get("auto_analyze_smda_on_startup")
 
     @property
     def USE_SMDA_FOR_ANALYSIS(self):
+        """Use SMDA backend for code analysis instead of IDA's engine."""
         return self._get("use_smda_for_analysis")
 
     @property
     def SUBMIT_FUNCTION_NAMES_ON_CLOSE(self):
+        """Submit updated function names to MCRIT on IDB close."""
         return self._get("submit_function_names_on_close")
 
     # Widget specific settings
     @property
     def BLOCKS_FILTER_LIBRARY_FUNCTIONS(self):
+        """Filter out library functions in Block Scope Widget."""
         return self._get("blocks_filter_library_functions")
 
     @property
     def BLOCKS_LIVE_QUERY(self):
+        """Enable live query updates in Block Scope Widget."""
         return self._get("blocks_live_query")
 
     @property
     def BLOCKS_MIN_SIZE(self):
+        """Minimum block size for Block Scope Widget analysis."""
         value = self._get("blocks_min_size")
         try:
             return int(value) if not isinstance(value, int) else value
@@ -98,14 +141,17 @@ class SettingsWrapper:
 
     @property
     def FUNCTION_FILTER_LIBRARY_FUNCTIONS(self):
+        """Filter out library functions in Function Scope Widget."""
         return self._get("function_filter_library_functions")
 
     @property
     def FUNCTION_LIVE_QUERY(self):
+        """Enable live query updates in Function Scope Widget."""
         return self._get("function_live_query")
 
     @property
     def FUNCTION_MIN_SCORE(self):
+        """Minimum match score for Function Scope Widget."""
         value = self._get("function_min_score")
         try:
             return int(value) if not isinstance(value, int) else value
@@ -114,18 +160,22 @@ class SettingsWrapper:
 
     @property
     def OVERVIEW_FETCH_LABELS_AUTOMATICALLY(self):
+        """Auto-fetch labels in Function Overview Widget."""
         return self._get("overview_fetch_labels_automatically")
 
     @property
     def OVERVIEW_FILTER_TO_LABELS(self):
+        """Filter to labeled functions in Function Overview Widget."""
         return self._get("overview_filter_to_labels")
 
     @property
     def OVERVIEW_FILTER_TO_CONFLICTS(self):
+        """Filter to conflicting labels in Function Overview Widget."""
         return self._get("overview_filter_to_conflicts")
 
     @property
     def OVERVIEW_MIN_SCORE(self):
+        """Minimum match score for Function Overview Widget."""
         value = self._get("overview_min_score")
         try:
             return int(value) if not isinstance(value, int) else value
@@ -137,7 +187,7 @@ settings = SettingsWrapper()
 
 
 # --- Original Config Constants ---
-VERSION = "1.1.6"
+VERSION = "1.1.7"
 # relevant paths
 CONFIG_FILE_PATH = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.dirname(CONFIG_FILE_PATH)
@@ -158,6 +208,7 @@ MCRITWEB_USERNAME = settings.MCRITWEB_USERNAME
 MCRIT_SERVER = settings.MCRIT_SERVER
 MCRITWEB_API_TOKEN = settings.MCRITWEB_API_TOKEN
 MCRIT_REQUEST_TIMEOUT = settings.MCRIT_REQUEST_TIMEOUT
+SAMPLE_GROUP_ONLY = settings.SAMPLE_GROUP_ONLY
 
 ### UI behavior configurations
 ## General behavior

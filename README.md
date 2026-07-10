@@ -137,6 +137,7 @@ Configure the plugin to connect to your MCRIT instance:
 | `mcrit_server` | Server URL | `https://mcrit.example.com/api/` |
 | `mcritweb_api_token` | API Token (for MCRITweb) | `eyJ0eXAi...` |
 | `mcritweb_username` | Username (optional) | `analyst` |
+| `sample_group_only` | Restrict matching queries to the server-side sample group | `false` |
 
 **Note**: For MCRITweb, the username is inferred automatically by setting the API token.
 

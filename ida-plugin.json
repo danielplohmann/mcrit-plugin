@@ -2,7 +2,7 @@
   "IDAMetadataDescriptorVersion": 1,
   "plugin": {
     "name": "mcrit-ida",
-    "version": "1.1.6",
+    "version": "1.1.7",
     "entryPoint": "ida_mcrit.py",
     "idaVersions": ">=9.0",
     "description": "Integration with MCRIT server for code similarity analysis.",
@@ -57,6 +57,14 @@
         "default": "10",
         "name": "MCRIT Request Timeout (seconds)",
         "documentation": "Timeout for MCRIT API requests."
+      },
+      {
+        "key": "sample_group_only",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "name": "Restrict Matches to Sample Group",
+        "documentation": "Restrict MCRIT matching requests to samples in the server-side sample group."
       },
       {
         "key": "mcritweb_api_token",

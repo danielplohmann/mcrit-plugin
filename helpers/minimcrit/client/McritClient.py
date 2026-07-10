@@ -427,10 +427,15 @@ class McritClient:
         pichash_size=None,
         band_matches_required=None,
         force_recalculation=False,
+        sample_group_only=False,
     ) -> str:
         smda_json = smda_report.toDict()
         params = self._getMatchingRequestParams(
-            minhash_threshold, pichash_size, force_recalculation, band_matches_required
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
+            sample_group_only=sample_group_only,
         )
         response = self._post(
             f"{self.mcrit_server}/query", json=smda_json, headers=self.headers, params=params
@@ -448,6 +453,7 @@ class McritClient:
         band_matches_required=None,
         disassemble_locally=True,
         force_recalculation=False,
+        sample_group_only=False,
     ) -> str:
         if disassemble_locally:
             disassembler = Disassembler()
@@ -460,10 +466,15 @@ class McritClient:
                 pichash_size=pichash_size,
                 band_matches_required=band_matches_required,
                 force_recalculation=force_recalculation,
+                sample_group_only=sample_group_only,
             )
 
         params = self._getMatchingRequestParams(
-            minhash_threshold, pichash_size, force_recalculation, band_matches_required
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
+            sample_group_only=sample_group_only,
         )
         response = self._post(
             f"{self.mcrit_server}/query/binary/mapped/{base_address}",
@@ -483,6 +494,7 @@ class McritClient:
         band_matches_required=None,
         disassemble_locally=True,
         force_recalculation=False,
+        sample_group_only=False,
     ) -> str:
         if disassemble_locally:
             disassembler = Disassembler()
@@ -495,10 +507,15 @@ class McritClient:
                 pichash_size=pichash_size,
                 band_matches_required=band_matches_required,
                 force_recalculation=force_recalculation,
+                sample_group_only=sample_group_only,
             )
 
         params = self._getMatchingRequestParams(
-            minhash_threshold, pichash_size, force_recalculation, band_matches_required
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
+            sample_group_only=sample_group_only,
         )
 
         response = self._post(
@@ -515,9 +532,14 @@ class McritClient:
         pichash_size=None,
         band_matches_required=None,
         force_recalculation=False,
+        sample_group_only=False,
     ) -> None:
         params = self._getMatchingRequestParams(
-            minhash_threshold, pichash_size, force_recalculation, band_matches_required
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
+            sample_group_only=sample_group_only,
         )
         response = self._get(
             f"{self.mcrit_server}/matches/sample/{sample_id}", headers=self.headers, params=params
@@ -534,9 +556,14 @@ class McritClient:
         pichash_size=None,
         band_matches_required=None,
         force_recalculation=False,
+        sample_group_only=False,
     ) -> str:
         params = self._getMatchingRequestParams(
-            minhash_threshold, pichash_size, force_recalculation, band_matches_required
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
+            sample_group_only=sample_group_only,
         )
         response = self._get(
             f"{self.mcrit_server}/matches/sample/{sample_id}/{other_sample_id}",
@@ -557,10 +584,10 @@ class McritClient:
         force_recalculation=False,
     ) -> None:
         params = self._getMatchingRequestParams(
-            minhash_threshold,
-            pichash_size,
-            force_recalculation,
-            band_matches_required,
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
             sample_group_only=sample_group_only,
         )
         response = self._get(
@@ -589,18 +616,38 @@ class McritClient:
         force_recalculation=None,
         band_matches_required=None,
         exclude_self_matches=False,
+        sample_group_only=False,
     ):
+        """Get all matches for a SmdaReport with a single SmdaFunction.
+
+        Supported by mcritweb API pass-through.
+
+        :param smda_report: SmdaReport containing a single SmdaFunction to query
+            for matches; serialized via ``toDict()`` and POSTed to the server.
+        :param minhash_threshold: optional minimum MinHash similarity score
+            (0-100) below which matches are filtered out server-side.
+        :param pichash_size: optional minimum PicHash size (number of
+            instructions) required for PicHash matches.
+        :param force_recalculation: when True, ask the server to recompute
+            matches rather than reuse cached results.
+        :param band_matches_required: optional minimum number of band hits
+            required to consider a candidate function a MinHash match.
+        :param exclude_self_matches: when True, omit matches against the
+            same sample/function as the query.
+        :param sample_group_only: when True, restrict matches to samples in
+            the caller's sample group on the server side.
+        :return: when ``self.raw`` is True, the raw ``requests.Response``;
+            otherwise the parsed ``data`` payload (typically a dict
+            representing a ``MatchingResult``) or ``None`` if the request
+            was rejected.
         """
-        Get all matches for a SmdaReport with a single SmdaFunction
-        Supported by mcritweb API pass-through
-        """
-        # TODO add the same parameter possibilities that are used for regular full matching jobs
         params = self._getMatchingRequestParams(
-            minhash_threshold,
-            pichash_size,
-            force_recalculation,
-            band_matches_required,
-            exclude_self_matches,
+            minhash_threshold=minhash_threshold,
+            pichash_size=pichash_size,
+            force_recalculation=force_recalculation,
+            band_matches_required=band_matches_required,
+            exclude_self_matches=exclude_self_matches,
+            sample_group_only=sample_group_only,
         )
         response = self._post(
             f"{self.mcrit_server}/query/function",

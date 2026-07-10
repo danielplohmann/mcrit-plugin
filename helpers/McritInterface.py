@@ -32,16 +32,7 @@ class McritInterface(object):
         self.mcrit_client = McritClient(self.config.MCRIT_SERVER)
         timeout_value = self.config.MCRIT_REQUEST_TIMEOUT
         if timeout_value and timeout_value > 0:
-            if hasattr(self.mcrit_client, "setTimeout"):
-                try:
-                    self.mcrit_client.setTimeout(timeout_value)
-                except Exception as e:
-                    print(f"[MCRIT] Failed to set timeout via setTimeout: {e}")
-            elif hasattr(self.mcrit_client, "timeout"):
-                try:
-                    self.mcrit_client.timeout = timeout_value
-                except Exception as e:
-                    print(f"[MCRIT] Failed to set timeout via timeout attribute: {e}")
+            self.mcrit_client.setTimeout(timeout_value)
         if self.config.MCRITWEB_API_TOKEN:
             self.mcrit_client.setApitoken(self.config.MCRITWEB_API_TOKEN)
         if self.config.MCRITWEB_USERNAME:
@@ -57,6 +48,14 @@ class McritInterface(object):
 
     def _getMcritServerAddress(self):
         return self._mcrit_server
+
+    def _isSampleGroupOnly(self):
+        value = getattr(self.config, "SAMPLE_GROUP_ONLY", False)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "on"}
+        return bool(value)
 
     def _run_on_ui_thread(self, func):
         try:
@@ -260,7 +259,10 @@ class McritInterface(object):
         )
         try:
             job_id = self.mcrit_client.requestMatchesForSample(
-                sample_id, band_matches_required=2, force_recalculation=force_update
+                sample_id,
+                band_matches_required=2,
+                force_recalculation=force_update,
+                sample_group_only=self._isSampleGroupOnly(),
             )
             if job_id:
                 self.parent.local_widget.updateActivityInfo(
@@ -321,7 +323,9 @@ class McritInterface(object):
             smda_function = functions[0]
             if smda_function.offset not in self.parent.function_matches:
                 match_report_dict = self.mcrit_client.getMatchesForSmdaFunction(
-                    smda_report, exclude_self_matches=False
+                    smda_report,
+                    exclude_self_matches=False,
+                    sample_group_only=self._isSampleGroupOnly(),
                 )
                 if match_report_dict:
                     self.parent.function_matches.update({smda_function.offset: match_report_dict})
