@@ -21,33 +21,62 @@ This plugin seamlessly integrates MCRIT servers with IDA Pro for malware analysi
 
 ## 🚀 Installation
 
-### HCLI
+### Option 1: HCLI
 
-The recommended way to install is using [HCLI](https://hcli.docs.hex-rays.com/).
+For new users, start with [HCLI](https://hcli.docs.hex-rays.com/). The package to install is `ida-hcli`, and the command you will use afterward is `hcli`.
 
 ```bash
+python -m pip install --upgrade ida-hcli
+hcli --version
+```
+
+If `mcrit-ida` has already been indexed by the Hex-Rays plugin repository, install it directly:
+
+```bash
+hcli plugin search mcrit
 hcli plugin install mcrit-ida
 ```
 
-This automatically handles dependencies (including `smda` and `mcrit` client) and configuration.
-
-### As a Script
-
-When using HCLI is not an option, you can also simply check out the repository or grab a source bundle from the releases.  
-In this case, you need to ensure presence of the dependencies manually:
+Useful follow-up commands:
 
 ```bash
-python -m pip install smda
+hcli plugin status
+hcli plugin upgrade mcrit-ida
+hcli plugin uninstall mcrit-ida
 ```
 
-and optionally
+If the plugin has not been indexed yet, or you want to test a local build first, package the plugin locally and install the ZIP:
 
 ```bash
-python -m pip install ida-settings>=3.3.0
+python scripts/package_plugin.py --repo . --output ../mcrit-ida.zip
+hcli plugin install ../mcrit-ida.zip
 ```
 
-If your installation of IDA Pro is situated in an offline Windows VM, there are dependency packages available to facilitate the setup (covering Python 3.10-3.13).  
-After unpacking the wheelhouse, navigate to the folder and install them using:  
+For headless shells or CI, pass settings explicitly so `hcli` does not try to open its interactive configuration prompt:
+
+```bash
+hcli plugin install ../mcrit-ida.zip \
+  --config mcrit_server=https://mcrit.example.com/api/ \
+  --config mcritweb_api_token=YOUR_TOKEN \
+  --config mcritweb_username=analyst \
+  --config mcrit_request_timeout=10
+```
+
+### Option 2: Manual Installation Without HCLI
+
+If you do not want to use HCLI at all, you can install the plugin manually:
+
+1. Copy this repository, or extract a packaged release ZIP, into `$IDAUSR/plugins/mcrit-ida/`.
+2. Ensure the plugin directory contains at least `ida-plugin.json`, `ida_mcrit.py`, `config.py`, `helpers/`, `widgets/`, and `icons/`.
+3. Install the Python dependencies with the Python interpreter bundled with your IDA installation:
+
+```bash
+python -m pip install smda ida-settings>=3.3.0
+```
+
+4. Restart IDA Pro.
+
+If your installation of IDA Pro is in an offline Windows VM, use the wheelhouse bundle from the release assets instead. After unpacking it, install from the local directory:
 
 ```bash
 python -m pip install --no-index --find-links=. -r requirements.txt
@@ -58,10 +87,47 @@ python -m pip install --no-index --find-links=. -r requirements.txt
 
 Configuration is managed via [ida-settings](https://github.com/williballenthin/ida-settings).
 
-### Setup
-1.  **GUI (Recommended)**: Install `ida-settings-editor` (`hcli plugin install ida-settings-editor`) and configure via **Edit → Plugins → Plugin Settings Manager**.
-2.  **Interactive**: HCLI prompts for config values during installation.
-3.  **Manual**: Edit `$IDAUSR/ida-config.json`, `config.py` or better, derive a `config_override.json` (discouraged)
+### Configure with HCLI
+
+If you installed via HCLI, inspect and update settings from the command line:
+
+```bash
+hcli plugin config mcrit-ida list
+hcli plugin config mcrit-ida get mcrit_server
+hcli plugin config mcrit-ida set mcrit_server https://mcrit.example.com/api/
+hcli plugin config mcrit-ida set mcritweb_api_token YOUR_TOKEN
+hcli plugin config mcrit-ida set mcrit_request_timeout 10
+```
+
+You can also export or import settings as JSON:
+
+```bash
+hcli plugin config mcrit-ida export
+hcli plugin config mcrit-ida import "{\"mcrit_server\":\"https://mcrit.example.com/api/\",\"mcrit_request_timeout\":\"10\"}"
+```
+
+### Configure with the GUI
+
+Install `ida-settings-editor` and configure the plugin through **Edit -> Plugins -> Plugin Settings Manager**:
+
+```bash
+hcli plugin install ida-settings-editor
+```
+
+### Configure Manually
+
+If you are not using HCLI, the most practical manual override is a `config_override.json` placed next to `config.py`. A minimal example looks like this:
+
+```json
+{
+  "mcrit_server": "https://mcrit.example.com/api/",
+  "mcritweb_api_token": "YOUR_TOKEN",
+  "mcritweb_username": "analyst",
+  "mcrit_request_timeout": "10"
+}
+```
+
+You can also manage settings through `$IDAUSR/ida-config.json` if you already use `ida-settings`.
 
 ### Connecting to Server
 Configure the plugin to connect to your MCRIT instance:
@@ -99,17 +165,46 @@ To install a development version from source:
 
 ```bash
 # 1. Clone
-git clone https://github.com/danielplohmann/mcrit-plugins.git
-cd mcrit-plugins
+git clone https://github.com/danielplohmann/mcrit-plugin.git
+cd mcrit-plugin
 
 # 2. Package
-zip -r ../mcrit-ida.zip .
+python scripts/package_plugin.py --repo . --output ../mcrit-ida.zip
 
 # 3. Install
 hcli plugin install ../mcrit-ida.zip
 ```
 
+### Validation
+Run the local checks before publishing:
+
+```bash
+python scripts/verify_metadata_sync.py --repo .
+python scripts/verify_settings_sync.py --repo .
+python scripts/run_quality_checks.py --repo .
+python scripts/package_plugin.py --repo . --output dist/mcrit-ida.zip
+hcli plugin lint .
+hcli plugin lint dist/mcrit-ida.zip
+```
+
+### Release Workflow
+This plugin publishes a dedicated plugin ZIP as the HCLI package artifact.
+
+```bash
+git tag v1.1.6
+git push origin v1.1.6
+```
+
+The tag-driven release workflow validates metadata, builds `mcrit-ida-<version>.zip`, lints both the repo and the ZIP with `hcli`, and then creates the GitHub release with the plugin archive attached. The offline dependency workflow runs after the release is published and attaches the optional wheelhouse bundles.
+
 ##  Version History
+
+### v1.1.6 (2026-03-23)
+- Updated HCLI-facing plugin metadata for release packaging, including the `1.1.6` version, `IDA 9.0+` minimum, repository URL, and request-timeout setting.
+- Added repo-local packaging and validation scripts for metadata sync, settings sync, Ruff checks, and minimal plugin ZIP creation.
+- Added validation/release GitHub Actions to lint both the repo and packaged ZIP, publish `mcrit-ida-<version>.zip`, and attach offline dependency bundles to published releases.
+- Switched the offline dependency workflow to run from published releases so wheelhouse bundles attach to the canonical release instead of tag pushes alone.
+- Expanded the README with first-time HCLI setup, local ZIP installs, headless configuration examples, and manual installation steps without HCLI.
 
 ### v1.1.5 (2026-02-27)
 - Added configurable MCRIT request timeouts via `mcrit_request_timeout` and aligned numeric setting defaults with the plugin settings metadata.
