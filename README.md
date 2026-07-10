@@ -200,6 +200,11 @@ The tag-driven release workflow validates metadata, builds `mcrit-ida-<version>.
 
 ##  Version History
 
+### v1.1.7 (2026-05-11)
+- Better guarding of remote metadata
+- Extensive testing for config parsing and McritClient communication
+- Expose sample-group-only matching setting
+
 ### v1.1.6 (2026-03-23)
 - Updated HCLI-facing plugin metadata for release packaging, including the `1.1.6` version, `IDA 9.0+` minimum, repository URL, and request-timeout setting.
 - Added repo-local packaging and validation scripts for metadata sync, settings sync, Ruff checks, and minimal plugin ZIP creation.
@@ -252,3 +257,4 @@ GPL-3.0. See [LICENSE](LICENSE) for details.
 
 ## 👤 Author
 **Daniel Plohmann** ([@danielplohmann](https://github.com/danielplohmann))
+**Rony** ([@r0ny123](https://github.com/r0ny123))
