@@ -9,7 +9,10 @@ import helpers.McritTableColumn as McritTableColumn
 
 # --- Settings Wrapper ---
 class SettingsWrapper:
+    """Wrapper around ida_settings that coerces types and provides defaults."""
+
     def __init__(self):
+        """Initialize the wrapper with default settings values."""
         self._defaults = {
             "mcritweb_username": "",
             "mcrit_server": "http://127.0.0.1:8000/",
@@ -43,12 +46,28 @@ class SettingsWrapper:
                 pass
 
     def _get(self, key):
+        """Get a setting from IDA settings, falling back to defaults on error.
+
+        Args:
+            key: Setting key to retrieve.
+
+        Returns:
+            The setting value or its default.
+        """
         try:
             return ida_settings.get_current_plugin_setting(key)
         except (KeyError, AttributeError, ValueError, TypeError, RuntimeError):
             return self._defaults.get(key)
 
     def _get_bool(self, key):
+        """Get a setting and coerce it to boolean.
+
+        Args:
+            key: Setting key to retrieve.
+
+        Returns:
+            Boolean value of the setting.
+        """
         value = self._get(key)
         if isinstance(value, bool):
             return value
