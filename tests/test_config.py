@@ -6,6 +6,7 @@ pin those rules so a future refactor can't silently regress them.
 """
 
 import importlib
+import logging
 import sys
 from unittest.mock import patch
 
@@ -152,3 +153,26 @@ def test_override_template_declares_sample_group_only_default():
         override_template = json.load(fh)
 
     assert override_template["sample_group_only"] is False
+
+
+def test_plugin_loggers_do_not_propagate_to_existing_root_handler(fresh_config):
+    root = logging.getLogger()
+    root_handler = logging.StreamHandler()
+    root_handler.setFormatter(logging.Formatter("[Diaphora: %(message)s]"))
+    root.addHandler(root_handler)
+    try:
+        config = _reload_config()
+        smda_logger = logging.getLogger("smda.ida.IdaExporter")
+        minimcrit_logger = logging.getLogger("helpers.minimcrit.client.McritClient")
+
+        assert logging.getLogger("smda").propagate is False
+        assert logging.getLogger("helpers.minimcrit").propagate is False
+        assert any(getattr(handler, "_mcrit4ida_handler", False) for handler in logging.getLogger("smda").handlers)
+        assert any(
+            getattr(handler, "_mcrit4ida_handler", False)
+            for handler in logging.getLogger("helpers.minimcrit").handlers
+        )
+        assert smda_logger.getEffectiveLevel() == config.LOG_LEVEL
+        assert minimcrit_logger.getEffectiveLevel() == config.LOG_LEVEL
+    finally:
+        root.removeHandler(root_handler)

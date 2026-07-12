@@ -14,9 +14,6 @@ from helpers.minimcrit.storage.FamilyEntry import FamilyEntry
 from helpers.minimcrit.storage.FunctionEntry import FunctionEntry
 from helpers.minimcrit.storage.SampleEntry import SampleEntry
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)-7s - %(name)-36s - %(message)s"
-)
 LOGGER = logging.getLogger(__name__)
 
 

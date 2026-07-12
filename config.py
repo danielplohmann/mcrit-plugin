@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import sys
 
 import ida_settings
 
@@ -198,8 +199,25 @@ ICON_FILE_PATH = os.path.join(PROJECT_ROOT, "icons") + os.sep
 LOG_PATH = "./"
 LOG_LEVEL = logging.INFO
 LOG_FORMAT = "%(asctime)-15s: %(name)-25s: %(message)s"
-if not logging.getLogger().hasHandlers():
-    logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
+
+
+def _configure_plugin_loggers():
+    """Keep plugin-related logs from inheriting another IDA plugin's root formatter."""
+    formatter = logging.Formatter("%(asctime)-15s: %(name)-32s - %(levelname)s: %(message)s")
+    for logger_name in ("helpers.minimcrit", "smda"):
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(LOG_LEVEL)
+        logger.propagate = False
+        if any(getattr(handler, "_mcrit4ida_handler", False) for handler in logger.handlers):
+            continue
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setLevel(LOG_LEVEL)
+        handler.setFormatter(formatter)
+        handler._mcrit4ida_handler = True
+        logger.addHandler(handler)
+
+
+_configure_plugin_loggers()
 
 MCRIT4IDA_PLUGIN_ONLY = False
 

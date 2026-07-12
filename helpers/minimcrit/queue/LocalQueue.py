@@ -6,9 +6,6 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)-7s - %(name)-36s - %(message)s"
-)
 LOGGER = logging.getLogger(__name__)
 
 
