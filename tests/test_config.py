@@ -167,7 +167,10 @@ def test_plugin_loggers_do_not_propagate_to_existing_root_handler(fresh_config):
 
         assert logging.getLogger("smda").propagate is False
         assert logging.getLogger("helpers.minimcrit").propagate is False
-        assert any(getattr(handler, "_mcrit4ida_handler", False) for handler in logging.getLogger("smda").handlers)
+        assert any(
+            getattr(handler, "_mcrit4ida_handler", False)
+            for handler in logging.getLogger("smda").handlers
+        )
         assert any(
             getattr(handler, "_mcrit4ida_handler", False)
             for handler in logging.getLogger("helpers.minimcrit").handlers
