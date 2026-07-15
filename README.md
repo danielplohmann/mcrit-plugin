@@ -200,6 +200,11 @@ The tag-driven release workflow validates metadata, builds `mcrit-ida-<version>.
 
 ##  Version History
 
+### v1.1.8 (2026-07-15)
+- Isolated MCRIT4IDA loggers by configuring them with their own handler instead of relying on IDA's shared root logger.
+- Stopped bundled minimcrit modules from calling `logging.basicConfig()` at import time.
+- Added a regression test for the case where another IDA plugin has already configured the root logger.
+
 ### v1.1.7 (2026-05-11)
 - Better guarding of remote metadata
 - Extensive testing for config parsing and McritClient communication
@@ -256,5 +261,5 @@ The tag-driven release workflow validates metadata, builds `mcrit-ida-<version>.
 GPL-3.0. See [LICENSE](LICENSE) for details.
 
 ## 👤 Author
-**Daniel Plohmann** ([@danielplohmann](https://github.com/danielplohmann))
+**Daniel Plohmann** ([@danielplohmann](https://github.com/danielplohmann))  
 **Rony** ([@r0ny123](https://github.com/r0ny123))

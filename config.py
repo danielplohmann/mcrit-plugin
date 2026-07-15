@@ -188,7 +188,7 @@ settings = SettingsWrapper()
 
 
 # --- Original Config Constants ---
-VERSION = "1.1.7"
+VERSION = "1.1.8"
 # relevant paths
 CONFIG_FILE_PATH = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.dirname(CONFIG_FILE_PATH)
