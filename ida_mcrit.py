@@ -9,31 +9,73 @@ import ida_kernwin
 import idaapi
 from ida_kernwin import PluginForm
 
-try:
-    from smda.common.SmdaReport import SmdaReport
-    from smda.ida.IdaInterface import IdaInterface
-except Exception as exc:
-    SmdaReport = None
-    IdaInterface = None
-    _SMDA_IMPORT_ERROR = exc
-else:
-    _SMDA_IMPORT_ERROR = None
-
 import config
-import helpers.pyperclip as pyperclip
-import helpers.QtShim as QtShim
-from helpers.ClassCollection import ClassCollection
-from helpers.McritInterface import McritInterface
-from widgets.BlockMatchWidget import BlockMatchWidget
-from widgets.FunctionMatchWidget import FunctionMatchWidget
-from widgets.FunctionOverviewWidget import FunctionOverviewWidget
-from widgets.LocalInfoWidget import LocalInfoWidget
-from widgets.MainWidget import MainWidget
-from widgets.SampleInfoWidget import SampleInfoWidget
 
-QtGui = QtShim.get_QtGui()
-QtCore = QtShim.get_QtCore()
-QtWidgets = QtShim.get_QtWidgets()
+SmdaReport = None
+IdaInterface = None
+_SMDA_IMPORT_ERROR = None
+pyperclip = None
+QtShim = None
+ClassCollection = None
+McritInterface = None
+BlockMatchWidget = None
+FunctionMatchWidget = None
+FunctionOverviewWidget = None
+LocalInfoWidget = None
+MainWidget = None
+SampleInfoWidget = None
+QtGui = None
+QtCore = None
+QtWidgets = None
+
+
+def _load_dependencies():
+    """Load MCRIT's SMDA and Qt widget graph only when its form is opened."""
+    global SmdaReport, IdaInterface, _SMDA_IMPORT_ERROR
+    global pyperclip, QtShim, ClassCollection, McritInterface
+    global BlockMatchWidget, FunctionMatchWidget, FunctionOverviewWidget
+    global LocalInfoWidget, MainWidget, SampleInfoWidget
+    global QtGui, QtCore, QtWidgets
+
+    if QtShim is not None:
+        return
+
+    try:
+        from smda.common.SmdaReport import SmdaReport as _SmdaReport
+        from smda.ida.IdaInterface import IdaInterface as _IdaInterface
+    except Exception as exc:
+        _SMDA_IMPORT_ERROR = exc
+    else:
+        SmdaReport = _SmdaReport
+        IdaInterface = _IdaInterface
+        _SMDA_IMPORT_ERROR = None
+
+    import helpers.pyperclip as _pyperclip
+    import helpers.QtShim as _QtShim
+    from helpers.ClassCollection import ClassCollection as _ClassCollection
+    from helpers.McritInterface import McritInterface as _McritInterface
+    from widgets.BlockMatchWidget import BlockMatchWidget as _BlockMatchWidget
+    from widgets.FunctionMatchWidget import FunctionMatchWidget as _FunctionMatchWidget
+    from widgets.FunctionOverviewWidget import (
+        FunctionOverviewWidget as _FunctionOverviewWidget,
+    )
+    from widgets.LocalInfoWidget import LocalInfoWidget as _LocalInfoWidget
+    from widgets.MainWidget import MainWidget as _MainWidget
+    from widgets.SampleInfoWidget import SampleInfoWidget as _SampleInfoWidget
+
+    pyperclip = _pyperclip
+    QtShim = _QtShim
+    ClassCollection = _ClassCollection
+    McritInterface = _McritInterface
+    BlockMatchWidget = _BlockMatchWidget
+    FunctionMatchWidget = _FunctionMatchWidget
+    FunctionOverviewWidget = _FunctionOverviewWidget
+    LocalInfoWidget = _LocalInfoWidget
+    MainWidget = _MainWidget
+    SampleInfoWidget = _SampleInfoWidget
+    QtGui = QtShim.get_QtGui()
+    QtCore = QtShim.get_QtCore()
+    QtWidgets = QtShim.get_QtWidgets()
 
 
 ################################################################################
@@ -83,6 +125,7 @@ class Mcrit4IdaForm(PluginForm):
     """
 
     def __init__(self):
+        _load_dependencies()
         super(Mcrit4IdaForm, self).__init__()
         global HOTKEYS
         HOTKEYS = []
