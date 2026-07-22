@@ -188,6 +188,97 @@ hcli plugin lint .
 hcli plugin lint dist/mcrit-ida.zip
 ```
 
+### IDA and MCRIT Integration Tests
+
+The repository keeps the normal pytest and Ruff jobs secret-free. Licensed IDA
+testing is isolated in `.github/workflows/ida-tests.yml`: it runs on pushes to
+`main` and through manual dispatch, using the `IDA_LICENSE_ID` and
+`HCLI_API_KEY` repository secrets. Pull requests, including fork pull requests,
+do not receive those secrets.
+
+The required Linux job installs IDA Pro 9.3, starts a local MCRIT server backed
+by MongoDB, seeds a deterministic reference binary, and runs the headless IDA
+smoke test. To run the broader IDA-version/platform checks, manually dispatch
+the workflow with `run_matrix` enabled.
+
+#### Local headless smoke test
+
+The local runner uses an existing IDA installation and your normal IDA user
+profile; it does not require an HCLI API key. When `hcli` is available it
+installs the current local ZIP into that profile when no copy is present; an
+already-installed copy is refreshed directly without HCLI. The headless
+process therefore loads the same plugin setup that your normal IDA session
+uses. It invokes IDA with `-A -S` and chooses the GUI executable by default
+because IDA's `idat` binary refuses to import PySide6. It uses the native
+`cocoa` Qt platform on macOS and `offscreen` elsewhere; use `--ida-binary` or
+`--qt-platform` to override either choice.
+
+```bash
+python scripts/build_test_fixture.py \
+  --source tests/fixtures/mcrit_sample.c \
+  --output /tmp/mcrit-ida-fixture \
+  --variant 1
+
+python scripts/run_ida_smoke.py \
+  --ida-dir "/path/to/IDA Professional 9.3.app" \
+  --input /tmp/mcrit-ida-fixture \
+  --mcrit-server http://127.0.0.1:8000
+```
+
+If the plugin is already installed and should not be replaced, pass its
+installed directory explicitly:
+
+```bash
+python scripts/run_ida_smoke.py \
+  --ida-dir "/path/to/IDA Professional 9.3.app" \
+  --input /tmp/mcrit-ida-fixture \
+  --plugin-root "$HOME/.idapro/plugins/mcrit-ida" \
+  --mcrit-server http://127.0.0.1:8000
+```
+
+The CI workflow passes `--idausr` to create an isolated profile; the default
+local path deliberately reuses the profile that already has IDAPython and the
+plugin configured. The runner temporarily points that profile at the requested
+MCRIT server and restores its original `ida-config.json` afterward.
+
+IDA itself still enforces its license when it starts; the runner does not
+perform or bypass that check. If headless execution reports that Python is not
+configured, run the matching `idapyswitch --auto-apply` from that IDA
+installation first.
+
+For a live local MCRIT test, use Python 3.11 or 3.12 for the service, then run
+MongoDB and the two MCRIT processes in separate terminals. The workflow pins
+MCRIT `1.5.0`; it requires Python 3.11 or 3.12 and its default API is
+`http://127.0.0.1:8000`:
+
+```bash
+docker run --rm --name mcrit-mongo -p 27017:27017 mongo:5.0
+python3.11 -m venv .venv-mcrit
+.venv-mcrit/bin/python -m pip install "mcrit==1.5.0"
+.venv-mcrit/bin/python -m mcrit server
+.venv-mcrit/bin/python -m mcrit worker
+```
+
+For a deterministic positive local match, build and seed the reference variant
+before running the query fixture; `seed_mcrit.py` waits for the worker:
+
+```bash
+python scripts/build_test_fixture.py \
+  --source tests/fixtures/mcrit_sample.c \
+  --output /tmp/mcrit-ida-reference \
+  --variant 0
+.venv-mcrit/bin/python scripts/seed_mcrit.py \
+  --server http://127.0.0.1:8000 \
+  --sample /tmp/mcrit-ida-reference
+```
+
+Use `--offline` with `run_ida_smoke.py` when a live MCRIT service is not
+available; the headless smoke still drives conversion, metadata dialogs, YARA,
+and isolated settings. With a live service it additionally drives
+upload/query/matching, labels, graphs, and SMDA export. A manual GUI pass is
+still useful for visual rendering: open the MCRIT views, inspect labels and
+graphs, and verify settings through the Plugin Settings Manager.
+
 ### Release Workflow
 This plugin publishes a dedicated plugin ZIP as the HCLI package artifact.
 

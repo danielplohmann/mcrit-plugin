@@ -797,11 +797,14 @@ class MatchingResult(object):
         # expand function matches into individual entries
         list_of_function_matches = []
         if "functions" in entry_dict["matches"]:
+            function_summaries = entry_dict["matches"]["functions"]
+            if isinstance(function_summaries, dict):
+                function_summaries = function_summaries.values()
             matching_entry.library_matches = {
-                abs(entry["fid"]): [] for entry in entry_dict["matches"]["functions"]
+                abs(entry["fid"]): [] for entry in function_summaries
             }
             matching_entry.unique_family_scores_per_sample = None
-            for function_match_summary in entry_dict["matches"]["functions"]:
+            for function_match_summary in function_summaries:
                 num_bytes = function_match_summary["num_bytes"]
                 offset = function_match_summary["offset"]
                 function_id = function_match_summary["fid"]

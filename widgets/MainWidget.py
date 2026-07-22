@@ -26,6 +26,7 @@ class MainWidget(QMainWindow):
             self.parent.block_match_widget,
             self.parent.function_match_widget,
             self.parent.function_widget,
+            self.parent.sample_widget,
         ]
         self.central_widget = self.cc.QWidget()
         self.setCentralWidget(self.central_widget)

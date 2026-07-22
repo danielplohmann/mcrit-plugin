@@ -87,6 +87,28 @@ class SampleInfoWidget(QMainWindow):
         if not match_report:
             return {}
         if not isinstance(match_report, dict):
+            if hasattr(match_report, "filtered_sample_matches"):
+                sample_matches = match_report.filtered_sample_matches
+                if self.cb_filter_library.isChecked():
+                    sample_matches = [entry for entry in sample_matches if not entry.is_library]
+                return {
+                    sample_match.sample_id: {
+                        "family": sample_match.family,
+                        "version": sample_match.version,
+                        "sha256": sample_match.sha256,
+                        "filename": sample_match.filename,
+                        "sample_id": sample_match.sample_id,
+                        "minhash_matches": sample_match.matched_functions_minhash,
+                        "pichash_matches": sample_match.matched_functions_pichash,
+                        "combined_matches": sample_match.matched_functions_combined,
+                        "library_matches": sample_match.matched_functions_library,
+                        "bytescore": sample_match.matched_bytes_unweighted,
+                        "bytescore_adjusted": sample_match.matched_bytes_score_weighted,
+                        "percent": sample_match.matched_percent_unweighted,
+                        "percent_adjusted": sample_match.matched_percent_score_weighted,
+                    }
+                    for sample_match in sample_matches
+                }
             if hasattr(match_report, "toDict"):
                 match_report = match_report.toDict()
             else:
@@ -180,7 +202,7 @@ class SampleInfoWidget(QMainWindow):
             )
         return sample_summary
 
-    def populateBestMatchTable(self):
+    def populateBestMatchTable(self, *_args):
         """
         Populate the function table with information from the last scan of I{SemanticIdentifier}.
         """
@@ -348,6 +370,8 @@ class SampleInfoWidget(QMainWindow):
     ################################################################################
 
     def _onTableBestFamilySelectionChanged(self, selected, deselected):
+        if not self.table_best_family_matches.selectedItems():
+            return
         selected_row = self.table_best_family_matches.selectedItems()[0].row()
         family = self.table_best_family_matches.item(selected_row, 2).text()
         self.last_family_selected = family
