@@ -121,9 +121,9 @@ jobs:
           fi
           echo "IDALIB_PYTHON=$IDALIB_PYTHON" >> "$GITHUB_ENV"
           "$IDALIB_PYTHON" -m pip install --upgrade pip
-          "$IDALIB_PYTHON" -m pip install \
+          "$IDALIB_PYTHON" -m pip install --upgrade \
             "${{ steps.ida.outputs.ida-dir }}/idalib/python"/idapro-*.whl \
-            "smda>=2.4.6" "ida-settings>=3.3.0"
+            "smda==4.3.10" "ida-settings==3.5.1"
 
       - name: Wait for MongoDB
         shell: bash
@@ -338,9 +338,9 @@ jobs:
           fi
           echo "IDALIB_PYTHON=$IDALIB_PYTHON" >> "$GITHUB_ENV"
           "$IDALIB_PYTHON" -m pip install --upgrade pip
-          "$IDALIB_PYTHON" -m pip install \
+          "$IDALIB_PYTHON" -m pip install --upgrade \
             "${{ steps.ida.outputs.ida-dir }}/idalib/python"/idapro-*.whl \
-            "smda>=2.4.6" "ida-settings>=3.3.0"
+            "smda==4.3.10" "ida-settings==3.5.1"
 
       - name: Run offline IDALib lifecycle smoke test
         shell: bash

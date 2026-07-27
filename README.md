@@ -71,7 +71,7 @@ If you do not want to use HCLI at all, you can install the plugin manually:
 3. Install the Python dependencies with the Python interpreter bundled with your IDA installation:
 
 ```bash
-python -m pip install smda ida-settings>=3.3.0
+python -m pip install "smda>=4.3.10" "ida-settings>=3.5.1"
 ```
 
 4. Restart IDA Pro.
@@ -213,9 +213,9 @@ directory:
 
 ```bash
 python3 -m venv .venv-idalib
-.venv-idalib/bin/python -m pip install \
+.venv-idalib/bin/python -m pip install --upgrade \
   "/path/to/IDA Professional 9.3/idalib/python"/idapro-*.whl \
-  "smda>=2.4.6" "ida-settings>=3.3.0"
+  "smda==4.3.10" "ida-settings==3.5.1"
 
 python scripts/build_test_fixture.py \
   --source tests/fixtures/mcrit_sample.c \
