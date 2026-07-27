@@ -20,20 +20,40 @@ else:
     _SMDA_IMPORT_ERROR = None
 
 import config
-import helpers.pyperclip as pyperclip
-import helpers.QtShim as QtShim
-from helpers.ClassCollection import ClassCollection
 from helpers.McritInterface import McritInterface
-from widgets.BlockMatchWidget import BlockMatchWidget
-from widgets.FunctionMatchWidget import FunctionMatchWidget
-from widgets.FunctionOverviewWidget import FunctionOverviewWidget
-from widgets.LocalInfoWidget import LocalInfoWidget
-from widgets.MainWidget import MainWidget
-from widgets.SampleInfoWidget import SampleInfoWidget
 
-QtGui = QtShim.get_QtGui()
-QtCore = QtShim.get_QtCore()
-QtWidgets = QtShim.get_QtWidgets()
+
+def _require_gui():
+    """Fail clearly when a GUI-only plugin action is invoked through IDALib."""
+    is_idaq = getattr(ida_kernwin, "is_idaq", None)
+    if not callable(is_idaq) or not is_idaq():
+        raise RuntimeError("MCRIT4IDA's Qt interface requires the IDA GUI")
+
+
+def _load_gui_dependencies():
+    """Import Qt and widget classes only after the IDA GUI is available."""
+    _require_gui()
+    import helpers.pyperclip as clipboard
+    import helpers.QtShim as qt_shim
+    from helpers.ClassCollection import ClassCollection
+    from widgets.BlockMatchWidget import BlockMatchWidget
+    from widgets.FunctionMatchWidget import FunctionMatchWidget
+    from widgets.FunctionOverviewWidget import FunctionOverviewWidget
+    from widgets.LocalInfoWidget import LocalInfoWidget
+    from widgets.MainWidget import MainWidget
+    from widgets.SampleInfoWidget import SampleInfoWidget
+
+    return {
+        "qt_shim": qt_shim,
+        "clipboard": clipboard,
+        "ClassCollection": ClassCollection,
+        "BlockMatchWidget": BlockMatchWidget,
+        "FunctionMatchWidget": FunctionMatchWidget,
+        "FunctionOverviewWidget": FunctionOverviewWidget,
+        "LocalInfoWidget": LocalInfoWidget,
+        "MainWidget": MainWidget,
+        "SampleInfoWidget": SampleInfoWidget,
+    }
 
 
 ################################################################################
@@ -84,9 +104,11 @@ class Mcrit4IdaForm(PluginForm):
 
     def __init__(self):
         super(Mcrit4IdaForm, self).__init__()
+        gui = _load_gui_dependencies()
         global HOTKEYS
         HOTKEYS = []
-        self.cc = ClassCollection(QtShim)
+        self._gui = gui
+        self.cc = gui["ClassCollection"](gui["qt_shim"])
         self.tabs = None
         self.parent = None
         self.config = config
@@ -124,7 +146,7 @@ class Mcrit4IdaForm(PluginForm):
 
     def copyStringToClipboard(self, string_to_copy: str):
         if string_to_copy is not None:
-            pyperclip.copy(string_to_copy)
+            self._gui["clipboard"].copy(string_to_copy)
             print('Copied "%s" to clipboard.' % string_to_copy)
 
     def getMatchingReport(self):
@@ -162,12 +184,12 @@ class Mcrit4IdaForm(PluginForm):
         """
         time_before = self.cc.time.time()
         print("[/] setting up widgets...")
-        self.local_widget = LocalInfoWidget(self)
-        self.block_match_widget = BlockMatchWidget(self)
-        self.function_match_widget = FunctionMatchWidget(self)
-        self.sample_widget = SampleInfoWidget(self)
-        self.function_widget = FunctionOverviewWidget(self)
-        self.main_widget = MainWidget(self)
+        self.local_widget = self._gui["LocalInfoWidget"](self)
+        self.block_match_widget = self._gui["BlockMatchWidget"](self)
+        self.function_match_widget = self._gui["FunctionMatchWidget"](self)
+        self.sample_widget = self._gui["SampleInfoWidget"](self)
+        self.function_widget = self._gui["FunctionOverviewWidget"](self)
+        self.main_widget = self._gui["MainWidget"](self)
         self.hook_subscribed_widgets.append(self.function_match_widget)
         self.hook_subscribed_widgets.append(self.block_match_widget)
         # produce layout and render
@@ -303,6 +325,11 @@ def PLUGIN_ENTRY():
 
 def show_mcrit_form():
     global MCRIT4IDA
+    try:
+        _require_gui()
+    except RuntimeError as exc:
+        print(f"[!] {exc}")
+        return None
     created_form = False
     if MCRIT4IDA is None:
         try:

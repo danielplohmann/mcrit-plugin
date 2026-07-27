@@ -197,11 +197,44 @@ testing is isolated in `.github/workflows/ida-tests.yml`: it runs on pushes to
 do not receive those secrets.
 
 The required Linux job installs IDA Pro 9.3, starts a local MCRIT server backed
-by MongoDB, seeds a deterministic reference binary, and runs the headless IDA
-smoke test. To run the broader IDA-version/platform checks, manually dispatch
-the workflow with `run_matrix` enabled.
+by MongoDB, seeds a deterministic reference binary, and runs an IDALib MCRIT
+smoke test followed by a GUI-process toolbar smoke test. To run the broader
+IDA-version/platform IDALib checks, manually dispatch the workflow with
+`run_matrix` enabled.
 
-#### Local headless smoke test
+#### Local IDALib integration smoke test
+
+IDALib runs the IDA analysis APIs without a GUI. Use it for the package,
+conversion, upload, and matching workflow; the separate GUI smoke below covers
+the actual toolbar callbacks. Use the Python ABI configured for the installed
+IDA version (the CI job deliberately selects Python 3.11); install the
+`idapro` package from that IDA distribution and use an isolated IDA user
+directory:
+
+```bash
+python3 -m venv .venv-idalib
+.venv-idalib/bin/python -m pip install \
+  "/path/to/IDA Professional 9.3/idalib/python"/idapro-*.whl \
+  "smda>=2.4.6" "ida-settings>=3.3.0"
+
+python scripts/build_test_fixture.py \
+  --source tests/fixtures/mcrit_sample.c \
+  --output /tmp/mcrit-idalib-fixture \
+  --variant 1
+
+.venv-idalib/bin/python scripts/run_idalib_smoke.py \
+  --ida-dir "/path/to/IDA Professional 9.3" \
+  --input /tmp/mcrit-idalib-fixture \
+  --idausr /tmp/mcrit-idalib-user \
+  --mcrit-server http://127.0.0.1:8000
+```
+
+The runner activates IDALib for that virtual environment, installs the local
+ZIP into the isolated profile, and restores its MCRIT settings afterwards.
+Use `--offline` to validate package loading and IDB-to-SMDA conversion without
+a MCRIT service.
+
+#### Local GUI toolbar smoke test
 
 The local runner uses an existing IDA installation and your normal IDA user
 profile; it does not require an HCLI API key. When `hcli` is available it
@@ -273,8 +306,8 @@ python scripts/build_test_fixture.py \
 ```
 
 Use `--offline` with `run_ida_smoke.py` when a live MCRIT service is not
-available; the headless smoke still drives conversion, metadata dialogs, YARA,
-and isolated settings. With a live service it additionally drives
+available; the GUI smoke still drives conversion, metadata dialogs, YARA, and
+isolated settings. With a live service it additionally drives
 upload/query/matching, labels, graphs, and SMDA export. A manual GUI pass is
 still useful for visual rendering: open the MCRIT views, inspect labels and
 graphs, and verify settings through the Plugin Settings Manager.

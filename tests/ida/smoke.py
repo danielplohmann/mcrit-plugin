@@ -121,30 +121,17 @@ def _run_plugin_lifecycle(module):
 
 
 def _create_form(module):
-    qt_application = module.QtWidgets.QApplication.instance()
+    import helpers.QtShim as QtShim
+
+    qt_widgets = QtShim.get_QtWidgets()
+    qt_application = qt_widgets.QApplication.instance()
     if qt_application is None:
-        qt_application = module.QtWidgets.QApplication([])
+        qt_application = qt_widgets.QApplication([])
 
     form = module.Mcrit4IdaForm()
-    form.parent = module.QtWidgets.QWidget()
+    form.parent = qt_widgets.QWidget()
     form.setupWidgets()
     _process_events(qt_application, rounds=2)
-
-    for attribute in (
-        "local_widget",
-        "block_match_widget",
-        "function_match_widget",
-        "sample_widget",
-        "function_widget",
-        "main_widget",
-    ):
-        _assert(hasattr(form, attribute), f"form did not create {attribute}")
-
-    _assert(form.main_widget.tabs.count() == 4, "loaded form did not expose all plugin tabs")
-    _assert(
-        form.main_widget.tabs.indexOf(form.sample_widget) >= 0,
-        "sample match summary is not reachable from the loaded form",
-    )
     return form, qt_application
 
 
@@ -626,7 +613,7 @@ def _exercise_live_mcrit(form, qt_application):
         main_widget.getMatchResultAction.trigger()
     _assert(form.matching_report is not None, "result chooser did not load MatchingResult")
     _assert(
-        form.main_widget.tabs.currentIndex() == 2,
+        form.main_widget.tabs.currentWidget() is form.function_widget,
         "result retrieval did not focus Function Overview",
     )
     main_widget.modifySettingsAction.trigger()

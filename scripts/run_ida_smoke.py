@@ -70,6 +70,15 @@ def _test_settings(server: str, timeout: int) -> dict[str, object]:
     return settings
 
 
+def _activate_current_venv(environment: dict[str, str]) -> None:
+    """Let IDAPython use the virtual environment running this test runner."""
+    if sys.prefix == sys.base_prefix:
+        return
+    venv_bin = Path(sys.executable).resolve().parent
+    environment["VIRTUAL_ENV"] = sys.prefix
+    environment["PATH"] = str(venv_bin) + os.pathsep + environment.get("PATH", "")
+
+
 def _prepare_ida_settings(idausr: Path, settings: dict[str, object]):
     config_path = idausr / "ida-config.json"
     previous_contents = config_path.read_bytes() if config_path.exists() else None
@@ -289,6 +298,7 @@ def main() -> int:
         )
 
         environment = os.environ.copy()
+        _activate_current_venv(environment)
         environment.update(
             {
                 "IDAUSR": str(idausr),

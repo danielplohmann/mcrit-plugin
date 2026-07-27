@@ -7,8 +7,11 @@
 static uint32_t mcrit_mix(uint32_t value) {
     value ^= 0x9e3779b9u;
     value *= 33u;
-#if MCRIT_VARIANT
+#if MCRIT_VARIANT == 1
     value ^= value >> 11;
+#elif MCRIT_VARIANT == 2
+    value ^= value >> 9;
+    value += 0x51u;
 #else
     value ^= value >> 13;
 #endif

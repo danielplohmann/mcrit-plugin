@@ -96,8 +96,12 @@ jobs:
             --variant 0
           python scripts/build_test_fixture.py \
             --source tests/fixtures/mcrit_sample.c \
-            --output "${{ runner.temp }}/mcrit-query.exe" \
+            --output "${{ runner.temp }}/mcrit-idalib-query.exe" \
             --variant 1
+          python scripts/build_test_fixture.py \
+            --source tests/fixtures/mcrit_sample.c \
+            --output "${{ runner.temp }}/mcrit-gui-query.exe" \
+            --variant 2
 
       - name: Install MCRIT service
         shell: bash
@@ -105,6 +109,21 @@ jobs:
           python -m venv "$RUNNER_TEMP/mcrit-venv"
           "$RUNNER_TEMP/mcrit-venv/bin/python" -m pip install --upgrade pip
           "$RUNNER_TEMP/mcrit-venv/bin/python" -m pip install "mcrit==${MCRIT_VERSION}"
+
+      - name: Install IDALib test runtime
+        shell: bash
+        run: |
+          python -m venv "$RUNNER_TEMP/idalib-venv"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            IDALIB_PYTHON="$RUNNER_TEMP/idalib-venv/Scripts/python.exe"
+          else
+            IDALIB_PYTHON="$RUNNER_TEMP/idalib-venv/bin/python"
+          fi
+          echo "IDALIB_PYTHON=$IDALIB_PYTHON" >> "$GITHUB_ENV"
+          "$IDALIB_PYTHON" -m pip install --upgrade pip
+          "$IDALIB_PYTHON" -m pip install \
+            "${{ steps.ida.outputs.ida-dir }}/idalib/python"/idapro-*.whl \
+            "smda>=2.4.6" "ida-settings>=3.3.0"
 
       - name: Wait for MongoDB
         shell: bash
@@ -178,19 +197,34 @@ jobs:
         shell: bash
         run: echo "sha256=$(sha256sum '${{ runner.temp }}/mcrit-reference.exe' | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
-      - name: Run licensed IDA smoke test
+      - name: Run live IDALib integration smoke test
         shell: bash
         run: |
-          # The runner launches tests/ida/smoke.py inside the IDA process via -S.
-          python scripts/run_ida_smoke.py \
+          "$IDALIB_PYTHON" scripts/run_idalib_smoke.py \
             --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
-            --input "${{ runner.temp }}/mcrit-query.exe" \
+            --input "${{ runner.temp }}/mcrit-idalib-query.exe" \
             --mcrit-server "$MCRIT_SERVER" \
             --reference-sha256 "${{ steps.reference.outputs.sha256 }}" \
-            --idausr "$RUNNER_TEMP/idausr" \
+            --idausr "$RUNNER_TEMP/idausr-idalib" \
             --plugin-zip dist/mcrit-ida.zip \
-            --artifacts "$RUNNER_TEMP/ida-artifacts" \
-            --log "$RUNNER_TEMP/ida-smoke.log" \
+            --artifacts "$RUNNER_TEMP/idalib-artifacts" \
+            --log "$RUNNER_TEMP/idalib-smoke.log" \
+            --timeout 180 \
+            --require-hcli
+
+      - name: Run licensed IDA GUI toolbar smoke test
+        shell: bash
+        run: |
+          # The runner launches tests/ida/smoke.py inside the IDA GUI process via -S.
+          python scripts/run_ida_smoke.py \
+            --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
+            --input "${{ runner.temp }}/mcrit-gui-query.exe" \
+            --mcrit-server "$MCRIT_SERVER" \
+            --reference-sha256 "${{ steps.reference.outputs.sha256 }}" \
+            --idausr "$RUNNER_TEMP/idausr-gui" \
+            --plugin-zip dist/mcrit-ida.zip \
+            --artifacts "$RUNNER_TEMP/ida-gui-artifacts" \
+            --log "$RUNNER_TEMP/ida-gui-smoke.log" \
             --timeout 180 \
             --require-hcli
 
@@ -210,12 +244,15 @@ jobs:
         with:
           name: ida-integration-logs
           path: |
-            ${{ runner.temp }}/ida-smoke.log
+            ${{ runner.temp }}/idalib-smoke.log
+            ${{ runner.temp }}/ida-gui-smoke.log
             ${{ runner.temp }}/mcrit-server.log
             ${{ runner.temp }}/mcrit-worker.log
             ${{ runner.temp }}/ida-headless-help.txt
-            ${{ runner.temp }}/ida-artifacts
-            ${{ runner.temp }}/idausr
+            ${{ runner.temp }}/idalib-artifacts
+            ${{ runner.temp }}/ida-gui-artifacts
+            ${{ runner.temp }}/idausr-idalib
+            ${{ runner.temp }}/idausr-gui
           if-no-files-found: warn
 
   compatibility-matrix:
@@ -290,18 +327,32 @@ jobs:
             --output "${{ runner.temp }}/ida-fixture.exe" \
             --variant 0
 
-      - name: Run offline IDA lifecycle smoke test
+      - name: Install IDALib test runtime
         shell: bash
         run: |
-          # The runner launches tests/ida/smoke.py inside the IDA process via -S.
-          python scripts/run_ida_smoke.py \
+          python -m venv "$RUNNER_TEMP/idalib-venv"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            IDALIB_PYTHON="$RUNNER_TEMP/idalib-venv/Scripts/python.exe"
+          else
+            IDALIB_PYTHON="$RUNNER_TEMP/idalib-venv/bin/python"
+          fi
+          echo "IDALIB_PYTHON=$IDALIB_PYTHON" >> "$GITHUB_ENV"
+          "$IDALIB_PYTHON" -m pip install --upgrade pip
+          "$IDALIB_PYTHON" -m pip install \
+            "${{ steps.ida.outputs.ida-dir }}/idalib/python"/idapro-*.whl \
+            "smda>=2.4.6" "ida-settings>=3.3.0"
+
+      - name: Run offline IDALib lifecycle smoke test
+        shell: bash
+        run: |
+          "$IDALIB_PYTHON" scripts/run_idalib_smoke.py \
             --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
             --input "${{ runner.temp }}/ida-fixture.exe" \
             --mcrit-server "$MCRIT_SERVER" \
-            --idausr "$RUNNER_TEMP/idausr" \
+            --idausr "$RUNNER_TEMP/idausr-idalib" \
             --plugin-zip dist/mcrit-ida.zip \
-            --artifacts "$RUNNER_TEMP/ida-artifacts" \
-            --log "$RUNNER_TEMP/ida-smoke.log" \
+            --artifacts "$RUNNER_TEMP/idalib-artifacts" \
+            --log "$RUNNER_TEMP/idalib-smoke.log" \
             --offline \
             --require-hcli
 
@@ -311,8 +362,8 @@ jobs:
         with:
           name: ida-compatibility-${{ matrix.name }}
           path: |
-            ${{ runner.temp }}/ida-smoke.log
+            ${{ runner.temp }}/idalib-smoke.log
             ${{ runner.temp }}/ida-headless-help.txt
-            ${{ runner.temp }}/ida-artifacts
-            ${{ runner.temp }}/idausr
+            ${{ runner.temp }}/idalib-artifacts
+            ${{ runner.temp }}/idausr-idalib
           if-no-files-found: warn

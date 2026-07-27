@@ -64,7 +64,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--variant", type=int, choices=(0, 1), required=True)
+    parser.add_argument("--variant", type=int, choices=(0, 1, 2), required=True)
     parser.add_argument(
         "--arch",
         default="x86_64" if sys.platform == "darwin" else None,
