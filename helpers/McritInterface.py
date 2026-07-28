@@ -268,6 +268,7 @@ class McritInterface(object):
                 self.parent.local_widget.updateActivityInfo(
                     "Success! MatchingJob has ID: %s." % job_id
                 )
+                return job_id
             else:
                 self.parent.local_widget.updateActivityInfo("Match query failed.")
         except Exception:
@@ -277,6 +278,7 @@ class McritInterface(object):
                 "Match query failed, error on connection :("
             )
             self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        return None
 
     def getMatchingJobById(self, job_id):
         self.parent.local_widget.updateActivityInfo("Querying result for job with id: %s" % job_id)

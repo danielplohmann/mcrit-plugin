@@ -29,8 +29,16 @@ QtCore = None
 QtWidgets = None
 
 
+def _require_gui():
+    """Fail clearly when a GUI-only plugin action is invoked through IDALib."""
+    is_idaq = getattr(ida_kernwin, "is_idaq", None)
+    if not callable(is_idaq) or not is_idaq():
+        raise RuntimeError("MCRIT4IDA's Qt interface requires the IDA GUI")
+
+
 def _load_dependencies():
     """Load MCRIT's SMDA and Qt widget graph only when its form is opened."""
+    _require_gui()
     global SmdaReport, IdaInterface, _SMDA_IMPORT_ERROR
     global pyperclip, QtShim, ClassCollection, McritInterface
     global BlockMatchWidget, FunctionMatchWidget, FunctionOverviewWidget
@@ -346,6 +354,11 @@ def PLUGIN_ENTRY():
 
 def show_mcrit_form():
     global MCRIT4IDA
+    try:
+        _require_gui()
+    except RuntimeError as exc:
+        print(f"[!] {exc}")
+        return None
     created_form = False
     if MCRIT4IDA is None:
         try:

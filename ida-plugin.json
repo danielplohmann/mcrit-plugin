@@ -21,8 +21,8 @@
       "yara"
     ],
     "pythonDependencies": [
-      "smda>=2.4.6",
-      "ida-settings>=3.3.0"
+      "smda>=4.3.10",
+      "ida-settings>=3.5.1"
     ],
     "urls": {
       "repository": "https://github.com/danielplohmann/mcrit-plugin"

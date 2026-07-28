@@ -71,7 +71,7 @@ If you do not want to use HCLI at all, you can install the plugin manually:
 3. Install the Python dependencies with the Python interpreter bundled with your IDA installation:
 
 ```bash
-python -m pip install smda ida-settings>=3.3.0
+python -m pip install "smda>=4.3.10" "ida-settings>=3.5.1"
 ```
 
 4. Restart IDA Pro.
@@ -187,6 +187,130 @@ python scripts/package_plugin.py --repo . --output dist/mcrit-ida.zip
 hcli plugin lint .
 hcli plugin lint dist/mcrit-ida.zip
 ```
+
+### IDA and MCRIT Integration Tests
+
+The repository keeps the normal pytest and Ruff jobs secret-free. Licensed IDA
+testing is isolated in `.github/workflows/ida-tests.yml`: it runs on pushes to
+`main` and through manual dispatch, using the `IDA_LICENSE_ID` and
+`HCLI_API_KEY` repository secrets. Pull requests, including fork pull requests,
+do not receive those secrets.
+
+The required Linux job installs IDA Pro 9.3, starts a local MCRIT server backed
+by MongoDB, seeds a deterministic reference binary, and runs an IDALib MCRIT
+smoke test followed by a GUI-process toolbar smoke test. To run the broader
+IDA-version/platform IDALib checks, manually dispatch the workflow with
+`run_matrix` enabled.
+
+#### Local IDALib integration smoke test
+
+IDALib runs the IDA analysis APIs without a GUI. Use it for the package,
+conversion, upload, and matching workflow; the separate GUI smoke below covers
+the actual toolbar callbacks. Use the Python ABI configured for the installed
+IDA version (the CI job deliberately selects Python 3.11); install the
+`idapro` package from that IDA distribution and use an isolated IDA user
+directory:
+
+```bash
+python3 -m venv .venv-idalib
+.venv-idalib/bin/python -m pip install --upgrade \
+  "/path/to/IDA Professional 9.3/idalib/python"/idapro-*.whl \
+  "smda==4.3.10" "ida-settings==3.5.1"
+
+python scripts/build_test_fixture.py \
+  --source tests/fixtures/mcrit_sample.c \
+  --output /tmp/mcrit-idalib-fixture \
+  --variant 1
+
+.venv-idalib/bin/python scripts/run_idalib_smoke.py \
+  --ida-dir "/path/to/IDA Professional 9.3" \
+  --input /tmp/mcrit-idalib-fixture \
+  --idausr /tmp/mcrit-idalib-user \
+  --mcrit-server http://127.0.0.1:8000
+```
+
+The runner activates IDALib for that virtual environment, installs the local
+ZIP into the isolated profile, and restores its MCRIT settings afterwards.
+Use `--offline` to validate package loading and IDB-to-SMDA conversion without
+a MCRIT service.
+
+#### Local GUI toolbar smoke test
+
+The local runner uses an existing IDA installation and your normal IDA user
+profile; it does not require an HCLI API key. When `hcli` is available it
+installs the current local ZIP into that profile when no copy is present; an
+already-installed copy is refreshed directly without HCLI. The headless
+process therefore loads the same plugin setup that your normal IDA session
+uses. It invokes IDA with `-A -S` and chooses the GUI executable by default
+because IDA's `idat` binary refuses to import PySide6. It uses the native
+`cocoa` Qt platform on macOS and `offscreen` elsewhere; use `--ida-binary` or
+`--qt-platform` to override either choice.
+
+```bash
+python scripts/build_test_fixture.py \
+  --source tests/fixtures/mcrit_sample.c \
+  --output /tmp/mcrit-ida-fixture \
+  --variant 1
+
+python scripts/run_ida_smoke.py \
+  --ida-dir "/path/to/IDA Professional 9.3.app" \
+  --input /tmp/mcrit-ida-fixture \
+  --mcrit-server http://127.0.0.1:8000
+```
+
+If the plugin is already installed and should not be replaced, pass its
+installed directory explicitly:
+
+```bash
+python scripts/run_ida_smoke.py \
+  --ida-dir "/path/to/IDA Professional 9.3.app" \
+  --input /tmp/mcrit-ida-fixture \
+  --plugin-root "$HOME/.idapro/plugins/mcrit-ida" \
+  --mcrit-server http://127.0.0.1:8000
+```
+
+The CI workflow passes `--idausr` to create an isolated profile; the default
+local path deliberately reuses the profile that already has IDAPython and the
+plugin configured. The runner temporarily points that profile at the requested
+MCRIT server and restores its original `ida-config.json` afterward.
+
+IDA itself still enforces its license when it starts; the runner does not
+perform or bypass that check. If headless execution reports that Python is not
+configured, run the matching `idapyswitch --auto-apply` from that IDA
+installation first.
+
+For a live local MCRIT test, use Python 3.11 or 3.12 for the service, then run
+MongoDB and the two MCRIT processes in separate terminals. The workflow pins
+MCRIT `1.5.0`; it requires Python 3.11 or 3.12 and its default API is
+`http://127.0.0.1:8000`:
+
+```bash
+docker run --rm --name mcrit-mongo -p 27017:27017 mongo:5.0
+python3.11 -m venv .venv-mcrit
+.venv-mcrit/bin/python -m pip install "mcrit==1.5.0"
+.venv-mcrit/bin/python -m mcrit server
+.venv-mcrit/bin/python -m mcrit worker
+```
+
+For a deterministic positive local match, build and seed the reference variant
+before running the query fixture; `seed_mcrit.py` waits for the worker:
+
+```bash
+python scripts/build_test_fixture.py \
+  --source tests/fixtures/mcrit_sample.c \
+  --output /tmp/mcrit-ida-reference \
+  --variant 0
+.venv-mcrit/bin/python scripts/seed_mcrit.py \
+  --server http://127.0.0.1:8000 \
+  --sample /tmp/mcrit-ida-reference
+```
+
+Use `--offline` with `run_ida_smoke.py` when a live MCRIT service is not
+available; the GUI smoke still drives conversion, metadata dialogs, YARA, and
+isolated settings. With a live service it additionally drives
+upload/query/matching, labels, graphs, and SMDA export. A manual GUI pass is
+still useful for visual rendering: open the MCRIT views, inspect labels and
+graphs, and verify settings through the Plugin Settings Manager.
 
 ### Release Workflow
 This plugin publishes a dedicated plugin ZIP as the HCLI package artifact.

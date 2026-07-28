@@ -1,0 +1,369 @@
+name: IDA integration
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      run_matrix:
+        description: Run the broader IDA version and operating-system matrix
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ida-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MCRIT_VERSION: "1.5.0"
+  MCRIT_SERVER: "http://127.0.0.1:8000"
+
+jobs:
+  licensed-linux:
+    name: IDA Pro 9.3 / Ubuntu / live MCRIT
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:5.0
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install IDA Pro 9.3
+        id: ida
+        uses: HexRaysSA/ida-hcli-actions/install-ida@v1
+        with:
+          api-key: ${{ secrets.HCLI_API_KEY }}
+          license-id: ${{ secrets.IDA_LICENSE_ID }}
+          installer-id: release/9.3/ida-pro/ida-pro_93_x64linux.run
+          clean: "false"
+          python-version: "3.11"
+
+      - name: Keep HCLI on PATH
+        shell: bash
+        run: |
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Verify service Python
+        shell: bash
+        run: |
+          python --version
+          python - <<'PY'
+          import os
+          import sys
+
+          if sys.version_info[:2] != (3, 11):
+              raise SystemExit(
+                  f"MCRIT {os.environ['MCRIT_VERSION']} requires Python 3.11, got {sys.version}"
+              )
+          PY
+
+      - name: Verify headless IDA executable
+        shell: bash
+        run: |
+          test -x "${{ steps.ida.outputs.ida-bin }}"
+          "${{ steps.ida.outputs.ida-bin }}" -h > "$RUNNER_TEMP/ida-headless-help.txt" 2>&1
+
+      - name: Install validation tooling
+        run: python -m pip install --upgrade pip ruff
+
+      - name: Verify metadata and package
+        shell: bash
+        run: |
+          python scripts/verify_metadata_sync.py --repo .
+          python scripts/verify_settings_sync.py --repo .
+          python scripts/run_quality_checks.py --repo .
+          python scripts/package_plugin.py --repo . --output dist/mcrit-ida.zip
+          hcli plugin lint .
+          hcli plugin lint dist/mcrit-ida.zip
+
+      - name: Build deterministic MCRIT fixtures
+        run: |
+          python scripts/build_test_fixture.py \
+            --source tests/fixtures/mcrit_sample.c \
+            --output "${{ runner.temp }}/mcrit-reference.exe" \
+            --variant 0
+          python scripts/build_test_fixture.py \
+            --source tests/fixtures/mcrit_sample.c \
+            --output "${{ runner.temp }}/mcrit-idalib-query.exe" \
+            --variant 1
+          python scripts/build_test_fixture.py \
+            --source tests/fixtures/mcrit_sample.c \
+            --output "${{ runner.temp }}/mcrit-gui-query.exe" \
+            --variant 2
+
+      - name: Install MCRIT service
+        shell: bash
+        run: |
+          python -m venv "$RUNNER_TEMP/mcrit-venv"
+          "$RUNNER_TEMP/mcrit-venv/bin/python" -m pip install --upgrade pip
+          "$RUNNER_TEMP/mcrit-venv/bin/python" -m pip install "mcrit==${MCRIT_VERSION}"
+
+      - name: Install IDALib test runtime
+        shell: bash
+        run: |
+          python -m venv "$RUNNER_TEMP/idalib-venv"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            IDALIB_PYTHON="$RUNNER_TEMP/idalib-venv/Scripts/python.exe"
+          else
+            IDALIB_PYTHON="$RUNNER_TEMP/idalib-venv/bin/python"
+          fi
+          echo "IDALIB_PYTHON=$IDALIB_PYTHON" >> "$GITHUB_ENV"
+          "$IDALIB_PYTHON" -m pip install --upgrade pip
+          "$IDALIB_PYTHON" -m pip install --upgrade \
+            "${{ steps.ida.outputs.ida-dir }}/idalib/python"/idapro-*.whl \
+            "smda==4.3.10" "ida-settings==3.5.1"
+
+      - name: Wait for MongoDB
+        shell: bash
+        run: |
+          "$RUNNER_TEMP/mcrit-venv/bin/python" - <<'PY'
+          import time
+          import pymongo
+
+          deadline = time.monotonic() + 60
+          last_error = None
+          while time.monotonic() < deadline:
+              try:
+                  client = pymongo.MongoClient(
+                      "mongodb://127.0.0.1:27017/",
+                      serverSelectionTimeoutMS=1000,
+                  )
+                  client.admin.command("ping")
+                  print("MongoDB is ready.")
+                  break
+              except Exception as exc:
+                  last_error = exc
+                  time.sleep(1)
+          else:
+              raise SystemExit(f"MongoDB did not become ready: {last_error}")
+          PY
+
+      - name: Start MCRIT server and worker
+        shell: bash
+        run: |
+          nohup "$RUNNER_TEMP/mcrit-venv/bin/python" -m mcrit server \
+            > "$RUNNER_TEMP/mcrit-server.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/mcrit-server.pid"
+          nohup "$RUNNER_TEMP/mcrit-venv/bin/python" -m mcrit worker \
+            > "$RUNNER_TEMP/mcrit-worker.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/mcrit-worker.pid"
+
+      - name: Wait for MCRIT API
+        shell: bash
+        run: |
+          "$RUNNER_TEMP/mcrit-venv/bin/python" - <<'PY'
+          import time
+          import requests
+
+          deadline = time.monotonic() + 90
+          last_error = None
+          while time.monotonic() < deadline:
+              try:
+                  response = requests.get("http://127.0.0.1:8000/version", timeout=2)
+                  if response.ok:
+                      print(response.text)
+                      break
+              except Exception as exc:
+                  last_error = exc
+              time.sleep(2)
+          else:
+              raise SystemExit(f"MCRIT API did not become ready: {last_error}")
+          PY
+
+      - name: Seed MCRIT reference sample
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          "$RUNNER_TEMP/mcrit-venv/bin/python" scripts/seed_mcrit.py \
+            --server "$MCRIT_SERVER" \
+            --sample "${{ runner.temp }}/mcrit-reference.exe" \
+            --timeout 180
+
+      - name: Record reference SHA-256
+        id: reference
+        shell: bash
+        run: echo "sha256=$(sha256sum '${{ runner.temp }}/mcrit-reference.exe' | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Run live IDALib integration smoke test
+        shell: bash
+        run: |
+          "$IDALIB_PYTHON" scripts/run_idalib_smoke.py \
+            --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
+            --input "${{ runner.temp }}/mcrit-idalib-query.exe" \
+            --mcrit-server "$MCRIT_SERVER" \
+            --reference-sha256 "${{ steps.reference.outputs.sha256 }}" \
+            --idausr "$RUNNER_TEMP/idausr-idalib" \
+            --plugin-zip dist/mcrit-ida.zip \
+            --artifacts "$RUNNER_TEMP/idalib-artifacts" \
+            --log "$RUNNER_TEMP/idalib-smoke.log" \
+            --timeout 180 \
+            --require-hcli
+
+      - name: Run licensed IDA GUI toolbar smoke test
+        shell: bash
+        run: |
+          # The runner launches tests/ida/smoke.py inside the IDA GUI process via -S.
+          python scripts/run_ida_smoke.py \
+            --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
+            --input "${{ runner.temp }}/mcrit-gui-query.exe" \
+            --mcrit-server "$MCRIT_SERVER" \
+            --reference-sha256 "${{ steps.reference.outputs.sha256 }}" \
+            --idausr "$RUNNER_TEMP/idausr-gui" \
+            --plugin-zip dist/mcrit-ida.zip \
+            --artifacts "$RUNNER_TEMP/ida-gui-artifacts" \
+            --log "$RUNNER_TEMP/ida-gui-smoke.log" \
+            --timeout 180 \
+            --require-hcli
+
+      - name: Stop MCRIT processes
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          for pid_file in "$RUNNER_TEMP/mcrit-server.pid" "$RUNNER_TEMP/mcrit-worker.pid"; do
+            if [[ -f "$pid_file" ]]; then
+              kill "$(cat "$pid_file")" 2>/dev/null || true
+            fi
+          done
+
+      - name: Upload integration logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ida-integration-logs
+          path: |
+            ${{ runner.temp }}/idalib-smoke.log
+            ${{ runner.temp }}/ida-gui-smoke.log
+            ${{ runner.temp }}/mcrit-server.log
+            ${{ runner.temp }}/mcrit-worker.log
+            ${{ runner.temp }}/ida-headless-help.txt
+            ${{ runner.temp }}/idalib-artifacts
+            ${{ runner.temp }}/ida-gui-artifacts
+            ${{ runner.temp }}/idausr-idalib
+            ${{ runner.temp }}/idausr-gui
+          if-no-files-found: warn
+
+  compatibility-matrix:
+    name: ${{ matrix.name }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_matrix }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: IDA Pro 9.3 / Linux
+            os: ubuntu-latest
+            installer: release/9.3/ida-pro/ida-pro_93_x64linux.run
+          - name: IDA Pro 9.3 / Windows
+            os: windows-latest
+            installer: release/9.3/ida-pro/ida-pro_93_x64win.exe
+          - name: IDA Pro 9.3 / macOS ARM
+            os: macos-latest
+            installer: release/9.3/ida-pro/ida-pro_93_armmac.app.zip
+          - name: IDA Pro 9.2 / Linux
+            os: ubuntu-latest
+            installer: release/9.2/ida-pro/ida-pro_92_x64linux.run
+          - name: IDA Pro 9.1 / Linux
+            os: ubuntu-latest
+            installer: release/9.1/ida-pro/ida-pro_91_x64linux.run
+          - name: IDA Pro 9.0 / Linux
+            os: ubuntu-latest
+            installer: release/9.0/ida-pro/ida-pro_90_x64linux.run
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install IDA ${{ matrix.name }}
+        id: ida
+        uses: HexRaysSA/ida-hcli-actions/install-ida@v1
+        with:
+          api-key: ${{ secrets.HCLI_API_KEY }}
+          license-id: ${{ secrets.IDA_LICENSE_ID }}
+          installer-id: ${{ matrix.installer }}
+          clean: "false"
+          python-version: "3.11"
+
+      - name: Keep HCLI on PATH
+        shell: bash
+        run: |
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Verify headless IDA executable
+        shell: bash
+        run: |
+          test -x "${{ steps.ida.outputs.ida-bin }}"
+          "${{ steps.ida.outputs.ida-bin }}" -h > "$RUNNER_TEMP/ida-headless-help.txt" 2>&1
+
+      - name: Package and lint plugin
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip ruff
+          python scripts/verify_metadata_sync.py --repo .
+          python scripts/verify_settings_sync.py --repo .
+          python scripts/run_quality_checks.py --repo .
+          python scripts/package_plugin.py --repo . --output dist/mcrit-ida.zip
+          hcli plugin lint dist/mcrit-ida.zip
+
+      - name: Build compatibility fixture
+        run: |
+          python scripts/build_test_fixture.py \
+            --source tests/fixtures/mcrit_sample.c \
+            --output "${{ runner.temp }}/ida-fixture.exe" \
+            --variant 0
+
+      - name: Install IDALib test runtime
+        shell: bash
+        run: |
+          python -m venv "$RUNNER_TEMP/idalib-venv"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            IDALIB_PYTHON="$RUNNER_TEMP/idalib-venv/Scripts/python.exe"
+          else
+            IDALIB_PYTHON="$RUNNER_TEMP/idalib-venv/bin/python"
+          fi
+          echo "IDALIB_PYTHON=$IDALIB_PYTHON" >> "$GITHUB_ENV"
+          "$IDALIB_PYTHON" -m pip install --upgrade pip
+          "$IDALIB_PYTHON" -m pip install --upgrade \
+            "${{ steps.ida.outputs.ida-dir }}/idalib/python"/idapro-*.whl \
+            "smda==4.3.10" "ida-settings==3.5.1"
+
+      - name: Run offline IDALib lifecycle smoke test
+        shell: bash
+        run: |
+          "$IDALIB_PYTHON" scripts/run_idalib_smoke.py \
+            --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
+            --input "${{ runner.temp }}/ida-fixture.exe" \
+            --mcrit-server "$MCRIT_SERVER" \
+            --idausr "$RUNNER_TEMP/idausr-idalib" \
+            --plugin-zip dist/mcrit-ida.zip \
+            --artifacts "$RUNNER_TEMP/idalib-artifacts" \
+            --log "$RUNNER_TEMP/idalib-smoke.log" \
+            --offline \
+            --require-hcli
+
+      - name: Upload compatibility logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ida-compatibility-${{ matrix.name }}
+          path: |
+            ${{ runner.temp }}/idalib-smoke.log
+            ${{ runner.temp }}/ida-headless-help.txt
+            ${{ runner.temp }}/idalib-artifacts
+            ${{ runner.temp }}/idausr-idalib
+          if-no-files-found: warn

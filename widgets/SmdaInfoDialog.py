@@ -15,7 +15,7 @@ class SmdaInfoDialog(QDialog):
         if parent.parent.local_smda_report is not None:
             self._sample_family = parent.parent.local_smda_report.family
             self._sample_version = parent.parent.local_smda_report.version
-            self._sample_is_library = parent.parent.local_smda_report.is_library
+            self._sample_is_library = bool(parent.parent.local_smda_report.is_library)
         # create GUI elements
         self._createInputWidget()
         self._createButtons()
