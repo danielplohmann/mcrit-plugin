@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       run_matrix:
@@ -26,6 +29,9 @@ env:
 jobs:
   licensed-linux:
     name: IDA Pro 9.3 / Ubuntu / live MCRIT
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     services:
       mongo:
