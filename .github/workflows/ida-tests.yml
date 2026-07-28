@@ -35,19 +35,44 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
+      - name: Set up Python 3.11
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: false
+
+      - name: Install Linux IDA runtime dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libopengl0
+
       - name: Install IDA Pro 9.3
         id: ida
-        uses: HexRaysSA/ida-hcli-actions/install-ida@v1
-        with:
-          api-key: ${{ secrets.HCLI_API_KEY }}
-          license-id: ${{ secrets.IDA_LICENSE_ID }}
-          installer-id: release/9.3/ida-pro/ida-pro_93_x64linux.run
-          clean: "false"
-          python-version: "3.11"
+        shell: bash
+        env:
+          HCLI_API_KEY: ${{ secrets.HCLI_API_KEY }}
+          IDA_LICENSE_ID: ${{ secrets.IDA_LICENSE_ID }}
+        run: |
+          IDA_DIR="$RUNNER_TEMP/opt/ida"
+          uv tool install ida-hcli
+          hcli ida install -y \
+            -d release/9.3/ida-pro/ida-pro_93_x64linux.run \
+            -l "$IDA_LICENSE_ID" \
+            -i "$IDA_DIR"
+          test -d "$IDA_DIR"
+          test -x "$IDA_DIR/ida"
+          echo "ida-dir=$IDA_DIR" >> "$GITHUB_OUTPUT"
+          echo "ida-bin=$IDA_DIR/ida" >> "$GITHUB_OUTPUT"
 
       - name: Keep HCLI on PATH
         shell: bash
@@ -72,8 +97,16 @@ jobs:
       - name: Verify headless IDA executable
         shell: bash
         run: |
-          test -x "${{ steps.ida.outputs.ida-bin }}"
-          "${{ steps.ida.outputs.ida-bin }}" -h > "$RUNNER_TEMP/ida-headless-help.txt" 2>&1
+          IDA_HEADLESS=""
+          for name in idat64 idat idat64.exe idat.exe; do
+            candidate="$(find "${{ steps.ida.outputs.ida-dir }}" -type f -name "$name" -print -quit)"
+            if [[ -n "$candidate" && -x "$candidate" ]]; then
+              IDA_HEADLESS="$candidate"
+              break
+            fi
+          done
+          test -n "$IDA_HEADLESS"
+          "$IDA_HEADLESS" -h > "$RUNNER_TEMP/ida-headless-help.txt" 2>&1
 
       - name: Install validation tooling
         run: python -m pip install --upgrade pip ruff
@@ -240,7 +273,7 @@ jobs:
 
       - name: Upload integration logs
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ida-integration-logs
           path: |
@@ -284,19 +317,45 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
+      - name: Set up Python 3.11
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: false
+
       - name: Install IDA ${{ matrix.name }}
         id: ida
-        uses: HexRaysSA/ida-hcli-actions/install-ida@v1
-        with:
-          api-key: ${{ secrets.HCLI_API_KEY }}
-          license-id: ${{ secrets.IDA_LICENSE_ID }}
-          installer-id: ${{ matrix.installer }}
-          clean: "false"
-          python-version: "3.11"
+        shell: bash
+        env:
+          HCLI_API_KEY: ${{ secrets.HCLI_API_KEY }}
+          IDA_LICENSE_ID: ${{ secrets.IDA_LICENSE_ID }}
+        run: |
+          IDA_DIR="$RUNNER_TEMP/opt/ida"
+          uv tool install ida-hcli
+          hcli ida install -y \
+            -d "${{ matrix.installer }}" \
+            -l "$IDA_LICENSE_ID" \
+            -i "$IDA_DIR"
+          test -d "$IDA_DIR"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            IDA_BIN="$IDA_DIR/Contents/MacOS/ida"
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            IDA_BIN="$(find "$IDA_DIR" -type f \( -name ida.exe -o -name ida64.exe \) -print -quit)"
+          else
+            IDA_BIN="$IDA_DIR/ida"
+          fi
+          test -n "$IDA_BIN"
+          test -x "$IDA_BIN"
+          echo "ida-dir=$IDA_DIR" >> "$GITHUB_OUTPUT"
+          echo "ida-bin=$IDA_BIN" >> "$GITHUB_OUTPUT"
 
       - name: Keep HCLI on PATH
         shell: bash
@@ -307,8 +366,16 @@ jobs:
       - name: Verify headless IDA executable
         shell: bash
         run: |
-          test -x "${{ steps.ida.outputs.ida-bin }}"
-          "${{ steps.ida.outputs.ida-bin }}" -h > "$RUNNER_TEMP/ida-headless-help.txt" 2>&1
+          IDA_HEADLESS=""
+          for name in idat64 idat idat64.exe idat.exe; do
+            candidate="$(find "${{ steps.ida.outputs.ida-dir }}" -type f -name "$name" -print -quit)"
+            if [[ -n "$candidate" && -x "$candidate" ]]; then
+              IDA_HEADLESS="$candidate"
+              break
+            fi
+          done
+          test -n "$IDA_HEADLESS"
+          "$IDA_HEADLESS" -h > "$RUNNER_TEMP/ida-headless-help.txt" 2>&1
 
       - name: Package and lint plugin
         shell: bash
@@ -358,7 +425,7 @@ jobs:
 
       - name: Upload compatibility logs
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ida-compatibility-${{ matrix.name }}
           path: |
