@@ -8,7 +8,7 @@
 > **Integration with MCRIT** for MinHash-based code similarity analysis in IDA Pro.
 
 MCRIT (MinHash-based Code Relationship & Investigation Toolkit) simplifies MinHash-based code similarity detection.
-This plugin seamlessly integrates MCRIT servers with IDA Pro for malware analysis and function identification.
+This plugin seamlessly integrates the interaction with MCRIT servers from with IDA Pro for malware analysis and function identification.
 
 ## ✨ Features
 
