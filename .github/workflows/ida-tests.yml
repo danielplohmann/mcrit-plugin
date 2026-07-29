@@ -348,6 +348,14 @@ jobs:
             "import sys; print('ver', sys.version.split()[0]); import requests; print('requests OK'); import smda; print('smda OK')" \
             2>&1 | head -30 || true
 
+      - name: Locate IDA license file
+        shell: bash
+        run: |
+          echo "HOME=$HOME"
+          ls -la "$HOME/.idapro" 2>/dev/null || echo "no ~/.idapro"
+          echo "=== .hexlic / ida.key search ==="
+          find "$HOME" "${{ steps.ida.outputs.ida-dir }}" -maxdepth 5 \( -name '*.hexlic' -o -name 'ida.key' -o -name '*.key' \) 2>/dev/null | head
+
       - name: Run licensed IDA GUI toolbar smoke test
         shell: bash
         env:
@@ -361,9 +369,11 @@ jobs:
           # isolated IDAUSR (idausr-gui) that has no license. Point IDA at the
           # keyfile explicitly. Do NOT copy the license into idausr-gui, as that
           # directory is uploaded as a CI artifact.
-          LICENSE_FILE=$(ls "$HOME/.idapro"/*.hexlic 2>/dev/null | head -1)
+          LICENSE_FILE=$(find "$HOME/.idapro" "${{ steps.ida.outputs.ida-dir }}" -name '*.hexlic' 2>/dev/null | head -1)
           echo "Using license keyfile: ${LICENSE_FILE:-NONE}"
-          export IDA_LICENSE="keyfile=${LICENSE_FILE}"
+          if [[ -n "$LICENSE_FILE" ]]; then
+            export IDA_LICENSE="keyfile=${LICENSE_FILE}"
+          fi
           xvfb-run -a python scripts/run_ida_smoke.py \
             --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
             --input "${{ runner.temp }}/mcrit-gui-query.exe" \
