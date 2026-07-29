@@ -318,12 +318,16 @@ jobs:
         run: |
           IDAPYSWITCH=$(find "${{ steps.ida.outputs.ida-dir }}" -type f -name 'idapyswitch*' -perm -u+x -print -quit)
           test -n "$IDAPYSWITCH"
-          "$IDAPYSWITCH" --auto-apply
+          PYTHON_LIBDIR="$(python -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')"
+          PYTHON_LIBRARY="$(find "$PYTHON_LIBDIR" -maxdepth 1 -name 'libpython3*.so*' -print -quit)"
+          test -f "$PYTHON_LIBRARY"
+          "$IDAPYSWITCH" --force-path "$PYTHON_LIBRARY"
 
       - name: Run licensed IDA GUI toolbar smoke test
         shell: bash
         env:
           PYTHONPATH: ${{ runner.temp }}/ida-py-deps
+          IDALOG: ${{ runner.temp }}/ida-gui-startup.log
         run: |
           # The GUI smoke test launches the actual IDA GUI binary, which needs a
           # usable display. Provide a virtual X display via xvfb-run and let Qt use
@@ -366,6 +370,7 @@ jobs:
           path: |
             ${{ runner.temp }}/idalib-smoke.log
             ${{ runner.temp }}/ida-gui-smoke.log
+            ${{ runner.temp }}/ida-gui-startup.log
             ${{ runner.temp }}/mcrit-server.log
             ${{ runner.temp }}/mcrit-worker.log
             ${{ runner.temp }}/ida-headless-help.txt

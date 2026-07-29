@@ -327,14 +327,24 @@ def main() -> int:
             artifacts = args.artifacts.expanduser().resolve()
             artifacts.mkdir(parents=True, exist_ok=True)
             environment["MCRIT_IDA_SMOKE_ARTIFACT_DIR"] = str(artifacts)
-        command = [
-            str(ida_binary),
-            "-A",
-            f"-L{log_path}",
-            f"-S{smoke_script}",
-            str(input_path),
+        command = [str(ida_binary)]
+        if ida_license := environment.get("IDA_LICENSE"):
+            command.append(f"-Olicense:{ida_license}")
+        command.extend(
+            [
+                "-A",
+                f"-L{log_path}",
+                f"-S{smoke_script}",
+                str(input_path),
+            ]
+        )
+        display_command = [
+            "-Olicense:keyfile=<redacted>"
+            if argument.startswith("-Olicense:keyfile=")
+            else argument
+            for argument in command
         ]
-        print("[ida-smoke]", " ".join(command))
+        print("[ida-smoke]", " ".join(display_command))
         completed = subprocess.run(
             command, env=environment, check=False, text=True, capture_output=True
         )
@@ -350,7 +360,7 @@ def main() -> int:
             )
         if "Python 3 is not configured" in log_text:
             raise RuntimeError(
-                "IDA Python is not configured; run idapyswitch --auto-apply for this IDA installation"
+                "IDA Python is not configured; configure it with idapyswitch before running the smoke test"
             )
         if completed.returncode != 0 and "MCRIT_IDA_SMOKE_OK" not in log_text:
             if completed.stderr and completed.stderr.strip():
