@@ -310,7 +310,7 @@ jobs:
           # ships PySide6 but not the plugin's other dependencies (requests/smda/
           # ida-settings). Install them directly into IDA's bundled Python so the
           # version matches automatically (no ABI mismatch / PYTHONPATH games).
-          IDA_PY=$(find "${{ steps.ida.outputs.ida-dir }}" -type f -name 'python3*' 2>/dev/null | head -1)
+          IDA_PY=$(find "${{ steps.ida.outputs.ida-dir }}" -name 'python3*' 2>/dev/null | head -1)
           echo "IDA_PY=$IDA_PY"
           if [[ -n "$IDA_PY" ]]; then
             "$IDA_PY" -m ensurepip --upgrade 2>/dev/null || true
@@ -340,7 +340,7 @@ jobs:
           # Determine IDA's bundled Python version and whether the plugin's
           # dependencies import there. If the version differs from the 3.11 wheels
           # installed into ida-py-deps, imports will fail inside IDA (silent exit 1).
-          IDA_PY=$(find "${{ steps.ida.outputs.ida-dir }}" -type f -name 'python3*' 2>/dev/null | head -1)
+          IDA_PY=$(find "${{ steps.ida.outputs.ida-dir }}" -name 'python3*' 2>/dev/null | head -1)
           echo "IDA_PY=$IDA_PY"
           "$IDA_PY" --version 2>&1 || echo "could not run IDA python"
           echo "=== imports with ida-py-deps on PYTHONPATH ==="
