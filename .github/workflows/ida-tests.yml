@@ -111,8 +111,16 @@ jobs:
               break
             fi
           done
-          test -n "$IDA_HEADLESS"
-          "$IDA_HEADLESS" -h > "$RUNNER_TEMP/ida-headless-help.txt" 2>&1
+          if [[ -z "$IDA_HEADLESS" ]]; then
+            echo "::error::Could not locate a headless IDA executable (idat64/idat) under ${{ steps.ida.outputs.ida-dir }}"
+            exit 1
+          fi
+          echo "Found headless IDA executable: $IDA_HEADLESS"
+          # Probe the binary to capture diagnostic help output. This must not fail
+          # the build: a freshly installed IDA may not have its license accepted
+          # yet (which the later smoke test tolerates) and some IDA versions/
+          # platforms return a non-zero exit from `-h` regardless.
+          "$IDA_HEADLESS" -h > "$RUNNER_TEMP/ida-headless-help.txt" 2>&1 || true
 
       - name: Install validation tooling
         run: python -m pip install --upgrade pip ruff
@@ -380,8 +388,16 @@ jobs:
               break
             fi
           done
-          test -n "$IDA_HEADLESS"
-          "$IDA_HEADLESS" -h > "$RUNNER_TEMP/ida-headless-help.txt" 2>&1
+          if [[ -z "$IDA_HEADLESS" ]]; then
+            echo "::error::Could not locate a headless IDA executable (idat64/idat) under ${{ steps.ida.outputs.ida-dir }}"
+            exit 1
+          fi
+          echo "Found headless IDA executable: $IDA_HEADLESS"
+          # Probe the binary to capture diagnostic help output. This must not fail
+          # the build: a freshly installed IDA may not have its license accepted
+          # yet (which the later smoke test tolerates) and some IDA versions/
+          # platforms return a non-zero exit from `-h` regardless.
+          "$IDA_HEADLESS" -h > "$RUNNER_TEMP/ida-headless-help.txt" 2>&1 || true
 
       - name: Package and lint plugin
         shell: bash
