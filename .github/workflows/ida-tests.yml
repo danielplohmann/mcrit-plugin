@@ -191,7 +191,7 @@ jobs:
           "$IDALIB_PYTHON" -m pip install --upgrade pip
           "$IDALIB_PYTHON" -m pip install --upgrade \
             "${{ steps.ida.outputs.ida-dir }}/idalib/python"/idapro-*.whl \
-            "smda==4.3.10" "ida-settings==3.5.1" "PySide6"
+            "smda==4.3.10" "ida-settings==3.5.1" "PySide6" "requests"
 
       - name: Wait for MongoDB
         shell: bash
@@ -488,7 +488,7 @@ jobs:
           "$IDALIB_PYTHON" -m pip install --upgrade pip
           "$IDALIB_PYTHON" -m pip install --upgrade \
             "${{ steps.ida.outputs.ida-dir }}/idalib/python"/idapro-*.whl \
-            "smda==4.3.10" "ida-settings==3.5.1" "PySide6"
+            "smda==4.3.10" "ida-settings==3.5.1" "PySide6" "requests"
 
       - name: Run offline IDALib lifecycle smoke test
         shell: bash

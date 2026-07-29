@@ -22,7 +22,8 @@
     ],
     "pythonDependencies": [
       "smda>=4.3.10",
-      "ida-settings>=3.5.1"
+      "ida-settings>=3.5.1",
+      "requests"
     ],
     "urls": {
       "repository": "https://github.com/danielplohmann/mcrit-plugin"
