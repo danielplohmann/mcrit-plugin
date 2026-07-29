@@ -300,8 +300,21 @@ jobs:
             --timeout 180 \
             --require-hcli
 
+      - name: Install plugin runtime deps for IDA's Python
+        shell: bash
+        run: |
+          # The GUI smoke test loads the plugin inside IDA's *bundled* Python, which
+          # ships PySide6 but not the plugin's other dependencies (requests/smda/
+          # ida-settings). Install those into a dedicated target dir and expose it via
+          # PYTHONPATH on the next step, so IDA's Python can import them without
+          # disturbing the bundled PySide6.
+          python -m pip install --target "$RUNNER_TEMP/ida-py-deps" \
+            "requests" "smda==4.3.10" "ida-settings==3.5.1"
+
       - name: Run licensed IDA GUI toolbar smoke test
         shell: bash
+        env:
+          PYTHONPATH: ${{ runner.temp }}/ida-py-deps
         run: |
           # The runner launches tests/ida/smoke.py inside the IDA GUI process via -S.
           python scripts/run_ida_smoke.py \

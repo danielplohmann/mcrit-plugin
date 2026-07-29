@@ -351,6 +351,8 @@ def main() -> int:
                 "IDA Python is not configured; run idapyswitch --auto-apply for this IDA installation"
             )
         if completed.returncode != 0 and "MCRIT_IDA_SMOKE_OK" not in log_text:
+            if completed.stderr.strip():
+                print(completed.stderr, file=sys.stderr)
             raise RuntimeError(f"IDA smoke test failed with exit code {completed.returncode}")
         if "MCRIT_IDA_SMOKE_OK" not in log_text:
             raise RuntimeError(f"IDA smoke marker was not found in {log_path}")
