@@ -320,6 +320,22 @@ jobs:
           cp "$SOURCE_REG" "$GUI_REG"
           strings "$GUI_REG" | grep -q '^Licenses$'
 
+      - name: Pre-accept IDAPython PyQt5 shim for GUI profile
+        shell: bash
+        run: |
+          # IDA 9.2+ shows a modal "do you want to enable the PyQt5 shim?" dialog
+          # the first time anything in the process imports PyQt5. The mcrit plugin
+          # imports PyQt5 unconditionally (helpers/QtShim.py, helpers/pyperclip),
+          # and the dialog ignores -A / batch mode, blocking startup forever.
+          # IDAPYTHON_USE_PYQT5_SHIM=0 in the GUI profile's idapython.cfg silences
+          # the prompt. Guarded on __IDAVER__ >= 920 so older IDA versions ignore it.
+          mkdir -p "$RUNNER_TEMP/idausr-gui/cfg"
+          cat > "$RUNNER_TEMP/idausr-gui/cfg/idapython.cfg" <<'CFG'
+          #if __IDAVER__ >= 920
+          IDAPYTHON_USE_PYQT5_SHIM = 0
+          #endif
+          CFG
+
       - name: Configure IDAPython for GUI smoke
         shell: bash
         env:
