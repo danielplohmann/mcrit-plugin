@@ -326,6 +326,20 @@ jobs:
             ldd "$LIBQXCB" | grep -i "not found" || echo "no missing libs reported by ldd"
           fi
 
+      - name: Diagnose IDA bundled Python
+        shell: bash
+        run: |
+          # Determine IDA's bundled Python version and whether the plugin's
+          # dependencies import there. If the version differs from the 3.11 wheels
+          # installed into ida-py-deps, imports will fail inside IDA (silent exit 1).
+          IDA_PY=$(find "${{ steps.ida.outputs.ida-dir }}/python" -maxdepth 3 -name python -type f 2>/dev/null | head -1)
+          echo "IDA_PY=$IDA_PY"
+          "$IDA_PY" --version 2>&1 || echo "could not run IDA python"
+          echo "=== imports with ida-py-deps on PYTHONPATH ==="
+          PYTHONPATH="${{ runner.temp }}/ida-py-deps" "$IDA_PY" -c \
+            "import sys; print('ver', sys.version.split()[0]); import requests; print('requests OK'); import smda; print('smda OK')" \
+            2>&1 | head -30 || true
+
       - name: Run licensed IDA GUI toolbar smoke test
         shell: bash
         env:
