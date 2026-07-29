@@ -62,7 +62,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
             libopengl0 libgl1 libegl1 libxkbcommon0 libdbus-1-3 fontconfig \
-            libx11-6 libxcb1 libfreetype6
+            libx11-6 libxcb1 libfreetype6 xvfb
 
       - name: Install IDA Pro 9.3
         id: ida
@@ -316,8 +316,10 @@ jobs:
         env:
           PYTHONPATH: ${{ runner.temp }}/ida-py-deps
         run: |
-          # The runner launches tests/ida/smoke.py inside the IDA GUI process via -S.
-          python scripts/run_ida_smoke.py \
+          # The GUI smoke test launches the actual IDA GUI binary, which needs a
+          # usable display even with the offscreen Qt platform. Provide a virtual
+          # X display via xvfb-run and let Qt use the xcb platform against it.
+          xvfb-run -a python scripts/run_ida_smoke.py \
             --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
             --input "${{ runner.temp }}/mcrit-gui-query.exe" \
             --mcrit-server "$MCRIT_SERVER" \
@@ -327,6 +329,7 @@ jobs:
             --artifacts "$RUNNER_TEMP/ida-gui-artifacts" \
             --log "$RUNNER_TEMP/ida-gui-smoke.log" \
             --timeout 180 \
+            --qt-platform xcb \
             --require-hcli
 
       - name: Stop MCRIT processes
