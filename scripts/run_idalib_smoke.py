@@ -135,8 +135,6 @@ def main() -> int:
         if ida_config_path is not None:
             _restore_ida_settings(ida_config_path, previous_ida_config)
         if package_root is not None:
-            import shutil
-
             shutil.rmtree(package_root, ignore_errors=True)
 
 
