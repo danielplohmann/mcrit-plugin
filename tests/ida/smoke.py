@@ -379,11 +379,13 @@ def _exercise_block_widget(form, report, qt_application):
     candidates = [
         function
         for function in report.getFunctions()
-        if any(len(block.getInstructions()) >= 4 for block in function.getBlocks())
+        if any(sum(1 for _ in block.getInstructions()) >= 4 for block in function.getBlocks())
     ]
     _assert(candidates, "fixture has no function suitable for block queries")
-    candidate = max(candidates, key=lambda item: item.num_instructions)
-    block = next(block for block in candidate.getBlocks() if len(block.getInstructions()) >= 4)
+    candidate = candidates[0]
+    block = next(
+        block for block in candidate.getBlocks() if sum(1 for _ in block.getInstructions()) >= 4
+    )
     form.current_function = candidate.offset
     form.current_block = block.offset
     block_widget.last_viewed_function = None
