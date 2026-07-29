@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  MCRIT_VERSION: "1.5.0"
+  MCRIT_VERSION: "1.5.1"
   MCRIT_SERVER: "http://127.0.0.1:8000"
 
 jobs:
