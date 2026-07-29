@@ -60,7 +60,8 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends libopengl0
+          sudo apt-get install --yes --no-install-recommends \
+            libopengl0 libgl1 libegl1 libxkbcommon0 libdbus-1-3 fontconfig
 
       - name: Install IDA Pro 9.3
         id: ida
@@ -72,6 +73,8 @@ jobs:
           IDA_DIR="$RUNNER_TEMP/opt/ida"
           uv tool install ida-hcli
           hcli ida install -y \
+            --accept-eula \
+            --set-default \
             -d release/9.3/ida-pro/ida-pro_93_x64linux.run \
             -l "$IDA_LICENSE_ID" \
             -i "$IDA_DIR"
@@ -170,7 +173,7 @@ jobs:
           "$IDALIB_PYTHON" -m pip install --upgrade pip
           "$IDALIB_PYTHON" -m pip install --upgrade \
             "${{ steps.ida.outputs.ida-dir }}/idalib/python"/idapro-*.whl \
-            "smda==4.3.10" "ida-settings==3.5.1"
+            "smda==4.3.10" "ida-settings==3.5.1" "PySide6"
 
       - name: Wait for MongoDB
         shell: bash
@@ -375,6 +378,8 @@ jobs:
           IDA_DIR="$RUNNER_TEMP/opt/ida"
           uv tool install ida-hcli
           hcli ida install -y \
+            --accept-eula \
+            --set-default \
             -d "${{ matrix.installer }}" \
             -l "$IDA_LICENSE_ID" \
             -i "$IDA_DIR"
@@ -449,7 +454,7 @@ jobs:
           "$IDALIB_PYTHON" -m pip install --upgrade pip
           "$IDALIB_PYTHON" -m pip install --upgrade \
             "${{ steps.ida.outputs.ida-dir }}/idalib/python"/idapro-*.whl \
-            "smda==4.3.10" "ida-settings==3.5.1"
+            "smda==4.3.10" "ida-settings==3.5.1" "PySide6"
 
       - name: Run offline IDALib lifecycle smoke test
         shell: bash
