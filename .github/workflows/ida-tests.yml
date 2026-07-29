@@ -357,6 +357,13 @@ jobs:
           # The GUI smoke test launches the actual IDA GUI binary, which needs a
           # usable display. Provide a virtual X display via xvfb-run and let Qt use
           # the xcb platform against it.
+          # HCLI installs the .hexlic license into ~/.idapro, but the GUI run uses an
+          # isolated IDAUSR (idausr-gui) that has no license. Point IDA at the
+          # keyfile explicitly. Do NOT copy the license into idausr-gui, as that
+          # directory is uploaded as a CI artifact.
+          LICENSE_FILE=$(ls "$HOME/.idapro"/*.hexlic 2>/dev/null | head -1)
+          echo "Using license keyfile: ${LICENSE_FILE:-NONE}"
+          export IDA_LICENSE="keyfile=${LICENSE_FILE}"
           xvfb-run -a python scripts/run_ida_smoke.py \
             --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
             --input "${{ runner.temp }}/mcrit-gui-query.exe" \
