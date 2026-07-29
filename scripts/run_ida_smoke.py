@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -55,6 +56,10 @@ def _safe_extract_plugin(plugin_zip: Path, plugin_root: Path) -> None:
         archive.extractall(plugin_root)
 
 
+def _read_log(path: Path) -> str:
+    return path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
+
+
 def _test_settings(server: str, timeout: int) -> dict[str, object]:
     settings = {
         "mcritweb_username": "",
@@ -77,6 +82,16 @@ def _activate_current_venv(environment: dict[str, str]) -> None:
     venv_bin = Path(sys.executable).resolve().parent
     environment["VIRTUAL_ENV"] = sys.prefix
     environment["PATH"] = str(venv_bin) + os.pathsep + environment.get("PATH", "")
+
+
+def _terminate_process_tree(process: subprocess.Popen[str]) -> None:
+    if os.name == "nt":
+        process.kill()
+        return
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
 
 
 def _prepare_ida_settings(idausr: Path, settings: dict[str, object]):
@@ -345,12 +360,39 @@ def main() -> int:
             for argument in command
         ]
         print("[ida-smoke]", " ".join(display_command))
-        completed = subprocess.run(
-            command, env=environment, check=False, text=True, capture_output=True
+        process_options = {}
+        if os.name != "nt":
+            process_options["start_new_session"] = True
+        process = subprocess.Popen(
+            command,
+            env=environment,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            **process_options,
         )
-        log_text = (
-            log_path.read_text(encoding="utf-8", errors="replace") if log_path.exists() else ""
-        )
+        process_timeout = args.timeout + 60
+        try:
+            stdout, stderr = process.communicate(timeout=process_timeout)
+        except subprocess.TimeoutExpired:
+            _terminate_process_tree(process)
+            stdout, stderr = process.communicate()
+            if stderr:
+                print(stderr, file=sys.stderr)
+            if stdout:
+                print("--- IDA stdout ---", file=sys.stderr)
+                print(stdout, file=sys.stderr)
+            for diagnostic_path in (log_path, environment.get("IDALOG")):
+                if diagnostic_path:
+                    diagnostic_log = _read_log(Path(diagnostic_path))
+                    if diagnostic_log:
+                        print(diagnostic_log)
+            raise RuntimeError(
+                f"IDA smoke test timed out after {process_timeout} seconds; "
+                f"see {log_path} and IDALOG for startup diagnostics"
+            )
+        completed = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+        log_text = _read_log(log_path)
         if log_text:
             print(log_text)
         if "License not yet accepted" in log_text:

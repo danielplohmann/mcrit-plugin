@@ -86,9 +86,9 @@ jobs:
           test -x "$IDA_DIR/ida"
           echo "ida-dir=$IDA_DIR" >> "$GITHUB_OUTPUT"
           echo "ida-bin=$IDA_DIR/ida" >> "$GITHUB_OUTPUT"
-          # hcli --accept-eula records EULA/license acceptance in the *default*
-          # IDAUSR, but the smoke tests run IDA against isolated IDAUSR profiles
-          # (idausr-idalib / idausr-gui) which would otherwise refuse batch mode.
+          # hcli --accept-eula records EULA acceptance in the *default* IDAUSR,
+          # but the smoke tests use isolated profiles which would otherwise
+          # refuse batch mode.
           # Propagate the accepted ida.reg into those profiles.
           SRC=""
           for cand in "$IDA_DIR/ida.reg" "$HOME/.idapro/ida.reg"; do
@@ -311,6 +311,15 @@ jobs:
           python -m pip install --target "$RUNNER_TEMP/ida-py-deps" \
             "requests" "smda==4.3.10" "ida-settings==3.5.1"
 
+      - name: Seed GUI profile from licensed IDALib profile
+        shell: bash
+        run: |
+          SOURCE_REG="$RUNNER_TEMP/idausr-idalib/ida.reg"
+          GUI_REG="$RUNNER_TEMP/idausr-gui/ida.reg"
+          test -f "$SOURCE_REG"
+          cp "$SOURCE_REG" "$GUI_REG"
+          strings "$GUI_REG" | grep -q '^Licenses$'
+
       - name: Configure IDAPython for GUI smoke
         shell: bash
         env:
@@ -332,13 +341,11 @@ jobs:
           # The GUI smoke test launches the actual IDA GUI binary, which needs a
           # usable display. Provide a virtual X display via xvfb-run and let Qt use
           # the xcb platform against it.
-          # HCLI installs the .hexlic license into ~/.idapro, but the GUI run uses an
-          # isolated IDAUSR (idausr-gui) that has no license. Point IDA at the
-          # keyfile explicitly. Do NOT copy the license into idausr-gui, as that
-          # directory is uploaded as a CI artifact.
+          # The GUI run uses an isolated IDAUSR. Keep the keyfile outside that
+          # directory, because the profile is uploaded as a CI artifact.
           LICENSE_FILE=$(find "${{ steps.ida.outputs.ida-dir }}" -maxdepth 1 -type f -name '*.hexlic' -print -quit)
           test -n "$LICENSE_FILE"
-          export IDA_LICENSE="keyfile=${LICENSE_FILE}"
+          export IDA_LICENSE="keyfile=${LICENSE_FILE}:setpref"
           xvfb-run -a python scripts/run_ida_smoke.py \
             --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
             --input "${{ runner.temp }}/mcrit-gui-query.exe" \
