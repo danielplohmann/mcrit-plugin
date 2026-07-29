@@ -335,7 +335,9 @@ def main() -> int:
             str(input_path),
         ]
         print("[ida-smoke]", " ".join(command))
-        completed = subprocess.run(command, env=environment, check=False)
+        completed = subprocess.run(
+            command, env=environment, check=False, text=True, capture_output=True
+        )
         log_text = (
             log_path.read_text(encoding="utf-8", errors="replace") if log_path.exists() else ""
         )
@@ -351,7 +353,7 @@ def main() -> int:
                 "IDA Python is not configured; run idapyswitch --auto-apply for this IDA installation"
             )
         if completed.returncode != 0 and "MCRIT_IDA_SMOKE_OK" not in log_text:
-            if completed.stderr.strip():
+            if completed.stderr and completed.stderr.strip():
                 print(completed.stderr, file=sys.stderr)
             raise RuntimeError(f"IDA smoke test failed with exit code {completed.returncode}")
         if "MCRIT_IDA_SMOKE_OK" not in log_text:
