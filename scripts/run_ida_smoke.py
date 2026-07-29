@@ -195,6 +195,11 @@ def _install_with_hcli(
             "IDADIR": str(ida_dir),
             "HCLI_CURRENT_IDA_INSTALL_DIR": str(ida_dir),
             "HCLI_DISABLE_UPDATES": "1",
+            # hcli otherwise runs `idat` to auto-detect IDA's Python interpreter,
+            # which fails on a headless/fresh CI install (no accepted license,
+            # no display). Point it at the Python that runs this harness so the
+            # plugin files are still installed correctly.
+            "HCLI_CURRENT_IDA_PYTHON_EXE": sys.executable,
         }
     )
     command = [
@@ -208,7 +213,14 @@ def _install_with_hcli(
             value = str(value).lower()
         command.extend(["--config", f"{key}={value}"])
     print("[ida-smoke] installing plugin with hcli")
-    subprocess.run(command, check=True, env=environment)
+    try:
+        subprocess.run(command, check=True, env=environment)
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"[ida-smoke] hcli plugin install failed ({exc.returncode}); "
+            "falling back to manual extraction of the plugin archive",
+        )
+        return False
     return True
 
 
@@ -273,7 +285,7 @@ def main() -> int:
     try:
         if plugin_root is None:
             installed_with_hcli = _install_with_hcli(plugin_zip, ida_dir, idausr, settings)
-            if args.require_hcli and not installed_with_hcli:
+            if args.require_hcli and shutil.which("hcli") is None:
                 raise RuntimeError("hcli is required but was not found on PATH")
             if installed_with_hcli:
                 plugin_root = _find_installed_plugin(idausr)

@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  MCRIT_VERSION: "1.5.1"
+  MCRIT_VERSION: "1.5.2"
   MCRIT_SERVER: "http://127.0.0.1:8000"
 
 jobs:
@@ -156,12 +156,6 @@ jobs:
           python -m venv "$RUNNER_TEMP/mcrit-venv"
           "$RUNNER_TEMP/mcrit-venv/bin/python" -m pip install --upgrade pip
           "$RUNNER_TEMP/mcrit-venv/bin/python" -m pip install "mcrit==${MCRIT_VERSION}"
-          # WORKAROUND (remove once mcrit>=1.5.2 ships/creates mcrit/cache): in
-          # 1.5.1 the LogBucket cache directory is not created at runtime, so
-          # `mcrit server` dies with FileNotFoundError on mcrit/cache/logbuckets.json.
-          # Create it up front; harmless no-op once the dir is shipped/created.
-          MCRIT_CACHE="$("$RUNNER_TEMP/mcrit-venv/bin/python" -c 'import mcrit, os; print(os.path.join(os.path.dirname(mcrit.__file__), "cache"))')"
-          mkdir -p "$MCRIT_CACHE"
 
       - name: Install IDALib test runtime
         shell: bash

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -85,7 +86,7 @@ def main() -> int:
                 raise FileNotFoundError(f"Plugin ZIP does not exist: {plugin_zip}")
 
             installed_with_hcli = _install_with_hcli(plugin_zip, ida_dir, idausr, settings)
-            if args.require_hcli and not installed_with_hcli:
+            if args.require_hcli and shutil.which("hcli") is None:
                 raise RuntimeError("hcli is required but was not found on PATH")
             if installed_with_hcli:
                 plugin_root = _find_installed_plugin(idausr)
