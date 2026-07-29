@@ -62,7 +62,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
             libopengl0 libgl1 libegl1 libxkbcommon0 libdbus-1-3 fontconfig \
-            libx11-6 libxcb1 libxcb-cursor0 libfreetype6 xvfb
+            libx11-6 libxcb1 libxcb-cursor0 libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render0 libxcb-render-util0 libxcb-shape0 libxcb-shm0 \
+            libxcb-icccm4 libxcb-image0 libxcb-xkb1 libxcb-xinerama0 \
+            libxkbcommon-x11-0 libxcb-sync1 libfreetype6 xvfb
 
       - name: Install IDA Pro 9.3
         id: ida
@@ -311,15 +314,28 @@ jobs:
           python -m pip install --target "$RUNNER_TEMP/ida-py-deps" \
             "requests" "smda==4.3.10" "ida-settings==3.5.1"
 
+      - name: Diagnose IDA Qt XCB libraries
+        shell: bash
+        run: |
+          # Surface the exact XCB shared libs missing for IDA's bundled Qt xcb
+          # platform plugin, so the runtime deps can be pinned precisely.
+          LIBQXCB=$(find "${{ steps.ida.outputs.ida-dir }}" -name 'libqxcb.so*' -type f | head -1)
+          echo "libqxcb: ${LIBQXCB:-NOT FOUND}"
+          if [[ -n "$LIBQXCB" ]]; then
+            echo "=== ldd (missing only) ==="
+            ldd "$LIBQXCB" | grep -i "not found" || echo "no missing libs reported by ldd"
+          fi
+
       - name: Run licensed IDA GUI toolbar smoke test
         shell: bash
         env:
           PYTHONPATH: ${{ runner.temp }}/ida-py-deps
+          QT_DEBUG_PLUGINS: "1"
         run: |
-          # The GUI smoke test launches the actual IDA GUI binary. In a headless
-          # runner the offscreen Qt platform is used (no X display / xvfb needed);
-          # it only requires libGL/libEGL, which the runtime step installs.
-          python scripts/run_ida_smoke.py \
+          # The GUI smoke test launches the actual IDA GUI binary, which needs a
+          # usable display. Provide a virtual X display via xvfb-run and let Qt use
+          # the xcb platform against it.
+          xvfb-run -a python scripts/run_ida_smoke.py \
             --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
             --input "${{ runner.temp }}/mcrit-gui-query.exe" \
             --mcrit-server "$MCRIT_SERVER" \
@@ -329,7 +345,7 @@ jobs:
             --artifacts "$RUNNER_TEMP/ida-gui-artifacts" \
             --log "$RUNNER_TEMP/ida-gui-smoke.log" \
             --timeout 180 \
-            --qt-platform offscreen \
+            --qt-platform xcb \
             --require-hcli
 
       - name: Stop MCRIT processes
