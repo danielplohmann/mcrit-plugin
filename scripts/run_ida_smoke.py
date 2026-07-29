@@ -393,6 +393,12 @@ def main() -> int:
             )
         completed = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
         log_text = _read_log(log_path)
+        # IDA's -L log is empty when IDALOG is set (the env var reroutes output),
+        # so fall back to IDALOG for the success-marker check.
+        if not log_text:
+            idalog_path = environment.get("IDALOG")
+            if idalog_path:
+                log_text = _read_log(Path(idalog_path))
         if log_text:
             print(log_text)
         if "License not yet accepted" in log_text:

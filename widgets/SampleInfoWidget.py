@@ -63,6 +63,9 @@ class SampleInfoWidget(QMainWindow):
         self.populateBestMatchTable()
         self.updateFunctionsLabel()
 
+    def updateFunctionsLabel(self):
+        pass
+
     def _get_entry_field(self, entry, field):
         if entry is None:
             return None

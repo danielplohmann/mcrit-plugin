@@ -379,11 +379,13 @@ def _exercise_block_widget(form, report, qt_application):
     candidates = [
         function
         for function in report.getFunctions()
-        if any(len(block.getInstructions()) >= 4 for block in function.getBlocks())
+        if any(sum(1 for _ in block.getInstructions()) >= 4 for block in function.getBlocks())
     ]
     _assert(candidates, "fixture has no function suitable for block queries")
-    candidate = max(candidates, key=lambda item: item.num_instructions)
-    block = next(block for block in candidate.getBlocks() if len(block.getInstructions()) >= 4)
+    candidate = candidates[0]
+    block = next(
+        block for block in candidate.getBlocks() if sum(1 for _ in block.getInstructions()) >= 4
+    )
     form.current_function = candidate.offset
     form.current_block = block.offset
     block_widget.last_viewed_function = None
@@ -479,6 +481,10 @@ def _exercise_overview_widget(form, report, qt_application):
         overview.rb_filter_conflicted,
     ):
         radio_button.click()
+    # Reset the filter to "none" so the table repopulates with all rows; otherwise
+    # the trailing radio button (rb_filter_conflicted) may leave the table empty
+    # and the subsequent item/offset access below would dereference None.
+    overview.rb_filter_none.click()
     overview.sb_minhash_threshold.setValue(overview.sb_minhash_threshold.value())
     overview.b_select_deselect_all.click()
     overview.b_select_deselect_all.click()
@@ -506,7 +512,9 @@ def _exercise_overview_widget(form, report, qt_application):
     _emit_table_signal(overview.table_local_functions, "doubleClicked", 0, label_column)
 
     # Make one local function look unnamed and run the real import action.
-    imported_offset = int(overview.table_local_functions.item(0, offset_column).text(), 16)
+    offset_cell = overview.table_local_functions.item(0, offset_column)
+    _assert(offset_cell is not None, "Overview local-functions table is empty after filter reset")
+    imported_offset = int(offset_cell.text(), 16)
     original_name = ida_funcs.get_func_name(imported_offset)
     overview.cc.ida_proxy.set_name(
         imported_offset, f"sub_{imported_offset:X}", overview.cc.ida_proxy.SN_NOWARN

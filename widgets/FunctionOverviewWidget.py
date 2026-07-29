@@ -851,11 +851,11 @@ class FunctionOverviewWidget(QMainWindow):
             McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS
         )
         if function_offset_column is not None:
-            clicked_function_address = self.table_local_functions.item(
-                mi.row(), function_offset_column
-            ).text()
-            as_int = int(clicked_function_address, 16)
-            self.last_function_selected = as_int
+            offset_item = self.table_local_functions.item(mi.row(), function_offset_column)
+            if offset_item is not None:
+                clicked_function_address = offset_item.text()
+                as_int = int(clicked_function_address, 16)
+                self.last_function_selected = as_int
 
     def _handleRightClickOnRow(self, row, column):
         """Handle right-click action for a specific row and column"""
@@ -915,9 +915,10 @@ class FunctionOverviewWidget(QMainWindow):
         function_label_column = McritTableColumn.columnTypeToIndex(
             McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS
         )
-        clicked_function_address = self.table_local_functions.item(
-            mi.row(), function_offset_column
-        ).text()
+        offset_item = self.table_local_functions.item(mi.row(), function_offset_column)
+        if offset_item is None:
+            return
+        clicked_function_address = offset_item.text()
         if mi.column() not in [function_offset_column, function_label_column]:
             self.cc.ida_proxy.Jump(int(clicked_function_address, 16))
             # change to function scope tab
