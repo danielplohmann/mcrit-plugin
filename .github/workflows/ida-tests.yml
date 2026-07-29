@@ -306,62 +306,24 @@ jobs:
       - name: Install plugin runtime deps for IDA's Python
         shell: bash
         run: |
-          # The GUI smoke test loads the plugin inside IDA's *bundled* Python, which
-          # ships PySide6 but not the plugin's other dependencies (requests/smda/
-          # ida-settings). Install them directly into IDA's bundled Python so the
-          # version matches automatically (no ABI mismatch / PYTHONPATH games).
-          IDA_PY=$(find "${{ steps.ida.outputs.ida-dir }}" \( -name 'python' -o -name 'python3' \) ! -type d 2>/dev/null | head -1)
-          echo "IDA_PY=$IDA_PY"
-          if [[ -n "$IDA_PY" ]]; then
-            "$IDA_PY" -m ensurepip --upgrade 2>/dev/null || true
-            "$IDA_PY" -m pip install --upgrade pip
-            "$IDA_PY" -m pip install "requests" "smda==4.3.10" "ida-settings==3.5.1"
-            "$IDA_PY" -c "import requests, smda, ida_settings; print('IDA python deps OK:', requests.__version__)" 2>&1 || echo "import check failed"
-          else
-            echo "::warning::IDA bundled Python not found; falling back to target dir"
-            python -m pip install --target "$RUNNER_TEMP/ida-py-deps" \
-              "requests" "smda==4.3.10" "ida-settings==3.5.1"
-          fi
+          # The Linux installer has no bundled Python executable. Keep the plugin
+          # dependencies isolated and make them visible to the configured IDAPython.
+          python -m pip install --target "$RUNNER_TEMP/ida-py-deps" \
+            "requests" "smda==4.3.10" "ida-settings==3.5.1"
 
-      - name: Diagnose IDA Qt XCB libraries
+      - name: Configure IDAPython for GUI smoke
         shell: bash
+        env:
+          IDAUSR: ${{ runner.temp }}/idausr-gui
         run: |
-          # Surface the exact XCB shared libs missing for IDA's bundled Qt xcb
-          # platform plugin, so the runtime deps can be pinned precisely.
-          LIBQXCB=$(find "${{ steps.ida.outputs.ida-dir }}" -name 'libqxcb.so*' -type f | head -1)
-          echo "libqxcb: ${LIBQXCB:-NOT FOUND}"
-          if [[ -n "$LIBQXCB" ]]; then
-            echo "=== ldd (missing only) ==="
-            ldd "$LIBQXCB" | grep -i "not found" || echo "no missing libs reported by ldd"
-          fi
-
-      - name: Diagnose IDA bundled Python
-        shell: bash
-        run: |
-          # Determine IDA's bundled Python version and whether the plugin's
-          # dependencies import there. If the version differs from the 3.11 wheels
-          # installed into ida-py-deps, imports will fail inside IDA (silent exit 1).
-          IDA_PY=$(find "${{ steps.ida.outputs.ida-dir }}" -name 'python3*' 2>/dev/null | head -1)
-          echo "IDA_PY=$IDA_PY"
-          "$IDA_PY" --version 2>&1 || echo "could not run IDA python"
-          echo "=== imports with ida-py-deps on PYTHONPATH ==="
-          PYTHONPATH="${{ runner.temp }}/ida-py-deps" "$IDA_PY" -c \
-            "import sys; print('ver', sys.version.split()[0]); import requests; print('requests OK'); import smda; print('smda OK')" \
-            2>&1 | head -30 || true
-
-      - name: Locate IDA license file
-        shell: bash
-        run: |
-          echo "HOME=$HOME"
-          ls -la "$HOME/.idapro" 2>/dev/null || echo "no ~/.idapro"
-          echo "=== .hexlic / ida.key search ==="
-          find "$HOME" "${{ steps.ida.outputs.ida-dir }}" -maxdepth 5 \( -name '*.hexlic' -o -name 'ida.key' -o -name '*.key' \) 2>/dev/null | head
+          IDAPYSWITCH=$(find "${{ steps.ida.outputs.ida-dir }}" -type f -name 'idapyswitch*' -perm -u+x -print -quit)
+          test -n "$IDAPYSWITCH"
+          "$IDAPYSWITCH" --auto-apply
 
       - name: Run licensed IDA GUI toolbar smoke test
         shell: bash
         env:
           PYTHONPATH: ${{ runner.temp }}/ida-py-deps
-          QT_DEBUG_PLUGINS: "1"
         run: |
           # The GUI smoke test launches the actual IDA GUI binary, which needs a
           # usable display. Provide a virtual X display via xvfb-run and let Qt use
@@ -370,11 +332,9 @@ jobs:
           # isolated IDAUSR (idausr-gui) that has no license. Point IDA at the
           # keyfile explicitly. Do NOT copy the license into idausr-gui, as that
           # directory is uploaded as a CI artifact.
-          LICENSE_FILE=$(find "$HOME/.cache/hex-rays/hcli/downloads" "${{ steps.ida.outputs.ida-dir }}" "$HOME/.idapro" -name '*.hexlic' 2>/dev/null | head -1)
-          echo "Using license keyfile: ${LICENSE_FILE:-NONE}"
-          if [[ -n "$LICENSE_FILE" ]]; then
-            export IDA_LICENSE="keyfile=${LICENSE_FILE}"
-          fi
+          LICENSE_FILE=$(find "${{ steps.ida.outputs.ida-dir }}" -maxdepth 1 -type f -name '*.hexlic' -print -quit)
+          test -n "$LICENSE_FILE"
+          export IDA_LICENSE="keyfile=${LICENSE_FILE}"
           xvfb-run -a python scripts/run_ida_smoke.py \
             --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
             --input "${{ runner.temp }}/mcrit-gui-query.exe" \
