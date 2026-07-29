@@ -61,7 +61,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
-            libopengl0 libgl1 libegl1 libxkbcommon0 libdbus-1-3 fontconfig
+            libopengl0 libgl1 libegl1 libxkbcommon0 libdbus-1-3 fontconfig \
+            libx11-6 libxcb1 libfreetype6
 
       - name: Install IDA Pro 9.3
         id: ida
@@ -82,6 +83,23 @@ jobs:
           test -x "$IDA_DIR/ida"
           echo "ida-dir=$IDA_DIR" >> "$GITHUB_OUTPUT"
           echo "ida-bin=$IDA_DIR/ida" >> "$GITHUB_OUTPUT"
+          # hcli --accept-eula records EULA/license acceptance in the *default*
+          # IDAUSR, but the smoke tests run IDA against isolated IDAUSR profiles
+          # (idausr-idalib / idausr-gui) which would otherwise refuse batch mode.
+          # Propagate the accepted ida.reg into those profiles.
+          SRC=""
+          for cand in "$IDA_DIR/ida.reg" "$HOME/.idapro/ida.reg"; do
+            if [[ -f "$cand" ]]; then SRC="$cand"; break; fi
+          done
+          if [[ -z "$SRC" ]]; then
+            echo "::warning::No accepted ida.reg found to propagate into smoke profiles"
+          else
+            for prof in "$RUNNER_TEMP/idausr-idalib" "$RUNNER_TEMP/idausr-gui"; do
+              mkdir -p "$prof"
+              cp "$SRC" "$prof/ida.reg"
+            done
+            echo "Propagated IDA acceptance from $SRC into smoke profiles"
+          fi
 
       - name: Keep HCLI on PATH
         shell: bash
@@ -395,6 +413,22 @@ jobs:
           test -x "$IDA_BIN"
           echo "ida-dir=$IDA_DIR" >> "$GITHUB_OUTPUT"
           echo "ida-bin=$IDA_BIN" >> "$GITHUB_OUTPUT"
+          # Propagate the accepted ida.reg (from hcli --accept-eula) into the
+          # isolated IDAUSR profiles used by the offline smoke tests so IDA does
+          # not refuse batch mode.
+          SRC=""
+          for cand in "$IDA_DIR/ida.reg" "$HOME/.idapro/ida.reg"; do
+            if [[ -f "$cand" ]]; then SRC="$cand"; break; fi
+          done
+          if [[ -z "$SRC" ]]; then
+            echo "::warning::No accepted ida.reg found to propagate into smoke profiles"
+          else
+            for prof in "$RUNNER_TEMP/idausr-idalib" "$RUNNER_TEMP/idausr-gui"; do
+              mkdir -p "$prof"
+              cp "$SRC" "$prof/ida.reg"
+            done
+            echo "Propagated IDA acceptance from $SRC into smoke profiles"
+          fi
 
       - name: Keep HCLI on PATH
         shell: bash
