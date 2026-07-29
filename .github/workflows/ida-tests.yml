@@ -316,10 +316,10 @@ jobs:
         env:
           PYTHONPATH: ${{ runner.temp }}/ida-py-deps
         run: |
-          # The GUI smoke test launches the actual IDA GUI binary, which needs a
-          # usable display even with the offscreen Qt platform. Provide a virtual
-          # X display via xvfb-run and let Qt use the xcb platform against it.
-          xvfb-run -a python scripts/run_ida_smoke.py \
+          # The GUI smoke test launches the actual IDA GUI binary. In a headless
+          # runner the offscreen Qt platform is used (no X display / xvfb needed);
+          # it only requires libGL/libEGL, which the runtime step installs.
+          python scripts/run_ida_smoke.py \
             --ida-dir "${{ steps.ida.outputs.ida-dir }}" \
             --input "${{ runner.temp }}/mcrit-gui-query.exe" \
             --mcrit-server "$MCRIT_SERVER" \
@@ -329,7 +329,7 @@ jobs:
             --artifacts "$RUNNER_TEMP/ida-gui-artifacts" \
             --log "$RUNNER_TEMP/ida-gui-smoke.log" \
             --timeout 180 \
-            --qt-platform xcb \
+            --qt-platform offscreen \
             --require-hcli
 
       - name: Stop MCRIT processes
