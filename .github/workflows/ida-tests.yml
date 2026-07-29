@@ -200,12 +200,32 @@ jobs:
       - name: Start MCRIT server and worker
         shell: bash
         run: |
-          nohup "$RUNNER_TEMP/mcrit-venv/bin/python" -m mcrit server \
-            > "$RUNNER_TEMP/mcrit-server.log" 2>&1 &
+          # setsid fully detaches the services into their own session so GitHub
+          # Actions does not terminate them when this step's shell exits (nohup
+          # alone only ignores SIGHUP, not the SIGTERM the runner sends to the
+          # step's process group). Without this, the server/worker are killed
+          # before the "Wait for MCRIT API" step runs, which then hangs until
+          # its timeout.
+          setsid nohup "$RUNNER_TEMP/mcrit-venv/bin/python" -m mcrit server \
+            > "$RUNNER_TEMP/mcrit-server.log" 2>&1 < /dev/null &
           echo $! > "$RUNNER_TEMP/mcrit-server.pid"
-          nohup "$RUNNER_TEMP/mcrit-venv/bin/python" -m mcrit worker \
-            > "$RUNNER_TEMP/mcrit-worker.log" 2>&1 &
+          setsid nohup "$RUNNER_TEMP/mcrit-venv/bin/python" -m mcrit worker \
+            > "$RUNNER_TEMP/mcrit-worker.log" 2>&1 < /dev/null &
           echo $! > "$RUNNER_TEMP/mcrit-worker.pid"
+          # Fail fast (with startup logs) if either process crashed immediately,
+          # instead of hanging for the full API-wait timeout.
+          sleep 5
+          if ! kill -0 "$(cat "$RUNNER_TEMP/mcrit-server.pid")" 2>/dev/null; then
+            echo "::error::MCRIT server exited during startup:"
+            cat "$RUNNER_TEMP/mcrit-server.log"
+            exit 1
+          fi
+          if ! kill -0 "$(cat "$RUNNER_TEMP/mcrit-worker.pid")" 2>/dev/null; then
+            echo "::error::MCRIT worker exited during startup:"
+            cat "$RUNNER_TEMP/mcrit-worker.log"
+            exit 1
+          fi
+          echo "MCRIT server (pid $(cat "$RUNNER_TEMP/mcrit-server.pid")) and worker (pid $(cat "$RUNNER_TEMP/mcrit-worker.pid")) started."
 
       - name: Wait for MCRIT API
         shell: bash
