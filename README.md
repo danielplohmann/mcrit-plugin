@@ -324,6 +324,10 @@ The tag-driven release workflow validates metadata, builds `mcrit-ida-<version>.
 
 ##  Version History
 
+### v1.1.9 (2026-08-04)
+- Matching reports now load ~7x faster (2.08s -> 0.29s on a 220k-match report), as the bundled minimcrit `MatchingResult.fromDict` no longer deep-copies the match lists for filtering. They are derived lazily as shallow copies on first access instead, mirroring the change in MCRIT 1.5.3.
+- Added `MatchingResult.resetFilters()`, so a report can be re-filtered without accumulating previous filters.
+
 ### v1.1.8 (2026-07-15)
 - Isolated MCRIT4IDA loggers by configuring them with their own handler instead of relying on IDA's shared root logger.
 - Stopped bundled minimcrit modules from calling `logging.basicConfig()` at import time.
