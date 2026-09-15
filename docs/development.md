@@ -35,10 +35,16 @@ python scripts/binja/verify_metadata_sync.py --repo .
 | `pytest.yml` | push, PR | pytest, headless integration against MCRIT |
 | `ruff.yml` | push, PR | ruff, settings sync |
 | `changelog.yml` | PR | changelog entry for changes to the IDA plugin |
-| `ida-package.yml` / `binja-package.yml` | push, PR | metadata sync and package validation |
-| `ida-tests.yml` | push to main, dispatch | licensed IDA integration |
+| `ida-package.yml` / `binja-package.yml` | push, PR touching that plugin | metadata sync and package validation |
+| `ida-tests.yml` | push to main or PR touching the IDA plugin, dispatch | licensed IDA integration |
 | `ida-release.yml` / `binja-release.yml` | `ida-v*` tag / dispatch | release, see [RELEASING.md](../RELEASING.md) |
 | `offline-dependencies.yml` | called by both releases | Windows wheelhouse bundles |
+
+"Touching that plugin" means its own files (`mcrit_plugin/ida/` or `mcrit_plugin/binja/`, its scripts, tests,
+manifest and workflows) or anything both plugins ship or check (`mcrit_plugin/core/`, `mcrit_plugin/ui_qt/`,
+`icons/`, `scripts/common/`, `tests/core/`, `README.md`, `LICENSE`, `pyproject.toml`, `.gitattributes`), so a
+Binary Ninja-only change does not start IDA jobs. A workflow skipped by its path filter reports no status, so do
+not make those checks required in branch protection.
 
 ## Integration tests
 

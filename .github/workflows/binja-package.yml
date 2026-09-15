@@ -2,7 +2,47 @@ name: Binary Ninja package
 
 on:
   push:
+    paths:
+      - "mcrit_plugin/binja/**"
+      - "plugin.json"
+      - "__init__.py"
+      - "requirements.txt"
+      - "**/ida-plugin.json"
+      - "scripts/binja/**"
+      - "tests/binja/**"
+      - ".github/workflows/binja-*.yml"
+      - "mcrit_plugin/core/**"
+      - "mcrit_plugin/ui_qt/**"
+      - "icons/**"
+      - "scripts/common/**"
+      - "tests/core/**"
+      - "tests/conftest.py"
+      - "tests/fixtures/**"
+      - "README.md"
+      - "LICENSE"
+      - "pyproject.toml"
+      - ".gitattributes"
   pull_request:
+    paths:
+      - "mcrit_plugin/binja/**"
+      - "plugin.json"
+      - "__init__.py"
+      - "requirements.txt"
+      - "**/ida-plugin.json"
+      - "scripts/binja/**"
+      - "tests/binja/**"
+      - ".github/workflows/binja-*.yml"
+      - "mcrit_plugin/core/**"
+      - "mcrit_plugin/ui_qt/**"
+      - "icons/**"
+      - "scripts/common/**"
+      - "tests/core/**"
+      - "tests/conftest.py"
+      - "tests/fixtures/**"
+      - "README.md"
+      - "LICENSE"
+      - "pyproject.toml"
+      - ".gitattributes"
 
 permissions:
   contents: read

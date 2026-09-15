@@ -4,9 +4,47 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "mcrit_plugin/ida/**"
+      - "scripts/ida/**"
+      - "tests/ida/**"
+      - "CHANGELOG.md"
+      - "docs/config_override.json.template"
+      - ".github/workflows/ida-*.yml"
+      - ".github/workflows/scripts/ida/**"
+      - "mcrit_plugin/core/**"
+      - "mcrit_plugin/ui_qt/**"
+      - "icons/**"
+      - "scripts/common/**"
+      - "tests/core/**"
+      - "tests/conftest.py"
+      - "tests/fixtures/**"
+      - "README.md"
+      - "LICENSE"
+      - "pyproject.toml"
+      - ".gitattributes"
   pull_request:
     branches:
       - main
+    paths:
+      - "mcrit_plugin/ida/**"
+      - "scripts/ida/**"
+      - "tests/ida/**"
+      - "CHANGELOG.md"
+      - "docs/config_override.json.template"
+      - ".github/workflows/ida-*.yml"
+      - ".github/workflows/scripts/ida/**"
+      - "mcrit_plugin/core/**"
+      - "mcrit_plugin/ui_qt/**"
+      - "icons/**"
+      - "scripts/common/**"
+      - "tests/core/**"
+      - "tests/conftest.py"
+      - "tests/fixtures/**"
+      - "README.md"
+      - "LICENSE"
+      - "pyproject.toml"
+      - ".gitattributes"
   workflow_dispatch:
     inputs:
       run_matrix:
