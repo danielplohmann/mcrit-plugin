@@ -1,9 +1,10 @@
 import hashlib
 import os
 import re
+import traceback
 
 import binaryninja
-from binaryninja import interaction
+from binaryninja import Logger, interaction
 from binaryninja.enums import (
     BranchType,
     InstructionTextTokenType,
@@ -16,6 +17,7 @@ from mcrit_plugin.binja.BinjaSmdaInterface import BinjaSmdaInterface
 from mcrit_plugin.core.Backend import Backend
 
 TITLE = "MCRIT"
+logger = Logger(0, TITLE)
 
 
 class BinjaBackend(Backend):
@@ -130,6 +132,27 @@ class BinjaBackend(Backend):
         if function is None:
             return False
         return function.symbol.auto and re.match("sub_[0-9a-fA-F]+$", function.name) is not None
+
+    def run_background(self, title, work, on_done):
+        backend = self
+
+        class Task(binaryninja.BackgroundTaskThread):
+            def run(task):
+                try:
+                    task.progress = f"{title} (waiting for analysis)"
+                    # reports must reflect finished analysis; not allowed on UI or worker threads
+                    backend.bv.update_analysis_and_wait()
+                    task.progress = title
+                    result = work()
+                except Exception:
+                    logger.log_error(f"{title} failed:\n{traceback.format_exc()}")
+                    binaryninja.execute_on_main_thread(
+                        lambda: backend.show_warning(f"{title} failed, see the log for details.")
+                    )
+                    return
+                binaryninja.execute_on_main_thread(lambda: on_done(result))
+
+        Task(title, False).start()
 
     def run_on_ui_thread(self, func):
         result = []

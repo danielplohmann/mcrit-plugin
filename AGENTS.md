@@ -15,7 +15,7 @@ For the MCRIT methodology (PicHash/MinHash, LSH banding) see the [mcrit `AGENTS.
   - `Backend.py` — disassembler interface used by `McritInterface` and the widgets.
   - `QtShim.py` — PySide6/Qt abstraction for the widgets.
   - `ScoreColorProvider.py`, `McritTableColumn.py`, `ClassCollection.py`, `HeadlessMcritContext.py` — UI/util helpers.
-  - `minimcrit/`, `pylev/`, `pyperclip/` — see "Vendored vs. internalized".
+  - `minimcrit/`, `pylev/` — see "Vendored vs. internalized".
 - `mcrit_plugin/widgets/` — Qt views (`MainWidget`, `FunctionMatchWidget`, `BlockMatchWidget`, `FunctionOverviewWidget`, `SampleInfoWidget`, `LocalInfoWidget`, dialogs).
 - `mcrit_plugin/ida/` — `IdaBackend`, `SmdaGraphViewer`, and `config.py` (plugin `VERSION` plus the `ida-settings` binding).
 - `mcrit_plugin/binja/` — Binary Ninja frontend: `BinjaBackend`, `BinjaSmdaInterface` (SMDA `BackendInterface` fed to SMDA's `IdaExporter`), `config.py` (Binary Ninja Settings registered from the `ida-plugin.json` declarations; `VERSION` from `plugin.json`), and `McritSidebar` (sidebar, UI actions, close hook). Root `plugin.json` / `__init__.py` / `requirements.txt` are the Binary Ninja manifest, entry point and dependencies; `scripts/package_plugin.py` keeps `mcrit_plugin/binja` out of the IDA archive.
@@ -80,7 +80,7 @@ These mirror the MCRIT core vocabulary (the plugin is a client of them):
 
 ## Code conventions
 
-- Lint/format: `ruff` (line-length 100, `target-version = "py38"`, selects `E4/E7/E9/F/I`). Run `ruff format .` to auto-format. Vendored dirs (`mcrit_plugin/core/minimcrit`, `mcrit_plugin/core/pylev`, `mcrit_plugin/core/pyperclip`, `icons`, `qt-designer-mockup`) are excluded from ruff.
+- Lint/format: `ruff` (line-length 100, `target-version = "py38"`, selects `E4/E7/E9/F/I`). Run `ruff format .` to auto-format. Vendored dirs (`mcrit_plugin/core/minimcrit`, `mcrit_plugin/core/pylev`, `icons`, `qt-designer-mockup`) are excluded from ruff.
 - License: GPL-3.0-only.
 - Do **not** introduce or log secrets/API tokens.
 
@@ -95,7 +95,7 @@ These mirror the MCRIT core vocabulary (the plugin is a client of them):
 - **Testing**: run `ruff format --check`, `ruff check`, and `python -m pytest tests` before considering work complete. The pure pytest suite is secret-free and runs in CI on every push/PR.
 - **IDA-licensed integration tests** (`.github/workflows/ida-tests.yml`) require a licensed IDA Pro and the `IDA_LICENSE_ID`/`HCLI_API_KEY` secrets. They are **not** available to fork PRs and must **not** be run by default. They are referenced here for completeness only; drive them via manual workflow dispatch or the local `scripts/run_idalib_smoke.py` / `scripts/run_ida_smoke.py` harnesses when a licensed IDA is present.
 - **Vendored vs. internalized**:
-  - `mcrit_plugin/core/pylev` and `mcrit_plugin/core/pyperclip` are third-party vendored libraries. Do **not** edit them.
+  - `mcrit_plugin/core/pylev` is a third-party vendored library. Do **not** edit it.
   - `mcrit_plugin/core/minimcrit` is the *minified* MCRIT API surface internalized for this plugin. Enhancing it (e.g. exposing more functionality) is allowed, **but its `McritClient` interface must not deviate from the core `mcrit` package's `McritClient`** unless the core client is enhanced in lockstep. Keep the two aligned.
 
 ## Related repositories (reference only)

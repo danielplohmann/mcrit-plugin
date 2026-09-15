@@ -71,8 +71,7 @@ def _prepare_user_dir(
         "python.virtualenv": site_packages,
         "mcrit.mcrit_server": server,
         "network.enableUpdates": False,
-        "updates.activeContent": False,
-        "ui.showWelcomeWindow": False,
+        "ui.allowWelcome": False,
     }
     (user_dir / "settings.json").write_text(json.dumps(settings, indent=2), encoding="utf-8")
     shutil.copy2(repo_root / "tests" / "binja" / "smoke.py", user_dir / "startup.py")

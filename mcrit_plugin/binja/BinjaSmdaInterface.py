@@ -56,10 +56,13 @@ class BinjaSmdaInterface:
         # refs, so edges come from block successors and call targets instead.
         refs_from = {}
         for function in self.bv.functions:
+            call_sites = {reference.address for reference in function.call_sites}
             for block in function.basic_blocks:
                 addresses = self._instructionAddresses(block)
                 for index, address in enumerate(addresses):
-                    targets = set(self.bv.get_callees(address, func=function))
+                    targets = set()
+                    if address in call_sites:
+                        targets.update(self.bv.get_callees(address, func=function))
                     if index + 1 < len(addresses):
                         targets.add(addresses[index + 1])
                     else:

@@ -48,6 +48,13 @@ def main() -> int:
 
     failures: list[str] = []
 
+    shared_path = repo / "mcrit_plugin" / "core" / "settings.json"
+    shared_settings = json.loads(shared_path.read_text(encoding="utf-8"))
+    if shared_settings != plugin_data["plugin"]["settings"]:
+        failures.append(
+            "mcrit_plugin/core/settings.json must be identical to the ida-plugin.json settings array"
+        )
+
     default_keys = set(defaults)
     setting_keys = set(settings)
 

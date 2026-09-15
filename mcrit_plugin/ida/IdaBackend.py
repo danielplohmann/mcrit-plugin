@@ -118,13 +118,7 @@ class IdaBackend(Backend):
         return bool(name) and re.match("sub_[0-9A-Fa-f]+$", name) is not None
 
     def run_on_ui_thread(self, func):
-        try:
-            return ida_kernwin.execute_sync(func, ida_kernwin.MFF_FAST)
-        except Exception as e:
-            print(
-                f"[MCRIT] Failed to run on UI thread via ida_kernwin, running directly. Error: {e}"
-            )
-            return func()
+        return ida_kernwin.execute_sync(func, ida_kernwin.MFF_FAST)
 
     def ask_save_file(self, default_name, prompt):
         return ida_kernwin.ask_file(1, default_name, prompt) or None

@@ -104,8 +104,15 @@ class Smoke:
 
         main_widget.SmdaInfoDialog = InfoDialog
         main_widget.parseSmdaAction.trigger()
+        self.wait(
+            lambda: self.session.local_smda_report is not None,
+            self.upload,
+            "Convert action produced an SMDA report in the background",
+        )
+
+    def upload(self):
+        main_widget = self.session.main_widget
         report = self.session.local_smda_report
-        self.check(report is not None, "Convert action produced an SMDA report")
         self.check(len(list(report.getFunctions())) > 0, "SMDA report contains functions")
         self.check(
             report.smda_version.startswith("MCRIT4BinaryNinja"),
@@ -115,12 +122,14 @@ class Smoke:
             main_widget.uploadSmdaAction.isEnabled(), "upload action enabled after conversion"
         )
         main_widget.uploadSmdaAction.trigger()
-        self.check(self.session.remote_sample_id is not None, "upload returned a sample id")
         client = self.session.mcrit_interface.mcrit_client
         self.wait(
-            lambda: bool(client.getFunctionsBySampleId(self.session.remote_sample_id)),
+            lambda: (
+                self.session.remote_sample_id is not None
+                and bool(client.getFunctionsBySampleId(self.session.remote_sample_id))
+            ),
             self.request_matching,
-            "server indexed the uploaded functions",
+            "upload finished and the server indexed the functions",
         )
 
     def request_matching(self):
@@ -220,10 +229,14 @@ class Smoke:
 
     def query_function(self):
         self.widget.notifyOffsetChanged(self.target.start)
-        self.session.function_match_widget.queryCurrentFunction()
-        self.check(
-            self.session.current_function == self.target.start, "Function Scope follows the cursor"
+        self.wait(
+            lambda: self.session.current_function == self.target.start,
+            self.query_current_function,
+            "Function Scope follows the cursor after the debounce",
         )
+
+    def query_current_function(self):
+        self.session.function_match_widget.queryCurrentFunction()
         self.wait(
             lambda: self.session.function_match_widget.table_function_matches.rowCount() > 0,
             self.rename_and_graph,

@@ -6,7 +6,6 @@ exclude = [
     ".vscode",
     "mcrit_plugin/core/minimcrit",
     "mcrit_plugin/core/pylev",
-    "mcrit_plugin/core/pyperclip",
     "icons",
     "qt-designer-mockup",
 ]

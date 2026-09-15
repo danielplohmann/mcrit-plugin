@@ -1,0 +1,2 @@
+# HCLI indexes GitHub source archives of every release; only the attached IDA ZIP must match
+ida-plugin.json export-ignore

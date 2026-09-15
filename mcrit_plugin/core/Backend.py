@@ -71,6 +71,13 @@ class Backend(ABC):
     def has_default_function_name(self, address):
         """True when the function still carries the disassembler's auto-generated name."""
 
+    def run_background(self, title, work, on_done):
+        """Run work() off the UI thread when the disassembler supports it, then on_done(result) on the UI thread.
+
+        work must not touch Qt widgets directly. The default runs synchronously.
+        """
+        on_done(work())
+
     @abstractmethod
     def run_on_ui_thread(self, func):
         """Run func on the UI thread and wait for it."""

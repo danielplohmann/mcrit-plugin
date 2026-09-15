@@ -1,7 +1,5 @@
 import traceback
 
-from binaryninja import Logger
-
 # binaryninjaui must be imported before PySide6 so Binary Ninja's bundled Qt binding is used
 from binaryninjaui import (
     Menu,
@@ -15,16 +13,15 @@ from binaryninjaui import (
     UIContext,
     UIContextNotification,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor, QImage, QPainter
 from PySide6.QtWidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
 
-from mcrit_plugin.binja.BinjaBackend import BinjaBackend
+from mcrit_plugin.binja.BinjaBackend import BinjaBackend, logger
 from mcrit_plugin.binja.config import config
 from mcrit_plugin.core.McritSession import McritSession
 
 SIDEBAR_NAME = "MCRIT"
-logger = Logger(0, "MCRIT")
 _SIDEBAR_WIDGETS = []
 
 
@@ -47,6 +44,12 @@ class McritSidebarWidget(SidebarWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(scroll_area)
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.setInterval(150)
+        self._refresh_timer.timeout.connect(
+            lambda: self.session.refreshCursorWidgets(self.backend.cursor_offset)
+        )
         _SIDEBAR_WIDGETS.append(self)
         self.destroyed.connect(lambda: _forget(self))
         if config.AUTO_ANALYZE_SMDA_ON_STARTUP:
@@ -56,8 +59,9 @@ class McritSidebarWidget(SidebarWidget):
         self.backend.view_frame = view_frame
 
     def notifyOffsetChanged(self, offset):
+        # coalesce rapid cursor moves; live queries hit the MCRIT server
         self.backend.cursor_offset = offset
-        self.session.refreshCursorWidgets(offset)
+        self._refresh_timer.start()
 
     def contextMenuEvent(self, event):
         self.m_contextMenuManager.show(self.m_menu, self.actionHandler)
@@ -114,7 +118,10 @@ class McritCloseNotification(UIContextNotification):
             return True
         session_id = file.getMetadata().session_id
         for widget in list(_SIDEBAR_WIDGETS):
-            if widget.backend.bv.file.session_id != session_id:
+            if (
+                widget.backend.bv.file.session_id != session_id
+                or widget.session.local_smda_report is None
+            ):
                 continue
             session = widget.session
             if session.findUnsyncedFunctionNames() and widget.backend.ask_yes_no(
@@ -134,10 +141,16 @@ def _session_for(context):
     if sidebar is None:
         return None
     sidebar.activate(SIDEBAR_NAME)
-    session_id = context.binaryView.file.session_id
+    widget = _widget_for_view(context.binaryView)
+    return widget.session if widget is not None else None
+
+
+def _widget_for_view(bv):
+    # per-view-type sidebars: the Raw and PE views of one file share a session_id
     for widget in _SIDEBAR_WIDGETS:
-        if widget.backend.bv.file.session_id == session_id:
-            return widget.session
+        widget_bv = widget.backend.bv
+        if widget_bv.file.session_id == bv.file.session_id and widget_bv.view_type == bv.view_type:
+            return widget
     return None
 
 
@@ -199,12 +212,8 @@ def _register_actions():
                 return False
             if enabled is None:
                 return True
-            session_id = context.binaryView.file.session_id
-            return any(
-                enabled(widget.session)
-                for widget in _SIDEBAR_WIDGETS
-                if widget.backend.bv.file.session_id == session_id
-            )
+            widget = _widget_for_view(context.binaryView)
+            return widget is not None and enabled(widget.session)
 
         UIAction.registerAction(name)
         UIActionHandler.globalActions().bindAction(name, UIAction(activate, is_valid))
@@ -216,6 +225,8 @@ _close_notification = None
 
 def register():
     global _close_notification
+    if _close_notification is not None:
+        return
     Sidebar.addSidebarWidgetType(McritSidebarWidgetType())
     _register_actions()
     _close_notification = McritCloseNotification()

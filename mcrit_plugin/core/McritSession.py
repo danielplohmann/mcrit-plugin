@@ -48,10 +48,8 @@ class McritSession:
         self.hook_subscribed_widgets = []
 
     def copyStringToClipboard(self, string_to_copy: str):
-        from mcrit_plugin.core import pyperclip
-
         if string_to_copy is not None:
-            pyperclip.copy(string_to_copy)
+            self.cc.QApplication.clipboard().setText(string_to_copy)
             print('Copied "%s" to clipboard.' % string_to_copy)
 
     def getMatchingReport(self):

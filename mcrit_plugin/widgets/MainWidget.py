@@ -263,8 +263,16 @@ class MainWidget(QMainWindow):
         )
         dialog.exec_()
 
+    def _buildLocalSmdaReport(self, on_ready):
+        """Export the SMDA report off the UI thread where supported, then call on_ready(report)."""
+        self.cc.backend.run_background(
+            "MCRIT: exporting SMDA report", self.getLocalSmdaReport, on_ready
+        )
+
     def _onConvertSmdaButtonClicked(self):
-        local_smda_report = self.getLocalSmdaReport()
+        self._buildLocalSmdaReport(self._applyConvertedReport)
+
+    def _applyConvertedReport(self, local_smda_report):
         if self.parent.local_smda_report is None:
             self.parent.local_smda_report = local_smda_report
             self.parent.getRemoteSampleInformation()
@@ -295,6 +303,9 @@ class MainWidget(QMainWindow):
         self.parent.local_widget.update()
 
     def _onExportSmdaButtonClicked(self):
+        self._buildLocalSmdaReport(self._exportReport)
+
+    def _exportReport(self, updated_report):
         # save metadata before upload to not overwrite it
         local_family = self.parent.local_smda_report.family if self.parent.local_smda_report else ""
         local_version = (
@@ -303,8 +314,8 @@ class MainWidget(QMainWindow):
         local_library = (
             self.parent.local_smda_report.is_library if self.parent.local_smda_report else False
         )
-        # update before export, to ensure we have all most recent function label information
-        self.parent.local_smda_report = self.getLocalSmdaReport()
+        # updated report carries the most recent function label information
+        self.parent.local_smda_report = updated_report
         self.parent.local_smda_report.family = local_family
         self.parent.local_smda_report.version = local_version
         self.parent.local_smda_report.is_library = local_library
@@ -328,6 +339,9 @@ class MainWidget(QMainWindow):
             )
 
     def _onUploadSmdaButtonClicked(self):
+        self._buildLocalSmdaReport(self._uploadReport)
+
+    def _uploadReport(self, updated_report):
         # save metadata before upload to not overwrite it
         local_family = self.parent.local_smda_report.family if self.parent.local_smda_report else ""
         local_version = (
@@ -336,8 +350,8 @@ class MainWidget(QMainWindow):
         local_library = (
             self.parent.local_smda_report.is_library if self.parent.local_smda_report else False
         )
-        # update before export, to ensure we have all most recent function label information
-        self.parent.local_smda_report = self.getLocalSmdaReport()
+        # updated report carries the most recent function label information
+        self.parent.local_smda_report = updated_report
         self.parent.local_smda_report.family = local_family
         self.parent.local_smda_report.version = local_version
         self.parent.local_smda_report.is_library = local_library

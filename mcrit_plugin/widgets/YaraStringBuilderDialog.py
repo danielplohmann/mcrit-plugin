@@ -1,6 +1,5 @@
 import datetime
 
-import mcrit_plugin.core.pyperclip as pyperclip
 import mcrit_plugin.core.QtShim as QtShim
 
 QDialog = QtShim.get_QDialog()
@@ -301,7 +300,7 @@ class YaraStringBuilderDialog(QDialog):
                 )
             else:
                 hex_string = " ".join([instruction.bytes for instruction in instructions])
-        pyperclip.copy(hex_string)
+        self.cc.QApplication.clipboard().setText(hex_string)
         self.parent.parent.local_widget.updateActivityInfo(
             f"Copied escaped bytes to clipboard: {len(hex_string)} bytes"
         )
@@ -310,5 +309,5 @@ class YaraStringBuilderDialog(QDialog):
         """Copy YARA rule to clipboard"""
         yara_rule = self.text_yara.toPlainText()
         if yara_rule:
-            pyperclip.copy(yara_rule)
+            self.cc.QApplication.clipboard().setText(yara_rule)
             self.parent.parent.local_widget.updateActivityInfo("YARA rule copied to clipboard")

@@ -251,12 +251,9 @@ def _exercise_yara_action(form, report, qt_application):
     _assert(instructions, "SMDA report has no instructions for YARA test")
     instruction = instructions[0]
 
-    yara_module = importlib.import_module("mcrit_plugin.widgets.YaraStringBuilderDialog")
-    original_copy = yara_module.pyperclip.copy
     original_dialog = main_widget.YaraStringBuilderDialog
     created_dialogs = []
     copied_values = []
-    yara_module.pyperclip.copy = lambda value: copied_values.append(value)
 
     class AutoAcceptYaraDialog(original_dialog):
         def __init__(self, *args, **kwargs):
@@ -270,7 +267,9 @@ def _exercise_yara_action(form, report, qt_application):
                 self.radio_function.click()
             self.cb_wildcards.click()
             self.copy_escaped_button.click()
+            copied_values.append(qt_application.clipboard().text())
             self.copy_yara_button.click()
+            copied_values.append(qt_application.clipboard().text())
             self.ok_button.click()
             return 1
 
@@ -283,7 +282,10 @@ def _exercise_yara_action(form, report, qt_application):
 
     _assert(created_dialogs, "YARA toolbar action did not create its dialog")
     _assert("rule " in created_dialogs[0].text_yara.toPlainText(), "YARA action produced no rule")
-    _assert(len(copied_values) >= 2, "YARA dialog copy actions were not triggered")
+    _assert(
+        len(copied_values) >= 2 and "rule " in copied_values[-1],
+        "YARA dialog copy actions did not reach the clipboard",
+    )
 
     # Exercise each real scope and both copy buttons on the actual dialog class.
     dialog = original_dialog(
@@ -317,7 +319,6 @@ def _exercise_yara_action(form, report, qt_application):
     data_dialog.copy_yara_button.click()
     _assert("rule " in data_dialog.text_yara.toPlainText(), "YARA data mode produced no rule")
     data_dialog.ok_button.click()
-    yara_module.pyperclip.copy = original_copy
     _process_events(qt_application)
 
 

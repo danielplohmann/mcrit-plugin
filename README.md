@@ -167,7 +167,7 @@ mcrit-plugin/
 ├── plugin.json       # Binary Ninja plugin metadata
 ├── __init__.py       # Binary Ninja entry point
 ├── mcrit_plugin/
-│   ├── core/         # MCRIT client, settings, disassembler Backend interface (incl. vendored pyperclip and pylev)
+│   ├── core/         # MCRIT client, settings, disassembler Backend interface (incl. vendored pylev)
 │   ├── widgets/      # Qt UI components shared across disassemblers
 │   ├── ida/          # IDA backend, ida-settings binding, graph viewer
 │   └── binja/        # Binary Ninja backend, SMDA exporter interface, settings, sidebar and actions
@@ -327,7 +327,7 @@ graphs, and verify settings through the Plugin Settings Manager.
 
 #### Local Binary Ninja GUI smoke test
 
-Requires a Binary Ninja license with headless/GUI Python plugins (Commercial or Ultimate), a live MCRIT
+Requires a licensed Binary Ninja installation (the test runs in the GUI, not headless), a live MCRIT
 service seeded with a reference sample, and a Python 3 environment matching Binary Ninja's
 interpreter with `smda` and `requests` installed:
 
@@ -347,11 +347,13 @@ and selection, cursor-following function queries, undoable renames, and the CFG 
 This plugin publishes a dedicated plugin ZIP as the HCLI package artifact.
 
 ```bash
-git tag -a v1.1.9 -m "mcrit-ida 1.1.9"
-git push origin v1.1.9
+git tag ida-v1.2.0
+git push origin ida-v1.2.0
 ```
 
-The tag-driven release workflow checks the tag against the declared version and the changelog, validates metadata, builds `mcrit-ida-<version>.zip`, lints both the repo and the ZIP with `hcli`, and then creates the GitHub release from that version's `CHANGELOG.md` section with the plugin archive attached. The offline dependency workflow runs after the release is published and attaches the optional wheelhouse bundles. The full procedure, including pre-releases and recovery, is in [RELEASING.md](RELEASING.md).
+IDA and Binary Ninja are versioned independently: IDA releases use `ida-v*` tags and the `ida-plugin.json` version, Binary Ninja uses `plugin.json`. IDA releases are not marked as the latest GitHub release, because the Binary Ninja extension manager reads `plugin.json` from the latest release. `ida-plugin.json` is excluded from GitHub source archives (`.gitattributes`) so HCLI only indexes the attached plugin ZIP.
+
+The tag-driven release workflow validates metadata, builds `mcrit-ida-<version>.zip`, lints both the repo and the ZIP with `hcli`, and then creates the GitHub release with the plugin archive attached. The offline dependency workflow runs after the release is published and attaches the optional wheelhouse bundles.
 
 ##  Version History
 

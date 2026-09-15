@@ -6,9 +6,13 @@ QMainWindow = QtShim.get_QMainWindow()
 
 
 class LocalInfoWidget(QMainWindow):
+    # emitted from any thread; Qt queues delivery to the widget's thread
+    activityInfoRequested = QtShim.get_Signal()(str)
+
     def __init__(self, parent):
         self.cc = parent.cc
         self.cc.QMainWindow.__init__(self)
+        self.activityInfoRequested.connect(self._setActivityInfo)
         self._datetime = datetime
         print("[|] loading LocalInfoWidget")
         # enable access to shared MCRIT4IDA modules
@@ -136,6 +140,9 @@ class LocalInfoWidget(QMainWindow):
             )
 
     def updateActivityInfo(self, message):
+        self.activityInfoRequested.emit(message)
+
+    def _setActivityInfo(self, message):
         timestamp = self._datetime.datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%SZ")
         self.label_mcrit_activity_info.setText("Activity Info: %s - %s" % (timestamp, message))
 
