@@ -33,8 +33,7 @@ class McritSidebarWidget(SidebarWidget):
         self.backend = BinjaBackend(bv)
         self.backend.view_frame = frame
         self.session = McritSession(self.backend, config)
-        # the sidebar can be shorter than the widgets' minimum size, which squeezes their layouts
-        # into overlapping rows; a scroll area keeps the minimum size and scrolls instead
+        # below the widgets' minimum size their layouts overlap; the scroll area keeps that minimum
         self.session.parent = QWidget()
         self.session.setupWidgets()
         scroll_area = QScrollArea()
@@ -108,7 +107,7 @@ class McritSidebarWidgetType(SidebarWidgetType):
         return SidebarWidgetLocation.RightContent
 
     def contextSensitivity(self):
-        # one MCRIT session per binary view, like Binary Ninja's own Tags/Strings/Memory Map sidebars
+        # PerTabSidebarContext from Python only shows an invalid-context placeholder; createWidget is never called
         return SidebarContextSensitivity.PerViewTypeSidebarContext
 
 

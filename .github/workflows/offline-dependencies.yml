@@ -1,7 +1,7 @@
 name: Offline dependencies
 
-# Called by the IDA and Binary Ninja release workflows. A release created with GITHUB_TOKEN does not
-# start workflows listening for release events, so the bundles are attached by a direct call.
+# A release created with GITHUB_TOKEN does not start workflows listening for release events, so
+# the release workflows attach the bundles by a direct call.
 on:
   workflow_call:
     inputs:

@@ -13,7 +13,6 @@ except Exception as exc:
     _SMDA_IMPORT_ERROR = exc
 else:
     _SMDA_IMPORT_ERROR = None
-# from mcrit_plugin.core.SmdaConfig import SmdaConfig
 
 
 class McritInterface(object):

@@ -193,7 +193,6 @@ class MainWidget(QMainWindow):
                 )
             local_report = smda_converted_report
         if local_report is not None:
-            # some information obtained from the disassembler directly
             local_report.sha256 = self.cc.backend.get_input_sha256()
             local_report.filename = self.cc.backend.get_input_filename()
             local_report.buffer_size = self.cc.backend.get_input_size()
@@ -314,7 +313,6 @@ class MainWidget(QMainWindow):
         local_library = (
             self.parent.local_smda_report.is_library if self.parent.local_smda_report else False
         )
-        # updated report carries the most recent function label information
         self.parent.local_smda_report = updated_report
         self.parent.local_smda_report.family = local_family
         self.parent.local_smda_report.version = local_version
@@ -350,7 +348,6 @@ class MainWidget(QMainWindow):
         local_library = (
             self.parent.local_smda_report.is_library if self.parent.local_smda_report else False
         )
-        # updated report carries the most recent function label information
         self.parent.local_smda_report = updated_report
         self.parent.local_smda_report.family = local_family
         self.parent.local_smda_report.version = local_version

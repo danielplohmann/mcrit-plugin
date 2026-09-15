@@ -86,10 +86,8 @@ jobs:
           test -x "$IDA_DIR/ida"
           echo "ida-dir=$IDA_DIR" >> "$GITHUB_OUTPUT"
           echo "ida-bin=$IDA_DIR/ida" >> "$GITHUB_OUTPUT"
-          # hcli --accept-eula records EULA acceptance in the *default* IDAUSR,
-          # but the integration tests use isolated profiles which would otherwise
-          # refuse batch mode.
-          # Propagate the accepted ida.reg into those profiles.
+          # hcli --accept-eula records EULA acceptance only in the *default* IDAUSR; the isolated
+          # test profiles refuse batch mode without the accepted ida.reg.
           SRC=""
           for cand in "$IDA_DIR/ida.reg" "$HOME/.idapro/ida.reg"; do
             if [[ -f "$cand" ]]; then SRC="$cand"; break; fi
@@ -140,10 +138,8 @@ jobs:
             exit 1
           fi
           echo "Found headless IDA executable: $IDA_HEADLESS"
-          # Probe the binary to capture diagnostic help output. This must not fail
-          # the build: a freshly installed IDA may not have its license accepted
-          # yet (which the later integration test tolerates) and some IDA versions/
-          # platforms return a non-zero exit from `-h` regardless.
+          # must not fail: a fresh IDA may not have its license accepted yet, and some IDA
+          # versions/platforms return a non-zero exit from `-h` regardless
           "$IDA_HEADLESS" -h > "$RUNNER_TEMP/ida-headless-help.txt" 2>&1 || true
 
       - name: Install validation tooling
@@ -223,20 +219,14 @@ jobs:
       - name: Start MCRIT server and worker
         shell: bash
         run: |
-          # setsid fully detaches the services into their own session so GitHub
-          # Actions does not terminate them when this step's shell exits (nohup
-          # alone only ignores SIGHUP, not the SIGTERM the runner sends to the
-          # step's process group). Without this, the server/worker are killed
-          # before the "Wait for MCRIT API" step runs, which then hangs until
-          # its timeout.
+          # setsid, not nohup alone: the runner SIGTERMs the step's process group when this step's
+          # shell exits, which would kill the services before the "Wait for MCRIT API" step
           setsid nohup "$RUNNER_TEMP/mcrit-venv/bin/python" -m mcrit server \
             > "$RUNNER_TEMP/mcrit-server.log" 2>&1 < /dev/null &
           echo $! > "$RUNNER_TEMP/mcrit-server.pid"
           setsid nohup "$RUNNER_TEMP/mcrit-venv/bin/python" -m mcrit worker \
             > "$RUNNER_TEMP/mcrit-worker.log" 2>&1 < /dev/null &
           echo $! > "$RUNNER_TEMP/mcrit-worker.pid"
-          # Fail fast (with startup logs) if either process crashed immediately,
-          # instead of hanging for the full API-wait timeout.
           sleep 5
           if ! kill -0 "$(cat "$RUNNER_TEMP/mcrit-server.pid")" 2>/dev/null; then
             echo "::error::MCRIT server exited during startup:"
@@ -305,8 +295,7 @@ jobs:
       - name: Install plugin runtime deps for IDA's Python
         shell: bash
         run: |
-          # The Linux installer has no bundled Python executable. Keep the plugin
-          # dependencies isolated and make them visible to the configured IDAPython.
+          # The Linux installer has no bundled Python executable.
           python -m pip install --target "$RUNNER_TEMP/ida-py-deps" \
             "requests" "smda==4.8.0" "ida-settings==3.5.1"
 
@@ -322,12 +311,8 @@ jobs:
       - name: Pre-accept IDAPython PyQt5 shim for GUI profile
         shell: bash
         run: |
-          # IDA 9.2+ shows a modal "do you want to enable the PyQt5 shim?" dialog
-          # the first time anything in the process imports PyQt5. The mcrit plugin
-          # imports PyQt5 unconditionally (mcrit_plugin/ui_qt/QtShim.py),
-          # and the dialog ignores -A / batch mode, blocking startup forever.
-          # IDAPYTHON_USE_PYQT5_SHIM=0 in the GUI profile's idapython.cfg silences
-          # the prompt. Guarded on __IDAVER__ >= 920 so older IDA versions ignore it.
+          # IDA 9.2+ shows a modal "enable the PyQt5 shim?" dialog on the first PyQt5 import; it ignores
+          # -A / batch mode and blocks startup forever. IDAPYTHON_USE_PYQT5_SHIM=0 silences it.
           mkdir -p "$RUNNER_TEMP/idausr-gui/cfg"
           cat > "$RUNNER_TEMP/idausr-gui/cfg/idapython.cfg" <<'CFG'
           #if __IDAVER__ >= 920
@@ -376,11 +361,7 @@ jobs:
           PYTHONPATH: ${{ runner.temp }}/ida-py-deps
           IDALOG: ${{ runner.temp }}/ida-gui-startup.log
         run: |
-          # The GUI integration test launches the actual IDA GUI binary, which needs a
-          # usable display. Provide a virtual X display via xvfb-run and let Qt use
-          # the xcb platform against it.
-          # The GUI run uses an isolated IDAUSR. Keep the keyfile outside that
-          # directory, because the profile is uploaded as a CI artifact.
+          # keep the keyfile outside the isolated IDAUSR: that profile is uploaded as a CI artifact
           LICENSE_FILE=$(find "${{ steps.ida.outputs.ida-dir }}" -maxdepth 1 -type f -name '*.hexlic' -print -quit)
           test -n "$LICENSE_FILE"
           export IDA_LICENSE="keyfile=${LICENSE_FILE}:setpref"
@@ -495,9 +476,6 @@ jobs:
           test -x "$IDA_BIN"
           echo "ida-dir=$IDA_DIR" >> "$GITHUB_OUTPUT"
           echo "ida-bin=$IDA_BIN" >> "$GITHUB_OUTPUT"
-          # Propagate the accepted ida.reg (from hcli --accept-eula) into the
-          # isolated IDAUSR profiles used by the offline integration tests so IDA does
-          # not refuse batch mode.
           SRC=""
           for cand in "$IDA_DIR/ida.reg" "$HOME/.idapro/ida.reg"; do
             if [[ -f "$cand" ]]; then SRC="$cand"; break; fi
@@ -534,10 +512,6 @@ jobs:
             exit 1
           fi
           echo "Found headless IDA executable: $IDA_HEADLESS"
-          # Probe the binary to capture diagnostic help output. This must not fail
-          # the build: a freshly installed IDA may not have its license accepted
-          # yet (which the later integration test tolerates) and some IDA versions/
-          # platforms return a non-zero exit from `-h` regardless.
           "$IDA_HEADLESS" -h > "$RUNNER_TEMP/ida-headless-help.txt" 2>&1 || true
 
       - name: Package and lint plugin

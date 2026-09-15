@@ -24,16 +24,10 @@ VERSION_SOURCES = [
     ),
     ("config.py VERSION", "mcrit_plugin/ida/config.py", r'^VERSION = "([0-9][0-9a-z.]*)"'),
 ]
-#: What a release tag starts with. IDA and Binary Ninja are released separately from this
-#: repository, so the IDA tags carry their own prefix.
 TAG_PREFIX = "ida-v"
 
-#: A release version as this ecosystem tags it: `1.2.3`, or a PEP 440 pre-release such as
-#: `1.2.3rc1`, `1.2.3b2`, `1.2.3a1`. Anything else is refused rather than guessed at.
 VERSION = re.compile(r"^(?P<release>\d+\.\d+\.\d+)(?P<pre>(a|b|rc)\d+)?$")
-#: `## [1.2.3] - 2026-09-20` (or `[v1.2.3]`), the heading a release section opens with.
 SECTION = re.compile(r"^## \[v?(?P<version>[0-9][0-9a-z.]*)\] - (?P<date>\d{4}-\d{2}-\d{2})\s*$")
-#: any second-level heading, which is where a section ends
 NEXT_HEADING = re.compile(r"^## ")
 
 

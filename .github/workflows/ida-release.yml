@@ -1,8 +1,5 @@
 name: IDA release
 
-# Pushing an ida-vX.Y.Z tag is the IDA release: the GitHub release page carrying that version's
-# changelog section, with the HCLI plugin ZIP attached. Binary Ninja releases are cut separately by
-# binja-release.yml.
 on:
   push:
     tags:
@@ -159,8 +156,7 @@ jobs:
         with:
           name: release-notes
 
-      # --generate-notes appends its list under --notes-file rather than replacing it, so the
-      # changelog section leads and `.github/release.yml` groups what follows. An IDA release is
+      # --generate-notes appends its list under --notes-file rather than replacing it. An IDA release is
       # never "latest": extensions.binary.ninja reads plugin.json from the latest release.
       - name: Create the release
         env:

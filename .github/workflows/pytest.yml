@@ -34,7 +34,6 @@ jobs:
         run: python -m pytest tests
 
   headless-integration:
-    # no disassembler licence needed: SMDA disassembles the fixtures itself
     name: Headless backend / live MCRIT
     runs-on: ubuntu-latest
     services:

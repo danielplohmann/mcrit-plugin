@@ -1,6 +1,5 @@
-# Publishes the Binary Ninja plugin with Vector35/plugin_actions, the release action of Vector35's
-# sample plugin. extensions.binary.ninja reads plugin.json at the commit of the latest GitHub
-# release and only looks at its "version" field; tag names and release titles are never parsed.
+# extensions.binary.ninja reads plugin.json at the commit of the latest GitHub release and only
+# looks at its "version" field; tag names and release titles are never parsed.
 name: Binary Ninja release
 
 on:
