@@ -150,8 +150,11 @@ class BlockMatchWidget(QMainWindow):
         if function_start is None:
             return None
         self.parent.current_function = function_start
-        block = self.parent.local_smda_report.findBlockByContainedAddress(
-            self.cc.backend.get_cursor_address()
+        address = self.cc.backend.get_cursor_address()
+        block = (
+            self.parent.local_smda_report.findBlockByContainedAddress(address)
+            if address is not None
+            else None
         )
         if block:
             self.parent.current_block = block.offset

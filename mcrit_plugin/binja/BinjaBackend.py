@@ -173,6 +173,20 @@ class BinjaBackend(Backend):
             TITLE, message, MessageBoxButtonSet.OKButtonSet, MessageBoxIcon.WarningIcon
         )
 
+    @staticmethod
+    def _edge_branch_types(block, targets):
+        """Classify CFG edges so Binary Ninja colors them like its own graphs."""
+        if len(targets) == 1:
+            return {targets[0]: BranchType.UnconditionalBranch}
+        if len(targets) != 2:
+            return {target: BranchType.IndirectBranch for target in targets}
+        last_instruction = list(block.getInstructions())[-1]
+        fall_through = last_instruction.offset + len(last_instruction.bytes) // 2
+        return {
+            target: BranchType.FalseBranch if target == fall_through else BranchType.TrueBranch
+            for target in targets
+        }
+
     def show_function_graph(self, parent, sample_entry, function_entry, smda_function, coloring):
         if smda_function is None:
             return
@@ -211,10 +225,14 @@ class BinjaBackend(Backend):
                 )
             graph.append(node)
             nodes[block.offset] = node
+        blocks = {block.offset: block for block in smda_function.getBlocks()}
         for source, targets in smda_function.blockrefs.items():
+            if source not in nodes:
+                continue
+            branch_types = self._edge_branch_types(blocks[source], targets)
             for target in targets:
-                if source in nodes and target in nodes:
-                    nodes[source].add_outgoing_edge(BranchType.UnconditionalBranch, nodes[target])
+                if target in nodes:
+                    nodes[source].add_outgoing_edge(branch_types[target], nodes[target])
         title = (
             f"MCRIT CFG: sample {sample_entry.sample_id} ({sample_entry.family}), "
             f"function {function_entry.function_id}@0x{smda_function.offset:x}"

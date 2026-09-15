@@ -132,7 +132,42 @@ def _run_plugin_lifecycle(module):
         _assert(plugmod.form is sentinel, "plugmod.run did not retain the form")
     finally:
         module.show_mcrit_form = original_show
+        # the sentinel is not a form; keep plugmod.__del__ from releasing it
+        plugmod.form = None
     return plugin, plugmod
+
+
+def _exercise_cursor_tracking(form, qt_application):
+    import ida_funcs
+    import ida_hexrays
+    import ida_kernwin
+
+    backend = form.cc.backend
+    function = ida_funcs.getn_func(0)
+    _assert(function is not None, "database has no functions for cursor tracking")
+    ida_kernwin.jumpto(function.start_ea)
+    _process_events(qt_application, rounds=2)
+    disassembly = ida_kernwin.get_current_widget()
+    if (
+        disassembly is not None
+        and ida_kernwin.get_widget_type(disassembly) == ida_kernwin.BWN_DISASM
+    ):
+        _assert(
+            backend.get_current_function(disassembly) == function.start_ea,
+            "disassembly cursor did not resolve to its function",
+        )
+    if not ida_hexrays.init_hexrays_plugin():
+        print("[!] Hex-Rays unavailable; skipping pseudocode cursor tracking check")
+        return
+    vdui = ida_hexrays.open_pseudocode(function.start_ea, ida_hexrays.OPF_REUSE)
+    _assert(vdui is not None, "could not open a pseudocode view")
+    _process_events(qt_application, rounds=2)
+    _assert(
+        backend.get_current_function(vdui.ct) == function.start_ea,
+        "pseudocode view did not resolve to its function",
+    )
+    ida_kernwin.close_widget(vdui.ct, 0)
+    _process_events(qt_application)
 
 
 def _create_form(module):
@@ -711,6 +746,7 @@ def main() -> int:
 
         _run_plugin_lifecycle(ida_mcrit)
         form, qt_application = _create_form(ida_mcrit)
+        _exercise_cursor_tracking(form, qt_application)
         ida_mcrit.MCRIT4IDA = form
         ida_mcrit.G_FORM = form
 

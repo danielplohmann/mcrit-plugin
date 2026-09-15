@@ -18,7 +18,7 @@ from PySide6.QtGui import QColor, QImage, QPainter
 from PySide6.QtWidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
 
 from mcrit_plugin.binja.BinjaBackend import BinjaBackend, logger
-from mcrit_plugin.binja.config import config
+from mcrit_plugin.binja.config import clear_stored_secrets, config
 from mcrit_plugin.core.McritSession import McritSession
 
 SIDEBAR_NAME = "MCRIT"
@@ -199,6 +199,15 @@ _ACTIONS = [
 ]
 
 
+def _register_global_actions():
+    name = "MCRIT\\Clear Stored API Token"
+    UIAction.registerAction(name)
+    UIActionHandler.globalActions().bindAction(
+        name, UIAction(lambda context: clear_stored_secrets())
+    )
+    Menu.mainMenu("Plugins").addAction(name, "MCRIT")
+
+
 def _register_actions():
     for name, handler, enabled in _ACTIONS:
 
@@ -229,5 +238,6 @@ def register():
         return
     Sidebar.addSidebarWidgetType(McritSidebarWidgetType())
     _register_actions()
+    _register_global_actions()
     _close_notification = McritCloseNotification()
     UIContext.registerNotification(_close_notification)

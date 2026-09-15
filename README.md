@@ -88,6 +88,7 @@ python -m pip install --no-index --find-links=. -r requirements.txt
 The same repository is a Binary Ninja plugin (Binary Ninja 6.0+, Python 3). Install it through the Extension Manager, or clone it into the Binary Ninja user plugins folder; `requirements.txt` lists the Python dependencies the Extension Manager installs.
 
 - Configure the server and behavior under **Settings → MCRIT** (same settings as the IDA plugin).
+- An API token entered in Settings is moved into the system keychain and the Settings field is cleared; **MCRIT → Clear Stored API Token** removes it again.
 - Open the **MCRIT** sidebar from the right sidebar, or run any **MCRIT** action from the command palette or **Plugins → MCRIT**.
 - SMDA reports are exported from Binary Ninja's own analysis; **Query Current Function** and **Query Current Block** follow the cursor, and remote CFGs open as Binary Ninja graph reports.
 

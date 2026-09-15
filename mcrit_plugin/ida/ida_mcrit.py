@@ -117,6 +117,10 @@ class Mcrit4IdaForm(PluginForm, McritSession):
                 "There are new function name changes in the IDB. Do you want to upload an updated report to the MCRIT server before closing?"
             ):
                 self.uploadUpdatedReport()
+        self.release()
+
+    def release(self):
+        """Unhook and drop module references; safe to call more than once."""
         if self.view_hook is not None:
             self.view_hook.unhook()
             self.view_hook = None
@@ -130,13 +134,8 @@ class Mcrit4IdaForm(PluginForm, McritSession):
 
     def Show(self):
         if self.cc.backend.get_input_md5() is not None:
-            return PluginForm.Show(
-                self,
-                NAME,
-                options=(
-                    PluginForm.WCLS_CLOSE_LATER | PluginForm.WOPN_RESTORE | PluginForm.WCLS_SAVE
-                ),
-            )
+            # Show() takes WOPN_* flags and adds WOPN_RESTORE itself
+            return PluginForm.Show(self, NAME, options=PluginForm.WOPN_PERSIST)
         return None
 
 
@@ -178,6 +177,8 @@ def show_mcrit_form():
 
 
 class Mcrit4IdaPlugmod(ida_idaapi.plugmod_t):
+    """Per-database plugin instance (PLUGIN_MULTI); owns the form it opened."""
+
     def __init__(self):
         super().__init__()
         self.form = None
@@ -185,6 +186,12 @@ class Mcrit4IdaPlugmod(ida_idaapi.plugmod_t):
     def run(self, arg):
         self.form = show_mcrit_form()
         return True
+
+    def __del__(self):
+        # called when the database closes; IDA normally closes the form first (OnClose -> release)
+        if self.form is not None:
+            self.form.release()
+            self.form = None
 
 
 class Mcrit4IdaPlugin(ida_idaapi.plugin_t):
@@ -199,13 +206,7 @@ class Mcrit4IdaPlugin(ida_idaapi.plugin_t):
     wanted_hotkey = "Ctrl-F4"
 
     def init(self):
-        # Some initialization
-        self.icon_id = 0
         return Mcrit4IdaPlugmod()
-
-    def run(self, arg):
-        show_mcrit_form()
-        return True
 
 
 ################################################################################

@@ -81,20 +81,16 @@ class IdaBackend(Backend):
         if view is None:
             return None
         widget_type = idaapi.get_widget_type(view)
+        if widget_type == idaapi.BWN_PSEUDOCODE:
+            # the view already holds its decompiled function; no need to decompile per cursor event
+            vdui = ida_hexrays.get_widget_vdui(view) if ida_hexrays is not None else None
+            if vdui is None or vdui.cfunc is None:
+                return None
+            return _address_or_none(vdui.cfunc.entry_ea)
+        if widget_type != idaapi.BWN_DISASM:
+            return None
         ea = self.get_cursor_address()
         if ea is None:
-            return None
-        if widget_type == idaapi.BWN_PSEUDOCODE:
-            if ida_hexrays is None:
-                return None
-            try:
-                cfunc = ida_hexrays.decompile(ea)
-            except ida_hexrays.DecompilationFailure:
-                return None
-            # only accept cursor positions that map to an item of the decompiled tree
-            if not any(item.ea == ea for item in cfunc.treeitems):
-                return None
-        elif widget_type != idaapi.BWN_DISASM:
             return None
         func = ida_funcs.get_func(ea)
         if not func:

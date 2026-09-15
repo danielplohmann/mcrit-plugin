@@ -26,7 +26,8 @@ def log(message):
 
 
 class IntegrationTest:
-    def __init__(self, bv):
+    def __init__(self, context, bv):
+        self.context = context
         self.bv = bv
         self.widget = None
         self.session = None
@@ -75,7 +76,8 @@ class IntegrationTest:
         )
         for name, _handler, _enabled in McritSidebar._ACTIONS:
             self.check(UIAction.isActionRegistered(name), f"action registered: {name}")
-        UIContext.activeContext().sidebar().activate(McritSidebar.SIDEBAR_NAME)
+        # the window may not be active (no activeContext) when started from a script
+        self.context.sidebar().activate(McritSidebar.SIDEBAR_NAME)
         self.wait(self.find_widget, self.convert, "MCRIT sidebar created for the binary view")
 
     def find_widget(self):
@@ -280,7 +282,7 @@ class IntegrationNotification(UIContextNotification):
         self.started = True
         bv = frame.getCurrentBinaryView()
         log(f"opened {bv.file.filename} ({bv.view_type})")
-        integration = IntegrationTest(bv)
+        integration = IntegrationTest(context, bv)
 
         def analyze():
             bv.update_analysis_and_wait()

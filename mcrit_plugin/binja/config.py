@@ -1,12 +1,13 @@
 import json
 import os
 
-from binaryninja import Settings
+from binaryninja import SecretsProvider, Settings
 
 from mcrit_plugin.core.config import PLUGIN_ROOT, McritConfig
 
 GROUP = "mcrit"
 SECRET_SETTINGS = {"mcritweb_api_token"}
+KEYCHAIN_PROVIDER = "SystemSecretsProvider"
 # ida-settings only has string/boolean, so numeric settings are declared as strings in the manifest
 NUMBER_SETTINGS = {
     "mcrit_request_timeout": (0, 3600),
@@ -48,7 +49,36 @@ def register_settings():
             properties["minValue"], properties["maxValue"] = NUMBER_SETTINGS[key]
         if key in SECRET_SETTINGS:
             properties["hidden"] = True
+            properties["description"] += (
+                " Stored in the system keychain; the field is cleared once the value is moved there."
+            )
         settings.register_setting(f"{GROUP}.{key}", json.dumps(properties))
+
+
+def _get_secret(key, settings):
+    """Move a value typed into Settings into the system keychain, then read it from there."""
+    full_key = f"{GROUP}.{key}"
+    provider = SecretsProvider[KEYCHAIN_PROVIDER]
+    typed_value = settings.get_string(full_key)
+    if typed_value:
+        if provider is None or not provider.store_data(full_key, typed_value):
+            # no usable keychain on this system: keep the value in Settings
+            return typed_value
+        settings.reset(full_key)
+        return typed_value
+    if provider is not None and provider.has_data(full_key):
+        return provider.get_data(full_key)
+    raise KeyError(key)
+
+
+def clear_stored_secrets():
+    provider = SecretsProvider[KEYCHAIN_PROVIDER]
+    if provider is None:
+        return
+    for key in SECRET_SETTINGS:
+        full_key = f"{GROUP}.{key}"
+        if provider.has_data(full_key):
+            provider.delete_data(full_key)
 
 
 def _get_setting(key):
@@ -56,6 +86,8 @@ def _get_setting(key):
     settings = Settings()
     if not settings.contains(full_key):
         raise KeyError(key)
+    if key in SECRET_SETTINGS:
+        return _get_secret(key, settings)
     if key in NUMBER_SETTINGS:
         return settings.get_integer(full_key)
     if _DECLARED_SETTINGS[key]["type"] == "boolean":
