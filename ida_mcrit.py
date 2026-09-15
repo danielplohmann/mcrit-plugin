@@ -9,24 +9,10 @@ import ida_kernwin
 import idaapi
 from ida_kernwin import PluginForm
 
+from mcrit_plugin.core.McritSession import McritSession
 from mcrit_plugin.ida.config import MCRIT4IDA_PLUGIN_ONLY, config
 
-SmdaReport = None
-_SMDA_IMPORT_ERROR = None
 IdaBackend = None
-pyperclip = None
-QtShim = None
-ClassCollection = None
-McritInterface = None
-BlockMatchWidget = None
-FunctionMatchWidget = None
-FunctionOverviewWidget = None
-LocalInfoWidget = None
-MainWidget = None
-SampleInfoWidget = None
-QtGui = None
-QtCore = None
-QtWidgets = None
 
 
 def _require_gui():
@@ -37,53 +23,16 @@ def _require_gui():
 
 
 def _load_dependencies():
-    """Load MCRIT's SMDA and Qt widget graph only when its form is opened."""
+    """Load the IDA backend only when the form is opened; Qt and widgets load in McritSession."""
     _require_gui()
-    global SmdaReport, _SMDA_IMPORT_ERROR, IdaBackend
-    global pyperclip, QtShim, ClassCollection, McritInterface
-    global BlockMatchWidget, FunctionMatchWidget, FunctionOverviewWidget
-    global LocalInfoWidget, MainWidget, SampleInfoWidget
-    global QtGui, QtCore, QtWidgets
+    global IdaBackend
 
-    if QtShim is not None:
+    if IdaBackend is not None:
         return
 
-    try:
-        from smda.common.SmdaReport import SmdaReport as _SmdaReport
-    except Exception as exc:
-        _SMDA_IMPORT_ERROR = exc
-    else:
-        SmdaReport = _SmdaReport
-        _SMDA_IMPORT_ERROR = None
-
-    import mcrit_plugin.core.pyperclip as _pyperclip
-    import mcrit_plugin.core.QtShim as _QtShim
-    from mcrit_plugin.core.ClassCollection import ClassCollection as _ClassCollection
-    from mcrit_plugin.core.McritInterface import McritInterface as _McritInterface
     from mcrit_plugin.ida.IdaBackend import IdaBackend as _IdaBackend
-    from mcrit_plugin.widgets.BlockMatchWidget import BlockMatchWidget as _BlockMatchWidget
-    from mcrit_plugin.widgets.FunctionMatchWidget import FunctionMatchWidget as _FunctionMatchWidget
-    from mcrit_plugin.widgets.FunctionOverviewWidget import (
-        FunctionOverviewWidget as _FunctionOverviewWidget,
-    )
-    from mcrit_plugin.widgets.LocalInfoWidget import LocalInfoWidget as _LocalInfoWidget
-    from mcrit_plugin.widgets.MainWidget import MainWidget as _MainWidget
-    from mcrit_plugin.widgets.SampleInfoWidget import SampleInfoWidget as _SampleInfoWidget
 
-    pyperclip = _pyperclip
-    QtShim = _QtShim
-    ClassCollection = _ClassCollection
     IdaBackend = _IdaBackend
-    McritInterface = _McritInterface
-    BlockMatchWidget = _BlockMatchWidget
-    FunctionMatchWidget = _FunctionMatchWidget
-    FunctionOverviewWidget = _FunctionOverviewWidget
-    LocalInfoWidget = _LocalInfoWidget
-    MainWidget = _MainWidget
-    SampleInfoWidget = _SampleInfoWidget
-    QtGui = QtShim.get_QtGui()
-    QtCore = QtShim.get_QtCore()
-    QtWidgets = QtShim.get_QtWidgets()
 
 
 ################################################################################
@@ -125,7 +74,7 @@ class IdaViewHooks(idaapi.View_Hooks):
             widget.hook_refresh(view)
 
 
-class Mcrit4IdaForm(PluginForm):
+class Mcrit4IdaForm(PluginForm, McritSession):
     """
     This class contains the main window of MCRIT4IDA
     Setup of core modules and widgets is performed in here.
@@ -133,101 +82,9 @@ class Mcrit4IdaForm(PluginForm):
 
     def __init__(self):
         _load_dependencies()
-        super(Mcrit4IdaForm, self).__init__()
-        self.cc = ClassCollection(QtShim, IdaBackend())
-        self.tabs = None
-        self.parent = None
-        self.config = config
-        #### local state used to populate and exchange information across widgets
-        self.remote_sample_id = None
-        self.remote_sample_entry = None
-        self.local_smda_report = None
-        # the smda_report without xcfg part, cached as a dict and rebuilt per query
-        self.local_smda_report_outline = None
-        self._outline_source = None
-        # after selecting a finished remote job, this is the cached data
-        self.matching_job_id = None
-        self.matching_report = None
-        self.matched_function_entries = None
-        # cached function matches that result from Function Scope queries
-        self.current_block = None
-        self.current_function = None
-        self.function_matches = {}
-        # offset to PicBlockHash
-        self.block_to_hash = {}
-        # PicBlockHash to matches from remote server
-        self.blockhash_matches = {}
-        # unused
-        self.remote_function_mapping = {}
-        self.sample_infos = {}
-        self.family_infos = None
-        self.function_id_to_offset = {}
-        self.pichash_matches = {}
-        self.pichash_match_summaries = {}
-        self.picblockhash_matches = {}
-        ##### some more setup
-        self.icon = self.cc.QIcon(config.ICON_FILE_PATH + "relationship.png")
-        self.mcrit_interface = McritInterface(self, self.cc.backend)
-        self.hook_subscribed_widgets = []
+        PluginForm.__init__(self)
+        McritSession.__init__(self, IdaBackend(), config)
         self.view_hook = None
-
-    def copyStringToClipboard(self, string_to_copy: str):
-        if string_to_copy is not None:
-            pyperclip.copy(string_to_copy)
-            print('Copied "%s" to clipboard.' % string_to_copy)
-
-    def getMatchingReport(self):
-        return self.matching_report
-
-    def getSampleInfos(self):
-        return self.sample_infos
-
-    def getFunctionInfos(self):
-        return self.remote_function_mapping
-
-    def getLocalSmdaReport(self):
-        return self.local_smda_report
-
-    def getLocalSmdaReportOutline(self):
-        """A fresh copy of the local report without functions; SmdaReport caches getFunctions(), so one
-        outline must not be reused with a different xcfg."""
-        if self.local_smda_report is None:
-            return None
-        if self._outline_source is not self.local_smda_report:
-            self._outline_source = self.local_smda_report
-            self.local_smda_report_outline = self.local_smda_report.toDict()
-            self.local_smda_report_outline["xcfg"] = {}
-        return SmdaReport.fromDict(dict(self.local_smda_report_outline))
-
-    def getRemoteSampleInformation(self):
-        time_before = self.cc.time.time()
-        print("[/] starting download of meta data from MCRIT...")
-        self.mcrit_interface.queryAllFamilyEntries()
-        print("[|] downloaded FamilyEntries!")
-        self.mcrit_interface.queryAllSampleEntries()
-        print("[|] downloaded SampleEntries!")
-        print("[\\] this took %3.2f seconds.\n" % (self.cc.time.time() - time_before))
-        self.local_widget.updateActivityInfo("Downloaded all family/sample information from MCRIT")
-
-    def setupWidgets(self):
-        """
-        Setup MCRIT4IDA widgets.
-        """
-        time_before = self.cc.time.time()
-        print("[/] setting up widgets...")
-        self.local_widget = LocalInfoWidget(self)
-        self.block_match_widget = BlockMatchWidget(self)
-        self.function_match_widget = FunctionMatchWidget(self)
-        self.sample_widget = SampleInfoWidget(self)
-        self.function_widget = FunctionOverviewWidget(self)
-        self.main_widget = MainWidget(self)
-        self.hook_subscribed_widgets.append(self.function_match_widget)
-        self.hook_subscribed_widgets.append(self.block_match_widget)
-        # produce layout and render
-        layout = self.cc.QVBoxLayout()
-        layout.addWidget(self.main_widget)
-        self.parent.setLayout(layout)
-        print("[\\] this took %3.2f seconds.\n" % (self.cc.time.time() - time_before))
 
     def OnCreate(self, form):
         """
@@ -255,47 +112,11 @@ class Mcrit4IdaForm(PluginForm):
         # check if there is a mismatch between function names stored in self.local_smda_report and the atual IDB
         # if yes, ask the user if they want to upload an updated report to the MCRIT server
         if config.SUBMIT_FUNCTION_NAMES_ON_CLOSE:
-            ida_function_names = self.cc.backend.get_function_symbols()
             print("Checking for unsynced function names...")
-            if self.local_smda_report is not None:
-                smda_report_function_names = {
-                    func.offset: func.function_name
-                    for func in self.local_smda_report.getFunctions()
-                    if func.function_name
-                }
-                unsynced_function_names = []
-                for offset, ida_function_name in ida_function_names.items():
-                    smda_function_name = smda_report_function_names.get(offset, None)
-                    if smda_function_name is not None and smda_function_name != ida_function_name:
-                        unsynced_function_names.append(
-                            (offset, smda_function_name, ida_function_name)
-                        )
-                    if offset not in smda_report_function_names:
-                        unsynced_function_names.append((offset, None, ida_function_name))
-                if len(unsynced_function_names) > 0:
-                    # currently this loops infinitely?!
-                    if self.cc.backend.ask_yes_no(
-                        "There are new function name changes in the IDB. Do you want to upload an updated report to the MCRIT server before closing?"
-                    ):
-                        # save metadata before upload to not overwrite it
-                        local_family = (
-                            self.local_smda_report.family if self.local_smda_report else ""
-                        )
-                        local_version = (
-                            self.local_smda_report.version if self.local_smda_report else ""
-                        )
-                        local_library = (
-                            self.local_smda_report.is_library if self.local_smda_report else False
-                        )
-                        # update before export, to ensure we have all most recent function label information
-                        self.local_smda_report = self.main_widget.getLocalSmdaReport()
-                        self.local_smda_report.family = local_family
-                        self.local_smda_report.version = local_version
-                        self.local_smda_report.is_library = local_library
-                        self.mcrit_interface.uploadReport(self.local_smda_report)
-            else:
-                # we need to decide if we want to prompt the user in order to push an initial SMDA report to MCRIT or not
-                pass
+            if self.findUnsyncedFunctionNames() and self.cc.backend.ask_yes_no(
+                "There are new function name changes in the IDB. Do you want to upload an updated report to the MCRIT server before closing?"
+            ):
+                self.uploadUpdatedReport()
         if self.view_hook is not None:
             self.view_hook.unhook()
             self.view_hook = None
