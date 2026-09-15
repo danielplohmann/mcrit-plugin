@@ -74,6 +74,15 @@ def main() -> int:
     missing = [name for name in ARCHIVE_ROOT_FILES if name not in names]
     if missing:
         failures.append(f"Source archive of HEAD lacks root files: {', '.join(missing)}.")
+    shipped_dirs = [
+        name
+        for name in names
+        if name.startswith("scripts/") or name.startswith("tests/") or name in ("scripts", "tests")
+    ]
+    if shipped_dirs:
+        failures.append(
+            "Source archive of HEAD contains scripts/ or tests/; they would become importable top-level packages."
+        )
     leaked = [name for name in names if name.endswith("ida-plugin.json")]
     if leaked:
         failures.append(

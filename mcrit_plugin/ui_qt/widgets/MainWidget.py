@@ -19,6 +19,7 @@ class MainWidget(QMainWindow):
         self.name = "Main"
         self.icon = self.cc.QIcon(self.parent.config.ICON_FILE_PATH + "mcrit.png")
         self.tabs = None
+        self._building = False
         self.tabbed_widgets = [
             self.parent.block_match_widget,
             self.parent.function_match_widget,
@@ -212,7 +213,11 @@ class MainWidget(QMainWindow):
 
     def _onBuildYaraStringButtonClicked(self):
         selection_start, selection_end = self.cc.backend.get_selection()
-        has_selection = selection_start is not None and selection_start != selection_end
+        has_selection = (
+            selection_start is not None
+            and selection_end is not None
+            and selection_start != selection_end
+        )
 
         # fetch instruction, block, and function information based on current cursor position
         current_ea = self.cc.backend.get_cursor_address()
@@ -264,19 +269,40 @@ class MainWidget(QMainWindow):
         )
         dialog.exec_()
 
-    def _buildLocalSmdaReport(self, on_ready):
-        """Export the SMDA report off the UI thread where supported, then call on_ready(report)."""
-        self.cc.backend.run_background(
-            "MCRIT: exporting SMDA report", self.getLocalSmdaReport, on_ready
-        )
+    def _buildLocalSmdaReport(self, on_ready, work=None):
+        """Run work off the UI thread where supported, then call on_ready(report) on the UI thread."""
+        if self._building:
+            return
+        self._building = True
+
+        def build():
+            try:
+                return (work or self.getLocalSmdaReport)()
+            except Exception:
+                self._building = False
+                raise
+
+        def done(report):
+            self._building = False
+            on_ready(report)
+
+        self.cc.backend.run_background("MCRIT: exporting SMDA report", build, done)
 
     def _onConvertSmdaButtonClicked(self):
-        self._buildLocalSmdaReport(self._applyConvertedReport)
+        self._buildLocalSmdaReport(self._applyConvertedReport, self._convertAndFetchRemote)
+
+    def _convertAndFetchRemote(self):
+        local_smda_report = self.getLocalSmdaReport()
+        if self.parent.local_smda_report is None:
+            self.parent.getRemoteSampleInformation()
+        return local_smda_report
 
     def _applyConvertedReport(self, local_smda_report):
         if self.parent.local_smda_report is None:
             self.parent.local_smda_report = local_smda_report
-            self.parent.getRemoteSampleInformation()
+            self.parent.local_widget.updateActivityInfo(
+                "Downloaded all family/sample information from MCRIT"
+            )
         if self.parent.local_smda_report is not None:
             self.exportSmdaAction.setEnabled(True)
             self.uploadSmdaAction.setEnabled(True)

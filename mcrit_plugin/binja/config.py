@@ -1,7 +1,7 @@
 import json
 import os
 
-from binaryninja import SecretsProvider, Settings
+from binaryninja import SecretsProvider, Settings, log_error
 
 from mcrit_plugin.core.config import PLUGIN_ROOT, McritConfig
 
@@ -34,25 +34,25 @@ _DECLARED_SETTINGS = {
 def register_settings():
     settings = Settings()
     settings.register_group(GROUP, "MCRIT")
-    defaults = McritConfig(VERSION)._defaults
     for key, declared in _DECLARED_SETTINGS.items():
         properties = {
             "title": declared["name"],
             "type": declared["type"],
-            "default": defaults[key],
+            "default": declared["default"],
             "description": declared["documentation"],
             "ignore": ["SettingsProjectScope", "SettingsResourceScope"],
         }
         if key in NUMBER_SETTINGS:
             properties["type"] = "number"
-            properties["default"] = int(defaults[key])
+            properties["default"] = int(declared["default"])
             properties["minValue"], properties["maxValue"] = NUMBER_SETTINGS[key]
         if key in SECRET_SETTINGS:
             properties["hidden"] = True
             properties["description"] += (
                 " Stored in the system keychain; the field is cleared once the value is moved there."
             )
-        settings.register_setting(f"{GROUP}.{key}", json.dumps(properties))
+        if not settings.register_setting(f"{GROUP}.{key}", json.dumps(properties)):
+            log_error(f"Failed to register MCRIT setting {GROUP}.{key}")
 
 
 def _get_secret(key, settings):

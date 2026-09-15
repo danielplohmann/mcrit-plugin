@@ -74,6 +74,7 @@ class McritSession:
         return self.local_smda_report_outline
 
     def getRemoteSampleInformation(self):
+        """Download family/sample meta data; callable off the UI thread, so it touches no widget."""
         time_before = time.time()
         print("[/] starting download of meta data from MCRIT...")
         self.mcrit_interface.queryAllFamilyEntries()
@@ -81,7 +82,6 @@ class McritSession:
         self.mcrit_interface.queryAllSampleEntries()
         print("[|] downloaded SampleEntries!")
         print("[\\] this took %3.2f seconds.\n" % (time.time() - time_before))
-        self.local_widget.updateActivityInfo("Downloaded all family/sample information from MCRIT")
 
     def setupWidgets(self):
         """Create the widgets and lay them out inside ``self.parent``."""
@@ -131,12 +131,9 @@ class McritSession:
         return unsynced
 
     def uploadUpdatedReport(self):
-        """Re-export the local report with current function names and upload it, keeping metadata."""
-        local_family = self.local_smda_report.family if self.local_smda_report else ""
-        local_version = self.local_smda_report.version if self.local_smda_report else ""
-        local_library = self.local_smda_report.is_library if self.local_smda_report else False
-        self.local_smda_report = self.main_widget.getLocalSmdaReport()
-        self.local_smda_report.family = local_family
-        self.local_smda_report.version = local_version
-        self.local_smda_report.is_library = local_library
+        """Patch the current function names into the local report and upload it, without re-exporting."""
+        functions = {func.offset: func for func in self.local_smda_report.getFunctions()}
+        for offset, _report_name, current_name in self.findUnsyncedFunctionNames():
+            if offset in functions:
+                functions[offset].function_name = current_name
         self.mcrit_interface.uploadReport(self.local_smda_report)

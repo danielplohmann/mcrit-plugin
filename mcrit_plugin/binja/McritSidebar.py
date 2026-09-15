@@ -128,7 +128,8 @@ class McritCloseNotification(UIContextNotification):
             session = widget.session
             if session.findUnsyncedFunctionNames() and widget.backend.ask_yes_no(
                 "Function names changed since the SMDA report was created. "
-                "Upload an updated report to the MCRIT server before closing?"
+                "Upload an updated report to the MCRIT server before closing? "
+                "Binary Ninja will wait for the upload to finish."
             ):
                 session.uploadUpdatedReport()
         return True
@@ -144,7 +145,10 @@ def _session_for(context):
         return None
     sidebar.activate(SIDEBAR_NAME)
     widget = _widget_for_view(context.binaryView)
-    return widget.session if widget is not None else None
+    if widget is None:
+        logger.log_warn("No MCRIT sidebar for the current view; open the MCRIT sidebar and retry.")
+        return None
+    return widget.session
 
 
 def _widget_for_view(bv):
