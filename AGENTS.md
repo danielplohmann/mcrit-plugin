@@ -34,7 +34,7 @@ Install dependencies with the IDA-bundled or matching Python:
 python -m pip install "smda>=4.3.10" "ida-settings>=3.5.1"
 ```
 
-Install the plugin via HCLI (`hcli plugin install ...`) or by copying the repo into `$IDAUSR/plugins/mcrit-ida/` (see README for both paths).
+Install the plugin via HCLI (`hcli plugin install ...`) or by extracting a packaged ZIP into `$IDAUSR/plugins/mcrit-ida/` (see README).
 
 ## Common commands
 
