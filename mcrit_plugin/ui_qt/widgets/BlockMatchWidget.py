@@ -110,6 +110,9 @@ class BlockMatchWidget(QMainWindow):
         self.cb_filter_library.setEnabled(True)
         self.cb_activate_live_tracking.setEnabled(True)
         self.b_query_single.setEnabled(True)
+        self.label_current_function_matches.setText(
+            "Move the cursor to a basic block, or query the current one."
+        )
 
     def _get_entry_field(self, entry, field):
         if entry is None:
