@@ -1,4 +1,4 @@
-name: Release
+name: IDA release
 
 # Pushing a vX.Y.Z tag is the release. Nothing is published to a package index: this repository is
 # deployed from a checkout, so the release is the tag, the GitHub release page carrying that

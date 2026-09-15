@@ -378,16 +378,25 @@ python scripts/common/compare_smda_reports.py \
 ```
 
 ### Release Workflow
-This plugin publishes a dedicated plugin ZIP as the HCLI package artifact.
+IDA and Binary Ninja are versioned and released independently from the same repository.
+
+**IDA** releases are tag-driven and publish a dedicated plugin ZIP as the HCLI package artifact:
 
 ```bash
 git tag ida-v1.2.0
 git push origin ida-v1.2.0
 ```
 
-IDA and Binary Ninja are versioned independently: IDA releases use `ida-v*` tags and the `ida-plugin.json` version, Binary Ninja uses `plugin.json`. IDA releases are not marked as the latest GitHub release, because the Binary Ninja extension manager reads `plugin.json` from the latest release. `ida-plugin.json` is excluded from GitHub source archives (`.gitattributes`) so HCLI only indexes the attached plugin ZIP.
+The IDA release workflow validates metadata, builds `mcrit-ida-<version>.zip`, lints the ZIP with `hcli`, and creates the GitHub release with the archive attached. The offline dependency workflow then attaches the optional wheelhouse bundles. IDA releases are never marked as the latest GitHub release, and `ida-plugin.json` is excluded from GitHub source archives (`.gitattributes`), so HCLI only indexes the attached ZIP.
 
-The tag-driven release workflow validates metadata, builds `mcrit-ida-<version>.zip`, lints both the repo and the ZIP with `hcli`, and then creates the GitHub release with the plugin archive attached. The offline dependency workflow runs after the release is published and attaches the optional wheelhouse bundles.
+**Binary Ninja** releases are started manually: Actions → Binary Ninja release → Run workflow, or
+
+```bash
+gh workflow run binja-release.yml -f dry-run=true
+gh workflow run binja-release.yml -f version=1.1.0
+```
+
+The workflow runs the checks on the default branch, then [Vector35/plugin_actions](https://github.com/Vector35/plugin_actions) bumps the `plugin.json` version (the last number when `version` is blank), commits it as `github-actions[bot]`, tags the commit with the bare version and publishes it as the latest GitHub release. The extension manager reads `plugin.json` at that release and only compares its `version`, so every release must increase it. If the default branch is protected, `github-actions[bot]` must be allowed to push. Binary Ninja versions `1.1.4`–`1.1.9` are unavailable because older IDA releases used `v1.1.x` tags, and the action refuses to reuse them. The first release also has to be announced once in an issue on [Vector35/community-plugins](https://github.com/Vector35/community-plugins) to be listed on extensions.binary.ninja.
 
 ##  Version History
 
