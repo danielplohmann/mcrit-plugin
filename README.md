@@ -325,6 +325,24 @@ upload/query/matching, labels, graphs, and SMDA export. A manual GUI pass is
 still useful for visual rendering: open the MCRIT views, inspect labels and
 graphs, and verify settings through the Plugin Settings Manager.
 
+#### Local Binary Ninja GUI smoke test
+
+Requires a Binary Ninja license with headless/GUI Python plugins (Commercial or Ultimate), a live MCRIT
+service seeded with a reference sample, and a Python 3 environment matching Binary Ninja's
+interpreter with `smda` and `requests` installed:
+
+```bash
+python scripts/run_binja_smoke.py \
+  --input /tmp/mcrit-binja-query.exe \
+  --reference-sha256 <sha256 of the seeded reference sample> \
+  --mcrit-server http://127.0.0.1:8000/
+```
+
+The runner creates a throwaway Binary Ninja user directory (license copy, this checkout linked
+as a plugin, `tests/binja/smoke.py` as `startup.py`), so the local Binary Ninja profile is not
+touched. The smoke drives the MCRIT sidebar through conversion, upload, matching job creation
+and selection, cursor-following function queries, undoable renames, and the CFG graph report.
+
 ### Release Workflow
 This plugin publishes a dedicated plugin ZIP as the HCLI package artifact.
 

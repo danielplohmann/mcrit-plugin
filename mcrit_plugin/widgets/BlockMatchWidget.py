@@ -76,23 +76,15 @@ class BlockMatchWidget(QMainWindow):
         # layout and fill the widget
         block_info_layout = self.cc.QVBoxLayout()
         self.controls_widget = self.cc.QWidget()
-        controls_layout = self.cc.QHBoxLayout()
-        # checkboxes
-        self.checkbox_widget = self.cc.QWidget()
-        checkbox_layout = self.cc.QVBoxLayout()
-        checkbox_layout.addWidget(self.cb_filter_library)
-        checkbox_layout.addWidget(self.cb_activate_live_tracking)
-        self.checkbox_widget.setLayout(checkbox_layout)
-        # threshold spinbox and label
-        self.threshold_widget = self.cc.QWidget()
-        threshold_layout = self.cc.QVBoxLayout()
-        threshold_layout.addWidget(self.label_sb_threshold)
-        threshold_layout.addWidget(self.sb_blocksize_threshold)
-        self.threshold_widget.setLayout(threshold_layout)
-        # glue controls
-        controls_layout.addWidget(self.checkbox_widget)
-        controls_layout.addWidget(self.threshold_widget)
+        controls_layout = self.cc.QGridLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.addWidget(self.cb_filter_library, 0, 0)
+        controls_layout.addWidget(self.cb_activate_live_tracking, 1, 0)
+        controls_layout.addWidget(self.label_sb_threshold, 0, 1)
+        controls_layout.addWidget(self.sb_blocksize_threshold, 1, 1)
+        controls_layout.setColumnStretch(0, 1)
         self.controls_widget.setLayout(controls_layout)
+        self.controls_widget.setSizePolicy(self.cc.QSizePolicy.Preferred, self.cc.QSizePolicy.Fixed)
         # glue all together
         block_info_layout.addWidget(self.label_current_function_matches)
         block_info_layout.addWidget(self.controls_widget)

@@ -21,6 +21,12 @@ class LocalInfoWidget(QMainWindow):
         self.updateActivityInfo(self.cc.backend.plugin_name + " started.")
         self.label_mcrit_server_info = self.cc.QLabel("MCRIT Remote server: <not_active>")
         self.label_remote_sample_info = self.cc.QLabel("Remote sample: <unknown>")
+        for label in (
+            self.label_mcrit_activity_info,
+            self.label_mcrit_server_info,
+            self.label_remote_sample_info,
+        ):
+            label.setWordWrap(True)
         # horizontal line
         self.hline = self.cc.QFrame()
         self.hline.setFrameShape(self.cc.QFrameHLine)

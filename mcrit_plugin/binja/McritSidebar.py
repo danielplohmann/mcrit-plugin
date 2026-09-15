@@ -17,6 +17,7 @@ from binaryninjaui import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QImage, QPainter
+from PySide6.QtWidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
 
 from mcrit_plugin.binja.BinjaBackend import BinjaBackend
 from mcrit_plugin.binja.config import config
@@ -35,9 +36,17 @@ class McritSidebarWidget(SidebarWidget):
         self.backend = BinjaBackend(bv)
         self.backend.view_frame = frame
         self.session = McritSession(self.backend, config)
-        self.session.parent = self
+        # the sidebar can be shorter than the widgets' minimum size, which squeezes their layouts
+        # into overlapping rows; a scroll area keeps the minimum size and scrolls instead
+        self.session.parent = QWidget()
         self.session.setupWidgets()
-        self.layout().setContentsMargins(0, 0, 0, 0)
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+        scroll_area.setWidget(self.session.parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(scroll_area)
         _SIDEBAR_WIDGETS.append(self)
         self.destroyed.connect(lambda: _forget(self))
         if config.AUTO_ANALYZE_SMDA_ON_STARTUP:
