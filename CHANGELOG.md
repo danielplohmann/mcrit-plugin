@@ -1,27 +1,17 @@
 # Changelog
 
-All notable changes to this project are documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
-adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) over what a user of the plugin
-sees: the settings declared in `ida-plugin.json`, the minimum IDA version, and the Python
-dependencies the plugin needs in IDA's interpreter. A release that raises any of those says so in
-its entry.
-
-Add your entry to `[Unreleased]` when the change merges, while the reasoning is still at hand,
-rather than reconstructing it from the commit log at release time.
+All notable changes to both plugins are documented in this file, in the format of
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). [RELEASING.md](RELEASING.md) states what
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html) covers for each plugin, and how and when
+to add an entry.
 
 ## [Unreleased]
 
 ### Added
 
-- Pushing an `ida-vX.Y.Z` tag now cuts the IDA release. The workflow refuses to continue unless the tag
-  matches `ida-plugin.json` and `config.py`, `CHANGELOG.md` has a section for it, the commit is on
-  `main` and CI passed there; it then runs the metadata, settings and quality checks, builds
-  `mcrit-ida-<version>.zip`, lints the archive with `hcli`, and creates the
-  GitHub release from that version's changelog section with the generated contributor list
-  appended and the archive attached. The offline wheelhouse workflow runs from the published
-  release as before. Pre-release tags (`ida-v1.2.0rc1`) are marked as such. See `RELEASING.md`.
+- IDA releases are now cut by pushing an `ida-vX.Y.Z` tag, gated on the version strings, this file
+  and CI, with pre-release tags (`ida-v1.2.0rc1`) marked as such. See
+  [RELEASING.md](RELEASING.md).
 - A pull request that changes the shipped plugin files has to add a `CHANGELOG.md` entry or carry
   the `no-changelog` label; CI checks it.
 - Binary Ninja support from the same repository: a native sidebar with the same toolbar and tabs as

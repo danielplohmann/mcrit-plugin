@@ -23,20 +23,22 @@ published to PyPI.
 
 The version is declared in `mcrit_plugin/ida/ida-plugin.json` (`plugin.version`) and
 `mcrit_plugin/ida/config.py` (`VERSION`); `verify_metadata_sync.py` also
-requires the newest `CHANGELOG.md` heading to agree. The release workflow refuses a tag that does not
+requires the newest release heading in `CHANGELOG.md` — the topmost one below `## [Unreleased]` — to
+agree. The release workflow refuses a tag that does not
 match every one of them, so a bump that misses one fails before anything is published.
 
 ### Changelog
 
-`CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). It is the one
-authoritative record of what an IDA release contains: the GitHub release notes are generated from it, and
-nothing is written twice.
+`CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and is the
+authoritative record of what a release contains for both plugins: the GitHub release notes are
+generated from it. Add an entry when the change merges, while the reasoning is still at hand, rather
+than reconstructing it from the commit log at release time.
 
 - Every pull request that changes something a user can observe adds its own bullet under
   `## [Unreleased]`, in the subsection it belongs to (`Added`, `Changed`, `Deprecated`, `Removed`,
   `Fixed`, `Security`), while the change is fresh. The `Changelog` check fails a PR that touches
-  files shipped in the IDA plugin (`mcrit_plugin/core`, `mcrit_plugin/ui_qt`, `mcrit_plugin/ida`,
-  `icons`) without touching `CHANGELOG.md`; apply the `no-changelog` label when a change
+  files shipped in either plugin (`mcrit_plugin/core`, `mcrit_plugin/ui_qt`, `mcrit_plugin/ida`,
+  `mcrit_plugin/binja`, `icons`) without touching `CHANGELOG.md`; apply the `no-changelog` label when a change
   genuinely needs no entry (a typo, a CI-only change), and say why in the PR.
 - An entry says what changed and what it costs the reader: what to do when upgrading, what may
   behave differently, which issue or PR it closes.
@@ -50,7 +52,7 @@ nothing is written twice.
    - set the new version in `mcrit_plugin/ida/ida-plugin.json` (`plugin.version`) and
      `mcrit_plugin/ida/config.py` (`VERSION`);
    - in `CHANGELOG.md`, rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`, drop the empty
-     subsections, open a fresh empty `## [Unreleased]` above it, and update the compare links at
+     subsections, open a fresh empty `## [Unreleased]` above it, and update the compare link at
      the foot of the file.
 3. Wait for CI to pass on the merge commit. Then tag that commit and push the tag:
 
@@ -105,8 +107,13 @@ hcli plugin lint dist/mcrit-ida-X.Y.Z.zip
   tag locally and on the remote (`git push --delete origin ida-vX.Y.Z`), and tag again once the fix has
   merged. Nothing needs cleaning up.
 
-- **The GitHub release step failed after publishing**: re-run only the failed job from the Actions
-  UI; the built artifacts are kept as workflow artifacts and the step is idempotent.
+- **A job failed at or after the release step**: `gh release create` is not idempotent, so start by
+  checking what exists (`gh release view ida-vX.Y.Z`).
+  - The release exists and is correct: re-run only the jobs that failed after it; the built
+    artifacts are kept as workflow artifacts.
+  - The release was never created: fix the cause and re-run the failed job.
+  - The release exists but is wrong: delete it and the tag
+    (`gh release delete ida-vX.Y.Z --cleanup-tag`), fix the cause, and tag again.
 
 ### Maintainer configuration
 
@@ -128,7 +135,9 @@ change here needs a newer smda, release smda first and raise the floor there.
 
 ## Binary Ninja
 
-The Binary Ninja version lives only in the root `plugin.json`. [extensions.binary.ninja](https://extensions.binary.ninja)
+The Binary Ninja plugin follows the same Semantic Versioning scope as the IDA plugin, read against
+what Binary Ninja exposes: the settings registered under Settings → MCRIT, the minimum Binary Ninja
+build, and `requirements.txt`. Its version lives only in the root `plugin.json`. [extensions.binary.ninja](https://extensions.binary.ninja)
 reads `plugin.json` from the commit of the latest GitHub release and compares nothing but its
 `version`: tag names and release titles are never parsed, and a version it has already seen is
 silently skipped.
@@ -147,14 +156,16 @@ the release action of Vector35's sample plugin. It bumps `plugin.json`, commits 
 release. If `main` moved between the checks and the release, the run stops. Afterwards it calls
 `offline-dependencies.yml` to attach a `binja` wheelhouse bundle built from `requirements.txt`.
 
-Every push and pull request runs `binja-package.yml`, the counterpart of `ida-package.yml`: it checks
+`binja-package.yml`, the counterpart of `ida-package.yml`, runs on pushes and pull requests that
+touch the Binary Ninja plugin or anything both plugins share (see
+[docs/development.md](docs/development.md)). It checks
 that `plugin.json`, `requirements.txt` and the README agree and that the source archive has the
 plugin at its root without `ida-plugin.json`, then validates `plugin.json` with a dry run of the
 same release action.
 
 - If `main` is protected, `github-actions[bot]` must be allowed to push.
-- Versions `1.1.4`, `1.1.5` and `1.1.7`–`1.1.9` cannot be used: older IDA releases took those `v1.1.x`
-  tags, and the action refuses to reuse a version a tag already names.
+- Versions `1.1.4`, `1.1.5`, `1.1.7`–`1.1.9` and `1.4.5` cannot be used: earlier tags already name
+  them, and the action refuses to reuse a version a tag already names.
 - After the first release, open an issue on
   [Vector35/community-plugins](https://github.com/Vector35/community-plugins/issues/new/choose) to get
   the plugin listed.

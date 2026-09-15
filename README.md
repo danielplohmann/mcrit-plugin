@@ -36,7 +36,7 @@ In CI or a headless shell, pass settings with `--config mcrit_server=https://mcr
 ### Install manually
 
 1. Extract a release ZIP into `$IDAUSR/plugins/mcrit-ida/`. A repository checkout won't work directly: the packager puts `ida-plugin.json` and `ida_mcrit.py` at the archive root.
-2. Install the dependencies with IDA's Python: `python -m pip install "smda>=4.3.10" "ida-settings>=3.5.1"`
+2. Install the dependencies with IDA's Python: `python -m pip install "smda>=4.3.10" "ida-settings>=3.5.1" requests`
 3. Restart IDA.
 
 For offline machines, each release has a wheelhouse bundle: unpack it and run `python -m pip install --no-index --find-links=. -r requirements.txt`.
@@ -61,17 +61,20 @@ Requires Binary Ninja 6.0 (build 10601) or newer.
 
 ### Install
 
-Install MCRIT from the Extension Manager, or clone this repository into your Binary Ninja user plugins folder and install `requirements.txt` into Binary Ninja's Python. For offline machines, each release has a `binja` wheelhouse bundle, installed the same way as for IDA.
+Install MCRIT from the Extension Manager, or clone this repository into your Binary Ninja user plugins folder and install `requirements.txt` into Binary Ninja's Python. For offline machines, each release has a `binja` wheelhouse bundle. It is built for Windows only, and is installed the same way as the IDA bundle.
 
 ### Configure
 
-Settings are under Settings → MCRIT, with the same keys as the IDA plugin. An API token entered there is moved into the system keychain and the field is cleared. Plugins → MCRIT → Clear Stored API Token removes it.
+Settings are under Settings → MCRIT, with the same keys as the IDA plugin. Where a system keychain is available, an API token entered there is moved into it and the field is cleared; otherwise the token stays in the Settings entry. Plugins → MCRIT → Clear Stored API Token removes it.
 
 ### Use
 
 Open the MCRIT sidebar, or run any MCRIT action from the command palette or Plugins → MCRIT. It has the same toolbar and tabs as the IDA plugin. Reports are exported from Binary Ninja's own analysis, and remote CFGs open as graph reports.
 
 ## Settings
+
+The keys below are the ones most often changed; `mcrit_plugin/core/settings.json` declares all of
+them, with their types and defaults.
 
 | Setting | Description | Example |
 | :--- | :--- | :--- |

@@ -6,12 +6,15 @@
 plugin.json, __init__.py, requirements.txt   Binary Ninja manifest, entry point, dependencies (must stay at the root)
 mcrit_plugin/
   core/       MCRIT client, settings, Backend interface, SMDA conversion (no GUI imports)
+    minimcrit/  internalized MCRIT REST client
+    pylev/      vendored Levenshtein helper (do not edit)
   ui_qt/      Qt widgets shared by IDA and Binary Ninja
   ida/        ida-plugin.json, ida_mcrit.py, IDA backend, graph viewer
   binja/      Binary Ninja backend, SMDA exporter interface, settings, sidebar
   headless/   backend without a disassembler: SMDA disassembles the file itself
 scripts/{ida,binja,common}/   packaging, checks and integration test runners
 tests/{core,ida,binja}/       pytest suite and in-disassembler integration tests
+.github/workflows/scripts/ida/release_guard.py   tag, version and changelog gates for the IDA release
 ```
 
 Everything that touches a disassembler goes through `mcrit_plugin/core/Backend.py`.
@@ -30,21 +33,29 @@ hcli plugin lint dist/mcrit-ida.zip
 python scripts/binja/verify_metadata_sync.py --repo .
 ```
 
-| Workflow | Runs on | What |
-|---|---|---|
-| `pytest.yml` | push, PR | pytest, headless integration against MCRIT |
-| `ruff.yml` | push, PR | ruff, settings sync |
-| `changelog.yml` | PR | changelog entry for changes to the IDA plugin |
-| `ida-package.yml` / `binja-package.yml` | push, PR touching that plugin | metadata sync and package validation |
-| `ida-tests.yml` | push to main or PR touching the IDA plugin, dispatch | licensed IDA integration |
-| `ida-release.yml` / `binja-release.yml` | `ida-v*` tag / dispatch | release, see [RELEASING.md](../RELEASING.md) |
-| `offline-dependencies.yml` | called by both releases | Windows wheelhouse bundles |
+| Workflow | Name in Actions | Runs on | What |
+|---|---|---|---|
+| `pytest.yml` | pytest | push, PR | pytest, headless integration against MCRIT |
+| `ruff.yml` | Validate | push, PR | ruff, settings sync |
+| `changelog.yml` | Changelog | PR | changelog entry for changes shipped in either plugin |
+| `ida-package.yml` | IDA package | push, PR touching that plugin | metadata sync and package validation |
+| `binja-package.yml` | Binary Ninja package | push, PR touching that plugin | metadata sync and package validation |
+| `ida-tests.yml` | IDA integration | push to main or PR touching the IDA plugin, dispatch | licensed IDA integration |
+| `ida-release.yml` | IDA release | `ida-v*` tag | release, see [RELEASING.md](../RELEASING.md) |
+| `binja-release.yml` | Binary Ninja release | dispatch | release, see [RELEASING.md](../RELEASING.md) |
+| `offline-dependencies.yml` | Offline dependencies | called by both releases, or dispatch | Windows wheelhouse bundles |
 
-"Touching that plugin" means its own files (`mcrit_plugin/ida/` or `mcrit_plugin/binja/`, its scripts, tests,
-manifest and workflows) or anything both plugins ship or check (`mcrit_plugin/core/`, `mcrit_plugin/ui_qt/`,
-`icons/`, `scripts/common/`, `tests/core/`, `README.md`, `LICENSE`, `pyproject.toml`, `.gitattributes`), so a
-Binary Ninja-only change does not start IDA jobs. A workflow skipped by its path filter reports no status, so do
-not make those checks required in branch protection.
+"Touching that plugin" means its own files (`mcrit_plugin/ida/`, `scripts/ida/`, `tests/ida/` and
+`.github/workflows/ida-*.yml`, or `mcrit_plugin/binja/`, `plugin.json`, `__init__.py`,
+`requirements.txt`, `scripts/binja/`, `tests/binja/` and `.github/workflows/binja-*.yml`) or anything
+both plugins ship or check (`mcrit_plugin/core/**`, `mcrit_plugin/ui_qt/**`, `icons/**`,
+`scripts/common/**`, `tests/core/**`, `tests/conftest.py`, `tests/fixtures/**`, `README.md`, `LICENSE`,
+`pyproject.toml`, `.gitattributes`), so a Binary Ninja-only change does not start IDA jobs. The IDA
+filters also cover `CHANGELOG.md`, `docs/config_override.json.template` and
+`.github/workflows/scripts/ida/**`, and the Binary Ninja package job additionally runs for
+`**/ida-plugin.json`, because its archive check has to prove that file is still `export-ignore`d.
+A workflow skipped by its path filter reports no status, so do not make those checks required in
+branch protection.
 
 ## Integration tests
 
@@ -78,13 +89,17 @@ python scripts/common/run_headless_integration.py --input /tmp/mcrit-query --ref
 
 ### IDA
 
-`.github/workflows/ida-tests.yml` runs these on pushes to `main` and on manual dispatch, using the `IDA_LICENSE_ID` and `HCLI_API_KEY` secrets, which pull requests don't get. Dispatch with `run_matrix` for more IDA versions and platforms.
+`.github/workflows/ida-tests.yml` runs these on pushes to `main`, on pull requests from a branch of
+this repository, and on manual dispatch, using the `IDA_LICENSE_ID` and `HCLI_API_KEY` secrets. Pull
+requests from a fork skip the job, because a fork does not get those secrets. Dispatch with
+`run_matrix` for more IDA versions and platforms.
 
 IDALib covers packaging, conversion, upload and matching without a GUI. Use the Python version your IDA is configured for, and install `idapro` from that IDA:
 
 ```bash
 python3 -m venv .venv-idalib
-.venv-idalib/bin/python -m pip install "/path/to/IDA Professional 9.3/idalib/python"/idapro-*.whl "smda==4.8.0" "ida-settings==3.5.1"
+.venv-idalib/bin/python -m pip install "/path/to/IDA Professional 9.3/idalib/python"/idapro-*.whl \
+  "smda==4.8.0" "ida-settings==3.5.1" "PySide6" "requests"
 .venv-idalib/bin/python scripts/ida/run_idalib_integration.py \
   --ida-dir "/path/to/IDA Professional 9.3" --input /tmp/mcrit-query \
   --idausr /tmp/mcrit-idalib-user --mcrit-server http://127.0.0.1:8000
