@@ -15,18 +15,34 @@ rather than reconstructing it from the commit log at release time.
 
 ### Added
 
-- Pushing a `vX.Y.Z` tag now cuts the release. The workflow refuses to continue unless the tag
+- Pushing an `ida-vX.Y.Z` tag now cuts the IDA release. The workflow refuses to continue unless the tag
   matches `ida-plugin.json` and `config.py`, `CHANGELOG.md` has a section for it, the commit is on
   `main` and CI passed there; it then runs the metadata, settings and quality checks, builds
-  `mcrit-ida-<version>.zip`, lints the repository and the archive with `hcli`, and creates the
+  `mcrit-ida-<version>.zip`, lints the archive with `hcli`, and creates the
   GitHub release from that version's changelog section with the generated contributor list
   appended and the archive attached. The offline wheelhouse workflow runs from the published
-  release as before. Pre-release tags (`v1.2.0rc1`) are marked as such. See `RELEASING.md`.
+  release as before. Pre-release tags (`ida-v1.2.0rc1`) are marked as such. See `RELEASING.md`.
 - A pull request that changes the shipped plugin files has to add a `CHANGELOG.md` entry or carry
   the `no-changelog` label; CI checks it.
+- Binary Ninja support from the same repository: a native sidebar with the same toolbar and tabs as
+  in IDA, SMDA reports exported from Binary Ninja's own analysis, settings under Settings → MCRIT
+  with the API token kept in the system keychain, label import as one undo step, and remote CFGs as
+  graph reports. Requires Binary Ninja 6.0 (build 10601) and is released separately through the
+  extension manager; see `RELEASING.md`.
+- The start message shows the core commit the plugin was built from, so a report names the exact
+  code a user runs.
 
 ### Changed
 
+- IDA release tags are now `ida-vX.Y.Z` instead of `vX.Y.Z`, and IDA releases are never marked as
+  the latest GitHub release, so the Binary Ninja extension manager always reads the Binary Ninja
+  release.
+- The code moved into one `mcrit_plugin` package: `core` (no GUI imports), `ui_qt` (the shared
+  widgets), `ida`, `binja` and `headless`. The IDA ZIP layout is unchanged (`ida-plugin.json` and
+  `ida_mcrit.py` at the root), and existing settings keys and `config_override.json` still apply.
+  A repository checkout is no longer an IDA plugin directory; install the packaged ZIP.
+- Cursor tracking in the Hex-Rays pseudocode view reads the current function from the open view
+  instead of decompiling it again.
 - The release history moved out of `README.md` into this file; the entries below are unchanged.
   `verify_metadata_sync.py` now reads the latest release heading from here.
 - The offline-dependency workflow no longer expands the release tag inside its scripts (a tag

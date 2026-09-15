@@ -17,9 +17,16 @@ from pathlib import Path
 #: ("label", "relative/path", regex-with-one-group) reads a literal from a text file;
 #: ("label", "pyproject.toml", None) reads `[project].version`.
 VERSION_SOURCES = [
-    ("ida-plugin.json plugin.version", "ida-plugin.json", r'^    "version": "([0-9][0-9a-z.]*)",$'),
-    ("config.py VERSION", "config.py", r'^VERSION = "([0-9][0-9a-z.]*)"'),
+    (
+        "ida-plugin.json plugin.version",
+        "mcrit_plugin/ida/ida-plugin.json",
+        r'^    "version": "([0-9][0-9a-z.]*)",$',
+    ),
+    ("config.py VERSION", "mcrit_plugin/ida/config.py", r'^VERSION = "([0-9][0-9a-z.]*)"'),
 ]
+#: What a release tag starts with. IDA and Binary Ninja are released separately from this
+#: repository, so the IDA tags carry their own prefix.
+TAG_PREFIX = "ida-v"
 
 #: A release version as this ecosystem tags it: `1.2.3`, or a PEP 440 pre-release such as
 #: `1.2.3rc1`, `1.2.3b2`, `1.2.3a1`. Anything else is refused rather than guessed at.
@@ -69,18 +76,20 @@ def changelogSection(changelog: str, version: str) -> str:
 
 def main(argv: list) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tag", required=True, help="the tag being released, e.g. v1.2.0")
+    parser.add_argument(
+        "--tag", required=True, help=f"the tag being released, e.g. {TAG_PREFIX}1.2.0"
+    )
     parser.add_argument("--root", default=".", help="repository root")
     parser.add_argument("--notes", help="write the release notes to this file")
     parser.add_argument("--github-output", help="append version= and prerelease= to this file")
     args = parser.parse_args(argv)
 
-    if not args.tag.startswith("v"):
-        raise SystemExit(f"tag {args.tag!r} does not start with 'v'")
-    version = args.tag[1:]
+    if not args.tag.startswith(TAG_PREFIX):
+        raise SystemExit(f"tag {args.tag!r} does not start with {TAG_PREFIX!r}")
+    version = args.tag[len(TAG_PREFIX) :]
     shape = VERSION.match(version)
     if shape is None:
-        shape_wanted = "vMAJOR.MINOR.PATCH with an optional a/b/rc pre-release suffix"
+        shape_wanted = f"{TAG_PREFIX}MAJOR.MINOR.PATCH with an optional a/b/rc pre-release suffix"
         raise SystemExit(f"tag {args.tag!r} is not {shape_wanted}")
 
     versions = declaredVersions(Path(args.root))

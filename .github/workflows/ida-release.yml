@@ -1,8 +1,8 @@
 name: IDA release
 
-# Pushing a vX.Y.Z tag is the release. Nothing is published to a package index: this repository is
-# deployed from a checkout, so the release is the tag, the GitHub release page carrying that
-# version's changelog section, and the built artifacts attached to it as a convenience.
+# Pushing an ida-vX.Y.Z tag is the IDA release: the GitHub release page carrying that version's
+# changelog section, with the HCLI plugin ZIP attached. Binary Ninja releases are cut separately by
+# binja-release.yml.
 on:
   push:
     tags:
@@ -111,12 +111,10 @@ jobs:
       - name: Verify HCLI runtime imports
         run: python -c "import hcli.main"
 
-      - name: Derive release version
-        id: version
-        run: echo "value=${GITHUB_REF_NAME#ida-v}" >> "$GITHUB_OUTPUT"
-
       - name: Verify metadata sync
-        run: python scripts/ida/verify_metadata_sync.py --repo . --expected-version "${{ steps.version.outputs.value }}"
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: python scripts/ida/verify_metadata_sync.py --repo . --expected-version "${VERSION}"
 
       - name: Verify settings sync
         run: python scripts/common/verify_settings_sync.py --repo .
@@ -125,19 +123,61 @@ jobs:
         run: python scripts/common/run_quality_checks.py --repo .
 
       - name: Build plugin archive
-        run: python scripts/ida/package_plugin.py --repo . --output dist/mcrit-ida-${{ steps.version.outputs.value }}.zip
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: python scripts/ida/package_plugin.py --repo . --output "dist/mcrit-ida-${VERSION}.zip"
 
       - name: Lint HCLI package metadata
         env:
           VERSION: ${{ needs.verify.outputs.version }}
         run: |
-          hcli plugin lint dist/mcrit-ida-${{ steps.version.outputs.value }}.zip
+          hcli plugin lint "dist/mcrit-ida-${VERSION}.zip"
 
       - name: Keep the artifacts for the later jobs
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: mcrit-ida ${{ github.ref_name }}
-          generate_release_notes: true
-          # extensions.binary.ninja reads plugin.json at the latest release; only Binary Ninja releases may be latest
-          make_latest: false
-          files: dist/mcrit-ida-${{ steps.version.outputs.value }}.zip
+          name: distribution
+          path: dist/
+          if-no-files-found: error
+
+  release:
+    name: Create the GitHub release
+    needs: [verify, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Fetch the artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: distribution
+          path: dist
+
+      - name: Fetch the release notes
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-notes
+
+      # --generate-notes appends its list under --notes-file rather than replacing it, so the
+      # changelog section leads and `.github/release.yml` groups what follows. An IDA release is
+      # never "latest": extensions.binary.ninja reads plugin.json from the latest release.
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+        run: |
+          shopt -s failglob
+          flags=(--latest=false)
+          if [ "${PRERELEASE}" = "true" ]; then
+            flags+=(--prerelease)
+          fi
+          gh release create "${TAG}" dist/* \
+            --repo "${REPO}" \
+            --title "${TAG}" \
+            --notes-file release-notes.md \
+            --generate-notes \
+            --verify-tag \
+            "${flags[@]}"

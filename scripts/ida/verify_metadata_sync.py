@@ -52,7 +52,7 @@ def main() -> int:
     parser.add_argument("--repo", required=True, help="Path to the repository root")
     parser.add_argument(
         "--expected-version",
-        help="Optional semantic version that mcrit_plugin/ida/config.py, ida-plugin.json, and README must all match",
+        help="Optional semantic version that mcrit_plugin/ida/config.py, ida-plugin.json, and CHANGELOG.md must all match",
     )
     args = parser.parse_args()
 
@@ -78,7 +78,7 @@ def main() -> int:
     failures: list[str] = []
     if config_version != changelog_version:
         failures.append(
-            "Version mismatch: mcrit_plugin/ida/config.py VERSION does not match latest README release heading."
+            "Version mismatch: mcrit_plugin/ida/config.py VERSION does not match latest CHANGELOG.md release heading."
         )
     if plugin_version != changelog_version:
         failures.append(

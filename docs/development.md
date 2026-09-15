@@ -33,7 +33,7 @@ All integration tests except the offline modes need a MCRIT server. CI uses MCRI
 
 ```bash
 docker run --rm -p 27017:27017 mongo:5.0
-python3.11 -m venv .venv-mcrit
+python3.12 -m venv .venv-mcrit
 .venv-mcrit/bin/python -m pip install "mcrit==1.9.0"
 .venv-mcrit/bin/python -m mcrit server
 .venv-mcrit/bin/python -m mcrit worker
@@ -103,26 +103,4 @@ python scripts/common/compare_smda_reports.py \
 
 ## Releases
 
-IDA and Binary Ninja are versioned and released separately.
-
-### IDA
-
-```bash
-git tag ida-v1.2.0
-git push origin ida-v1.2.0
-```
-
-`ida-release.yml` checks metadata, builds and lints `mcrit-ida-<version>.zip`, and attaches it to the release. Offline dependency bundles are attached afterwards. IDA releases are never marked as latest, and `ida-plugin.json` is excluded from source archives (`.gitattributes`), so HCLI only indexes the ZIP.
-
-### Binary Ninja
-
-```bash
-gh workflow run binja-release.yml -f dry-run=true
-gh workflow run binja-release.yml -f version=1.1.0   # blank bumps the last number
-```
-
-`binja-release.yml` runs the checks on `main`, then [Vector35/plugin_actions](https://github.com/Vector35/plugin_actions) bumps `plugin.json`, commits and tags it, and publishes the latest release. extensions.binary.ninja only reads `version` from `plugin.json` at that release, so it has to go up every time.
-
-- If `main` is protected, `github-actions[bot]` needs push access.
-- Versions `1.1.4`, `1.1.5` and `1.1.7`–`1.1.9` can't be used: old IDA releases took those `v1.1.x` tags.
-- After the first release, open an issue on [Vector35/community-plugins](https://github.com/Vector35/community-plugins/issues/new/choose) to get listed.
+See [RELEASING.md](../RELEASING.md) and [CHANGELOG.md](../CHANGELOG.md).

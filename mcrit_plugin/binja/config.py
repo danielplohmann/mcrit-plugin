@@ -23,7 +23,7 @@ def _read_json(filename):
 
 
 VERSION = _read_json("plugin.json")["version"]
-# shared with ida-plugin.json (kept identical by scripts/verify_settings_sync.py); ida-plugin.json
+# shared with ida-plugin.json (kept identical by scripts/common/verify_settings_sync.py); ida-plugin.json
 # itself is excluded from GitHub source archives, which is what Binary Ninja installs
 _DECLARED_SETTINGS = {
     setting["key"]: setting

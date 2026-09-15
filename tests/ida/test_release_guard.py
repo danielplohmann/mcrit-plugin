@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / ".github" / "workflows" / "scripts" / "release_guard.py"
 
 CHANGELOG = """# Changelog
@@ -48,10 +48,12 @@ def guard():
 
 
 def _tree(tmp_path: Path, version: str, changelog: str = CHANGELOG) -> Path:
-    (tmp_path / "ida-plugin.json").write_text(
+    ida = tmp_path / "mcrit_plugin" / "ida"
+    ida.mkdir(parents=True)
+    (ida / "ida-plugin.json").write_text(
         f'{{\n  "plugin": {{\n    "name": "mcrit-ida",\n    "version": "{version}",\n    "x": 1\n  }}\n}}\n'
     )
-    (tmp_path / "config.py").write_text(f'VERSION = "{version}"\n')
+    (ida / "config.py").write_text(f'VERSION = "{version}"\n')
     (tmp_path / "CHANGELOG.md").write_text(changelog)
     return tmp_path
 
@@ -86,7 +88,7 @@ def test_a_matching_tag_passes_and_writes_notes_and_outputs(guard, tmp_path):
     notes, output = root / "notes.md", root / "output.txt"
     argv = [
         "--tag",
-        "v1.2.0",
+        "ida-v1.2.0",
         "--root",
         str(root),
         "--notes",
@@ -103,12 +105,15 @@ def test_a_pre_release_tag_is_flagged(guard, tmp_path):
     root = _tree(tmp_path, "1.2.0rc1")
     output = root / "output.txt"
     assert (
-        guard.main(["--tag", "v1.2.0rc1", "--root", str(root), "--github-output", str(output)]) == 0
+        guard.main(["--tag", "ida-v1.2.0rc1", "--root", str(root), "--github-output", str(output)])
+        == 0
     )
     assert "prerelease=true" in output.read_text()
 
 
-@pytest.mark.parametrize("tag", ["1.2.0", "v1.2", "v1.2.0-rc1", "v1.2.0.dev1", "vlatest"])
+@pytest.mark.parametrize(
+    "tag", ["1.2.0", "v1.2.0", "ida-v1.2", "ida-v1.2.0-rc1", "ida-v1.2.0.dev1", "ida-vlatest"]
+)
 def test_a_malformed_tag_fails(guard, tmp_path, tag):
     root = _tree(tmp_path, "1.2.0")
     with pytest.raises(SystemExit):
@@ -118,7 +123,7 @@ def test_a_malformed_tag_fails(guard, tmp_path, tag):
 def test_a_tag_disagreeing_with_any_declared_version_fails(guard, tmp_path):
     root = _tree(tmp_path, "1.1.9")
     with pytest.raises(SystemExit, match=r"1\.1\.9"):
-        guard.main(["--tag", "v1.2.0", "--root", str(root)])
-    (root / "config.py").write_text('VERSION = "1.2.0"\n')
+        guard.main(["--tag", "ida-v1.2.0", "--root", str(root)])
+    (root / "mcrit_plugin" / "ida" / "config.py").write_text('VERSION = "1.2.0"\n')
     with pytest.raises(SystemExit, match=r"plugin\.version = 1\.1\.9"):
-        guard.main(["--tag", "v1.2.0", "--root", str(root)])
+        guard.main(["--tag", "ida-v1.2.0", "--root", str(root)])

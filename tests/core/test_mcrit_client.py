@@ -1,4 +1,4 @@
-"""Tests for the bundled McritClient (helpers/minimcrit/client/McritClient.py).
+"""Tests for the bundled McritClient (mcrit_plugin/core/minimcrit/client/McritClient.py).
 
 The tests focus on the timeout/helper-request plumbing that ties together the
 ``mcrit_request_timeout`` setting and the actual ``requests`` calls. This is
