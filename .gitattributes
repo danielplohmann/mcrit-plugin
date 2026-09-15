@@ -1,2 +1,4 @@
 # HCLI indexes GitHub source archives of every release; only the attached IDA ZIP must match
 mcrit_plugin/ida/ida-plugin.json export-ignore
+# stamps the commit into mcrit_plugin/core/revision.py for source-archive installs (Binary Ninja)
+mcrit_plugin/core/revision.py export-subst

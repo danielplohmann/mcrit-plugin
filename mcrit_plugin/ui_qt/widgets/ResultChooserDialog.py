@@ -1,5 +1,5 @@
-import mcrit_plugin.core.QtShim as QtShim
-from mcrit_plugin.widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
+import mcrit_plugin.ui_qt.QtShim as QtShim
+from mcrit_plugin.ui_qt.widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
 
 QDialog = QtShim.get_QDialog()
 QStyledItemDelegate = QtShim.get_QStyledItemDelegate()

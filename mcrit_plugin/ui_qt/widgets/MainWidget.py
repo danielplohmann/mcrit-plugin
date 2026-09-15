@@ -1,10 +1,10 @@
 import json
 import os
 
-import mcrit_plugin.core.QtShim as QtShim
-from mcrit_plugin.widgets.ResultChooserDialog import ResultChooserDialog
-from mcrit_plugin.widgets.SmdaInfoDialog import SmdaInfoDialog
-from mcrit_plugin.widgets.YaraStringBuilderDialog import YaraStringBuilderDialog
+import mcrit_plugin.ui_qt.QtShim as QtShim
+from mcrit_plugin.ui_qt.widgets.ResultChooserDialog import ResultChooserDialog
+from mcrit_plugin.ui_qt.widgets.SmdaInfoDialog import SmdaInfoDialog
+from mcrit_plugin.ui_qt.widgets.YaraStringBuilderDialog import YaraStringBuilderDialog
 
 QMainWindow = QtShim.get_QMainWindow()
 

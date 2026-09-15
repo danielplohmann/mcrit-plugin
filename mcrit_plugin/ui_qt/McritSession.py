@@ -9,9 +9,9 @@ class McritSession:
     """
 
     def __init__(self, backend, config):
-        import mcrit_plugin.core.QtShim as QtShim
-        from mcrit_plugin.core.ClassCollection import ClassCollection
+        import mcrit_plugin.ui_qt.QtShim as QtShim
         from mcrit_plugin.core.McritInterface import McritInterface
+        from mcrit_plugin.ui_qt.ClassCollection import ClassCollection
 
         self.cc = ClassCollection(QtShim, backend)
         self.config = config
@@ -85,12 +85,12 @@ class McritSession:
 
     def setupWidgets(self):
         """Create the widgets and lay them out inside ``self.parent``."""
-        from mcrit_plugin.widgets.BlockMatchWidget import BlockMatchWidget
-        from mcrit_plugin.widgets.FunctionMatchWidget import FunctionMatchWidget
-        from mcrit_plugin.widgets.FunctionOverviewWidget import FunctionOverviewWidget
-        from mcrit_plugin.widgets.LocalInfoWidget import LocalInfoWidget
-        from mcrit_plugin.widgets.MainWidget import MainWidget
-        from mcrit_plugin.widgets.SampleInfoWidget import SampleInfoWidget
+        from mcrit_plugin.ui_qt.widgets.BlockMatchWidget import BlockMatchWidget
+        from mcrit_plugin.ui_qt.widgets.FunctionMatchWidget import FunctionMatchWidget
+        from mcrit_plugin.ui_qt.widgets.FunctionOverviewWidget import FunctionOverviewWidget
+        from mcrit_plugin.ui_qt.widgets.LocalInfoWidget import LocalInfoWidget
+        from mcrit_plugin.ui_qt.widgets.MainWidget import MainWidget
+        from mcrit_plugin.ui_qt.widgets.SampleInfoWidget import SampleInfoWidget
 
         time_before = time.time()
         print("[/] setting up widgets...")

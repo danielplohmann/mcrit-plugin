@@ -1,6 +1,7 @@
 import datetime
 
-import mcrit_plugin.core.QtShim as QtShim
+import mcrit_plugin.ui_qt.QtShim as QtShim
+from mcrit_plugin.core.revision import core_revision
 
 QMainWindow = QtShim.get_QMainWindow()
 
@@ -22,7 +23,10 @@ class LocalInfoWidget(QMainWindow):
         self.central_widget = self.cc.QWidget()
         self.setCentralWidget(self.central_widget)
         self.label_mcrit_activity_info = self.cc.QLabel("Activity Info: <PLACEHOLDER>")
-        self.updateActivityInfo(self.cc.backend.plugin_name + " started.")
+        self.updateActivityInfo(
+            f"{self.cc.backend.plugin_name} v{parent.config.VERSION} started "
+            f"(core {core_revision()})."
+        )
         self.label_mcrit_server_info = self.cc.QLabel("MCRIT Remote server: <not_active>")
         self.label_remote_sample_info = self.cc.QLabel("Remote sample: <unknown>")
         for label in (

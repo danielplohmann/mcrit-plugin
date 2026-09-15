@@ -1,5 +1,6 @@
 import argparse
 import json
+import subprocess
 import sys
 import zipfile
 from pathlib import Path
@@ -23,6 +24,7 @@ EXCLUDE_DIR_NAMES = {
 # other disassemblers' code is not shipped; the manifest and entry point are already at the root
 EXCLUDE_RELATIVE_PATHS = {
     Path("mcrit_plugin/binja"),
+    Path("mcrit_plugin/headless"),
     Path("mcrit_plugin/ida/ida-plugin.json"),
     Path("mcrit_plugin/ida/ida_mcrit.py"),
 }
@@ -60,6 +62,25 @@ def iter_files(root: Path, relative_path: str) -> list[Path]:
     )
 
 
+REVISION_FILE = "mcrit_plugin/core/revision.py"
+REVISION_PLACEHOLDER = '"$Format:%H$"'
+
+
+def _stamped_revision_source(repo: Path) -> str:
+    """revision.py with the placeholder replaced like `git archive` does for source archives."""
+    source = (repo / REVISION_FILE).read_text(encoding="utf-8")
+    try:
+        commit = subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return source
+    return source.replace(REVISION_PLACEHOLDER, f'"{commit}"')
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Build a minimal ZIP archive for the MCRIT IDA plugin."
@@ -82,7 +103,10 @@ def main() -> int:
             for source_path in iter_files(repo, relative_path):
                 inner = source_path.relative_to(source_root) if source_root.is_dir() else Path()
                 arcname = (Path(archive_path) / inner).as_posix()
-                archive.write(source_path, arcname)
+                if arcname == REVISION_FILE:
+                    archive.writestr(arcname, _stamped_revision_source(repo))
+                else:
+                    archive.write(source_path, arcname)
                 written_files.append(arcname)
 
     print(f"[INFO] Packaged plugin: {plugin_name}")

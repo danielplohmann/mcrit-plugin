@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 
 
 class Backend(ABC):
@@ -70,6 +71,11 @@ class Backend(ABC):
     @abstractmethod
     def has_default_function_name(self, address):
         """True when the function still carries the disassembler's auto-generated name."""
+
+    @contextmanager
+    def mutation(self, title):
+        """Group database changes, e.g. applying many labels, into one undoable step."""
+        yield
 
     def run_background(self, title, work, on_done):
         """Run work() off the UI thread when the disassembler supports it, then on_done(result) on the UI thread.

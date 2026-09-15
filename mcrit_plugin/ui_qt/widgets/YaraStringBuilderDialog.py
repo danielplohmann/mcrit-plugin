@@ -1,6 +1,6 @@
 import datetime
 
-import mcrit_plugin.core.QtShim as QtShim
+import mcrit_plugin.ui_qt.QtShim as QtShim
 
 QDialog = QtShim.get_QDialog()
 

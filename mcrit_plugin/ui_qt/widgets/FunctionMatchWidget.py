@@ -1,10 +1,10 @@
 import mcrit_plugin.core.McritTableColumn as McritTableColumn
-import mcrit_plugin.core.QtShim as QtShim
+import mcrit_plugin.ui_qt.QtShim as QtShim
 from mcrit_plugin.core.minimcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
 from mcrit_plugin.core.minimcrit.storage.MatchedFunctionEntry import MatchedFunctionEntry
 from mcrit_plugin.core.minimcrit.storage.MatchingResult import MatchingResult
 from mcrit_plugin.core.ScoreColorProvider import ScoreColorProvider
-from mcrit_plugin.widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
+from mcrit_plugin.ui_qt.widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
 
 QMainWindow = QtShim.get_QMainWindow()
 QColor = QtShim.get_QColor()

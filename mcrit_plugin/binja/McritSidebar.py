@@ -19,7 +19,7 @@ from PySide6.QtWidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
 
 from mcrit_plugin.binja.BinjaBackend import BinjaBackend, logger
 from mcrit_plugin.binja.config import clear_stored_secrets, config
-from mcrit_plugin.core.McritSession import McritSession
+from mcrit_plugin.ui_qt.McritSession import McritSession
 
 SIDEBAR_NAME = "MCRIT"
 _SIDEBAR_WIDGETS = []

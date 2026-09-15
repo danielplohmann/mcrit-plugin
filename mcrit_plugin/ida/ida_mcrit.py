@@ -9,8 +9,8 @@ import ida_kernwin
 import idaapi
 from ida_kernwin import PluginForm
 
-from mcrit_plugin.core.McritSession import McritSession
 from mcrit_plugin.ida.config import MCRIT4IDA_PLUGIN_ONLY, config
+from mcrit_plugin.ui_qt.McritSession import McritSession
 
 IdaBackend = None
 

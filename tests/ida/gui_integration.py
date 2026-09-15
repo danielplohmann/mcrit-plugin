@@ -68,7 +68,7 @@ def _process_events(qt_application, rounds=1):
 def _release_qt_objects(form, qt_application):
     # qexit() calls exit() without returning to Qt's event loop; deferred deletes still queued
     # then run during C++ static destruction and abort IDA (seen with macOS style animations).
-    import mcrit_plugin.core.QtShim as QtShim
+    import mcrit_plugin.ui_qt.QtShim as QtShim
 
     qt_core = QtShim.get_QtCore()
     if form is not None and form.parent is not None:
@@ -171,7 +171,7 @@ def _exercise_cursor_tracking(form, qt_application):
 
 
 def _create_form(module):
-    import mcrit_plugin.core.QtShim as QtShim
+    import mcrit_plugin.ui_qt.QtShim as QtShim
 
     qt_widgets = QtShim.get_QtWidgets()
     qt_application = qt_widgets.QApplication.instance()

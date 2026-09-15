@@ -8,15 +8,16 @@ For the MCRIT methodology (PicHash/MinHash, LSH banding) see the [mcrit `AGENTS.
 
 - `mcrit_plugin/ida/ida_mcrit.py` — IDA plugin entry point (registers actions, widgets, menus in IDA); `scripts/ida/package_plugin.py` places it at the archive root.
 - `mcrit_plugin/ida/ida-plugin.json` — **HCLI/IDA plugin metadata**: the single source of truth for the IDA plugin `version` and the declarative `settings` list (mirrored by `mcrit_plugin/core/settings.json`); placed at the archive root by the packager and excluded from GitHub source archives.
-- `mcrit_plugin/core/` — disassembler-independent plugin logic.
+- `mcrit_plugin/core/` — disassembler-independent plugin logic with **no GUI toolkit imports** (enforced by `tests/core/test_core_has_no_gui_imports.py`); `revision.py` reports the core commit.
   - `config.py` — `McritConfig`: **defaults** for every setting, type coercion, table layouts; reads values through a disassembler-specific getter.
   - `McritInterface.py` — orchestrates server communication, background jobs, UI-thread dispatch.
   - `McritClient` (under `mcrit_plugin/core/minimcrit/`) — the **internalized** MCRIT client + DTOs (the `mcrit` package is no longer a dependency; see "Vendored vs. internalized" below).
   - `Backend.py` — disassembler interface used by `McritInterface` and the widgets.
-  - `QtShim.py` — PySide6/Qt abstraction for the widgets.
-  - `ScoreColorProvider.py`, `McritTableColumn.py`, `ClassCollection.py`, `HeadlessMcritContext.py` — UI/util helpers.
+  - `ScoreColorProvider.py`, `McritTableColumn.py`, `HeadlessMcritContext.py` — helpers.
+- `mcrit_plugin/ui_qt/` — Qt layer shared by IDA and Binary Ninja: `QtShim.py` (PySide6/PyQt5 selection), `ClassCollection.py`, `McritSession.py` (cross-widget state hosted by each frontend), `widgets/`.
+- `mcrit_plugin/headless/` — `HeadlessBackend` (SMDA disassembles the input, labels in memory) for licence-free CI and scripting.
   - `minimcrit/`, `pylev/` — see "Vendored vs. internalized".
-- `mcrit_plugin/widgets/` — Qt views (`MainWidget`, `FunctionMatchWidget`, `BlockMatchWidget`, `FunctionOverviewWidget`, `SampleInfoWidget`, `LocalInfoWidget`, dialogs).
+- `mcrit_plugin/ui_qt/widgets/` — Qt views (`MainWidget`, `FunctionMatchWidget`, `BlockMatchWidget`, `FunctionOverviewWidget`, `SampleInfoWidget`, `LocalInfoWidget`, dialogs).
 - `mcrit_plugin/ida/` — `IdaBackend`, `SmdaGraphViewer`, and `config.py` (plugin `VERSION` plus the `ida-settings` binding).
 - `mcrit_plugin/binja/` — Binary Ninja frontend: `BinjaBackend`, `BinjaSmdaInterface` (SMDA `BackendInterface` fed to SMDA's `IdaExporter`), `config.py` (Binary Ninja Settings registered from the `ida-plugin.json` declarations; `VERSION` from `plugin.json`), and `McritSidebar` (sidebar, UI actions, close hook). Root `plugin.json` / `__init__.py` / `requirements.txt` are the Binary Ninja manifest, entry point and dependencies; `scripts/ida/package_plugin.py` keeps `mcrit_plugin/binja` out of the IDA archive.
 - `scripts/ida/` — packaging, metadata verification, IDA GUI/IDALib integration runners; `scripts/binja/` — Binary Ninja GUI integration runner; `scripts/common/` — settings verification, quality checks, fixture building, MCRIT seeding.

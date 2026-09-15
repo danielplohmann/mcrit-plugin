@@ -2,6 +2,7 @@ import hashlib
 import os
 import re
 import traceback
+from contextlib import contextmanager
 
 import binaryninja
 from binaryninja import Logger, interaction
@@ -29,6 +30,7 @@ class BinjaBackend(Backend):
         self.view_frame = None
         self.cursor_offset = None
         self._input_hashes = None
+        self._mutation_depth = 0
 
     def _smda_interface(self):
         return BinjaSmdaInterface(self.bv)
@@ -119,11 +121,24 @@ class BinjaBackend(Backend):
         function = self.bv.get_function_at(address)
         return function.name if function is not None else None
 
+    @contextmanager
+    def mutation(self, title):
+        if self._mutation_depth:
+            # an enclosing mutation already records these changes as one undo step
+            yield
+            return
+        self._mutation_depth += 1
+        try:
+            with self.bv.undoable_transaction():
+                yield
+        finally:
+            self._mutation_depth -= 1
+
     def set_function_name(self, address, name):
         function = self.bv.get_function_at(address)
         if function is None:
             return False
-        with self.bv.undoable_transaction():
+        with self.mutation("Rename function"):
             function.name = name
         return True
 

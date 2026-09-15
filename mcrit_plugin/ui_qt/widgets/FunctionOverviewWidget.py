@@ -1,6 +1,6 @@
 import mcrit_plugin.core.McritTableColumn as McritTableColumn
-import mcrit_plugin.core.QtShim as QtShim
-from mcrit_plugin.widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
+import mcrit_plugin.ui_qt.QtShim as QtShim
+from mcrit_plugin.ui_qt.widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
 
 QMainWindow = QtShim.get_QMainWindow()
 QStyledItemDelegate = QtShim.get_QStyledItemDelegate()
@@ -424,27 +424,28 @@ class FunctionOverviewWidget(QMainWindow):
             return
         num_names_applied = 0
         num_names_skipped = 0
-        for row_id in range(self.table_local_functions.rowCount()):
-            offset = int(self.table_local_functions.item(row_id, 0).text(), 16)
-            label_via_table = self.getSelectedLabel(row_id, label_score_column_index)
-            # we did not get a usable label, we continue to the next row
-            if label_via_table == "-":
-                continue
-            # we found a manually disabled label, we continue to the next row
-            if label_via_table == "-|-":
-                num_names_skipped += 1
-                continue
-            # extract the actual name from the score|name pair
-            label_fields = label_via_table.split("|")
-            if len(label_fields) < 2:
-                self.parent.local_widget.updateActivityInfo(
-                    f"Error: Could not parse label '{label_via_table}' for function at 0x{offset:x}."
-                )
-                continue
-            label_via_table = label_via_table.split("|")[1]
-            if self.cc.backend.has_default_function_name(offset):
-                self.cc.backend.set_function_name(offset, label_via_table)
-                num_names_applied += 1
+        with self.cc.backend.mutation("Import MCRIT labels"):
+            for row_id in range(self.table_local_functions.rowCount()):
+                offset = int(self.table_local_functions.item(row_id, 0).text(), 16)
+                label_via_table = self.getSelectedLabel(row_id, label_score_column_index)
+                # we did not get a usable label, we continue to the next row
+                if label_via_table == "-":
+                    continue
+                # we found a manually disabled label, we continue to the next row
+                if label_via_table == "-|-":
+                    num_names_skipped += 1
+                    continue
+                # extract the actual name from the score|name pair
+                label_fields = label_via_table.split("|")
+                if len(label_fields) < 2:
+                    self.parent.local_widget.updateActivityInfo(
+                        f"Error: Could not parse label '{label_via_table}' for function at 0x{offset:x}."
+                    )
+                    continue
+                label_via_table = label_via_table.split("|")[1]
+                if self.cc.backend.has_default_function_name(offset):
+                    self.cc.backend.set_function_name(offset, label_via_table)
+                    num_names_applied += 1
         if num_names_applied:
             self.parent.local_widget.updateActivityInfo(
                 f"Success! Imported {num_names_applied} function names (skipped: {num_names_skipped})."

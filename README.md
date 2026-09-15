@@ -167,8 +167,9 @@ mcrit-plugin/
 ├── __init__.py            # Binary Ninja entry point
 ├── requirements.txt       # Binary Ninja Python dependencies
 ├── mcrit_plugin/
-│   ├── core/              # MCRIT client, settings (+ settings.json), Backend interface, vendored pylev
-│   ├── widgets/           # Qt UI components shared across disassemblers
+│   ├── core/              # no GUI imports: MCRIT client, settings (+ settings.json), Backend interface, revision
+│   ├── ui_qt/             # Qt shim, session host and widgets shared by IDA and Binary Ninja
+│   ├── headless/          # licence-free backend: SMDA disassembles the file, labels stay in memory
 │   ├── ida/               # ida-plugin.json, ida_mcrit.py entry, IDA backend, ida-settings binding, graph viewer
 │   └── binja/             # Binary Ninja backend, SMDA exporter interface, settings, sidebar and actions
 ├── icons/                 # Resources shared by both plugins
@@ -180,7 +181,7 @@ mcrit-plugin/
 ├── scripts/
 │   ├── ida/               # packaging, metadata check, IDA integration runners
 │   ├── binja/             # Binary Ninja integration runner
-│   └── common/            # settings check, quality checks, fixtures, MCRIT seeding
+│   └── common/            # settings check, quality checks, fixtures, MCRIT seeding, headless test, report comparison
 └── docs/                  # config_override.json.template, Qt Designer mockup
 ```
 
@@ -352,6 +353,29 @@ The runner creates a throwaway Binary Ninja user directory (license copy, this c
 as a plugin, `tests/binja/gui_integration.py` as `startup.py`), so the local Binary Ninja profile is not
 touched. The test drives the MCRIT sidebar through conversion, upload, matching job creation
 and selection, cursor-following function queries, undoable renames, and the CFG graph report.
+
+#### Headless integration test (no disassembler licence)
+
+`scripts/common/run_headless_integration.py` drives the shared core (conversion, upload, matching,
+label import) with the headless backend against a live MCRIT service. CI runs it on every push and
+pull request:
+
+```bash
+python scripts/common/run_headless_integration.py \
+  --input /tmp/mcrit-headless-query \
+  --reference-sha256 <sha256 of the seeded reference sample>
+```
+
+#### Exporter agreement
+
+MCRIT matches on normalized instruction sequences, so IDA, Binary Ninja and SMDA's own disassembler
+must produce the same PicHashes for the same binary. Compare exported reports (optionally adding
+SMDA's own disassembly and a failure threshold):
+
+```bash
+python scripts/common/compare_smda_reports.py \
+  --report ida=ida.smda --report binja=binja.smda --binary sample.exe --min-agreement 0.9
+```
 
 ### Release Workflow
 This plugin publishes a dedicated plugin ZIP as the HCLI package artifact.
