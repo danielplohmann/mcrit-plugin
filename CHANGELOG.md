@@ -52,6 +52,12 @@ rather than reconstructing it from the commit log at release time.
   ecosystem now shares (`smda`, which the plugin needs in IDA's interpreter, requires 3.12 from
   its next release). IDA 9 bundles 3.12 alongside 3.11; nothing in the plugin needed 3.12.
 
+### Fixed
+
+- Releases get their Windows offline dependency bundles again. The bundle workflow listened for
+  published releases, which a release created by the release workflow never triggers, so 1.1.7
+  to 1.1.9 shipped without them; the release workflow now calls it directly.
+
 ## Older releases
 
 Recorded as they were written in the README at the time, newest first.

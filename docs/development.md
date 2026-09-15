@@ -20,12 +20,25 @@ Everything that touches a disassembler goes through `mcrit_plugin/core/Backend.p
 
 ```bash
 python scripts/common/verify_settings_sync.py --repo .
-python scripts/ida/verify_metadata_sync.py --repo .
 python scripts/common/run_quality_checks.py --repo .   # ruff format + ruff check
 python -m pytest tests
+
+python scripts/ida/verify_metadata_sync.py --repo .
 python scripts/ida/package_plugin.py --repo . --output dist/mcrit-ida.zip
 hcli plugin lint dist/mcrit-ida.zip
+
+python scripts/binja/verify_metadata_sync.py --repo .
 ```
+
+| Workflow | Runs on | What |
+|---|---|---|
+| `pytest.yml` | push, PR | pytest, headless integration against MCRIT |
+| `ruff.yml` | push, PR | ruff, settings sync |
+| `changelog.yml` | PR | changelog entry for changes to the IDA plugin |
+| `ida-package.yml` / `binja-package.yml` | push, PR | metadata sync and package validation |
+| `ida-tests.yml` | push to main, dispatch | licensed IDA integration |
+| `ida-release.yml` / `binja-release.yml` | `ida-v*` tag / dispatch | release, see [RELEASING.md](../RELEASING.md) |
+| `offline-dependencies.yml` | called by both releases | Windows wheelhouse bundles |
 
 ## Integration tests
 

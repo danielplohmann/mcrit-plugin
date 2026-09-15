@@ -33,6 +33,9 @@ jobs:
   verify:
     # plugin_actions always releases the default branch, whichever ref the workflow was started from
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
     steps:
@@ -51,10 +54,32 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Check CI passed on this commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          conclusion=$(gh api \
+            "repos/${REPO}/actions/workflows/pytest.yml/runs?head_sha=${SHA}&status=completed" \
+            --jq '.workflow_runs[0].conclusion // ""')
+          if [ -z "${conclusion}" ]; then
+            echo "::error::No completed CI run for ${SHA}. Wait for main to go green, then re-run."
+            exit 1
+          fi
+          if [ "${conclusion}" != "success" ]; then
+            echo "::error::CI concluded '${conclusion}' for ${SHA}. Fix main before releasing."
+            exit 1
+          fi
+          echo "CI passed on ${SHA}"
+
       - name: Install test tooling
         run: |
           python -m pip install --upgrade pip
           python -m pip install pytest requests ruff
+
+      - name: Verify metadata sync
+        run: python scripts/binja/verify_metadata_sync.py --repo .
 
       - name: Verify settings sync
         run: python scripts/common/verify_settings_sync.py --repo .
@@ -70,6 +95,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      tag: ${{ steps.publish.outputs.tag }}
     steps:
       - name: Checkout the default branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 # zizmor: ignore[artipacked]
@@ -89,9 +116,21 @@ jobs:
           fi
 
       - name: Bump plugin.json, tag and publish the release
+        id: publish
         uses: Vector35/plugin_actions@9ea98e06c5aa58a8e2d973c91af583beaecb0efd # v1.1.0
         with:
           checkout: "false"
           version: ${{ inputs.version }}
           description: ${{ inputs.description }}
           dry-run: ${{ inputs.dry-run }}
+
+  offline-dependencies:
+    name: Attach offline dependency bundles
+    needs: release
+    if: ${{ !inputs.dry-run }}
+    permissions:
+      contents: write
+    uses: ./.github/workflows/offline-dependencies.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
+      variants: '[{"name": "binja", "packages": "-r requirements.txt"}]'

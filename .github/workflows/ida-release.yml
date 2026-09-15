@@ -50,7 +50,7 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          python .github/workflows/scripts/release_guard.py \
+          python .github/workflows/scripts/ida/release_guard.py \
             --tag "${TAG}" --notes release-notes.md --github-output "${GITHUB_OUTPUT}"
 
       - name: Check the tag is on main
@@ -181,3 +181,13 @@ jobs:
             --generate-notes \
             --verify-tag \
             "${flags[@]}"
+
+  offline-dependencies:
+    name: Attach offline dependency bundles
+    needs: release
+    permissions:
+      contents: write
+    uses: ./.github/workflows/offline-dependencies.yml
+    with:
+      tag: ${{ github.ref_name }}
+      variants: '[{"name": "smda", "packages": "smda"}, {"name": "full", "packages": "smda ida-settings"}]'

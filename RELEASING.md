@@ -70,9 +70,11 @@ Pushing the tag is the release. `.github/workflows/ida-release.yml` then:
 3. **Release** — creates the GitHub release for the tag with the changelog section as its body,
    GitHub's generated contributor and PR list appended under it, and the archive attached. It is
    never marked as the latest release, because the Binary Ninja extension manager reads the latest
-   release. The
-   *Build Offline Dependencies* workflow then runs from the published release and attaches the
-   Windows wheelhouse bundles.
+   release.
+4. **Offline dependencies** — calls `offline-dependencies.yml`, which attaches the Windows
+   wheelhouse bundles (`smda` and `full`) to the release. It is called directly because a release
+   created with `GITHUB_TOKEN` does not start workflows that listen for release events. To attach
+   bundles to an existing release, run it by hand with that release's tag.
 
 Each gate fails with a message naming what to fix. Nothing has to be remembered at the console.
 
@@ -138,11 +140,17 @@ gh workflow run binja-release.yml -f dry-run=true
 gh workflow run binja-release.yml -f version=1.1.0   # blank bumps the last number
 ```
 
-`.github/workflows/binja-release.yml` runs the settings, quality and pytest checks on `main` with a
-read-only token, then hands the same commit to [Vector35/plugin_actions](https://github.com/Vector35/plugin_actions),
+`.github/workflows/binja-release.yml` checks that CI passed on `main`, runs the metadata, settings,
+quality and pytest checks there with a read-only token, then hands the same commit to [Vector35/plugin_actions](https://github.com/Vector35/plugin_actions),
 the release action of Vector35's sample plugin. It bumps `plugin.json`, commits it as
 `github-actions[bot]`, tags the commit with the bare version and publishes it as the latest GitHub
-release. If `main` moved between the checks and the release, the run stops.
+release. If `main` moved between the checks and the release, the run stops. Afterwards it calls
+`offline-dependencies.yml` to attach a `binja` wheelhouse bundle built from `requirements.txt`.
+
+Every push and pull request runs `binja-package.yml`, the counterpart of `ida-package.yml`: it checks
+that `plugin.json`, `requirements.txt` and the README agree and that the source archive has the
+plugin at its root without `ida-plugin.json`, then validates `plugin.json` with a dry run of the
+same release action.
 
 - If `main` is protected, `github-actions[bot]` must be allowed to push.
 - Versions `1.1.4`, `1.1.5` and `1.1.7`–`1.1.9` cannot be used: older IDA releases took those `v1.1.x`

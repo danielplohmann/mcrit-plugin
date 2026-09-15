@@ -1,4 +1,4 @@
-"""The release gate (`.github/workflows/scripts/release_guard.py`) runs once per release, so here is
+"""The release gate (`.github/workflows/scripts/ida/release_guard.py`) runs once per release, so here is
 the only place its checks can be exercised before they matter."""
 
 import importlib.util
@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / ".github" / "workflows" / "scripts" / "release_guard.py"
+SCRIPT = ROOT / ".github" / "workflows" / "scripts" / "ida" / "release_guard.py"
 
 CHANGELOG = """# Changelog
 
