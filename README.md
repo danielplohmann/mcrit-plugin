@@ -57,7 +57,7 @@ Settings are handled by [ida-settings](https://github.com/williballenthin/ida-se
 
 ## Binary Ninja
 
-Requires Binary Ninja 5.3 (build 9757) or newer, tested on 6.0.
+Requires Binary Ninja 6.0 (build 10601) or newer.
 
 ### Install
 
