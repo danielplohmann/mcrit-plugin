@@ -218,21 +218,15 @@ def _ida_cursor(form, instruction):
 
     original_screen_ea = ida_kernwin.get_screen_ea
     ida_kernwin.get_screen_ea = lambda: instruction.offset
-    proxy = form.cc.ida_proxy
-    proxy_attributes = {
-        "ReadSelectionStart": getattr(proxy, "ReadSelectionStart", None),
-        "ReadSelectionEnd": getattr(proxy, "ReadSelectionEnd", None),
-        "GetBytes": getattr(proxy, "GetBytes", None),
-    }
-    proxy.ReadSelectionStart = lambda: instruction.offset
-    proxy.ReadSelectionEnd = lambda: instruction.offset + 1
-    proxy.GetBytes = lambda *_args: b"\x90"
+    backend = form.cc.backend
+    backend.get_selection = lambda: (instruction.offset, instruction.offset + 1)
+    backend.read_bytes = lambda *_args: b"\x90"
     try:
         yield
     finally:
         ida_kernwin.get_screen_ea = original_screen_ea
-        for name, value in proxy_attributes.items():
-            setattr(proxy, name, value)
+        del backend.get_selection
+        del backend.read_bytes
 
 
 def _exercise_yara_action(form, report, qt_application):
@@ -355,7 +349,7 @@ def _exercise_function_widget(form, report, qt_application):
         form.copyStringToClipboard = original_copy
     _assert(copied_sha256, "Function Scope SHA256 context action did not copy a value")
 
-    with _capture_graph_show("widgets.FunctionMatchWidget") as graphs:
+    with _capture_graph_show("widgets.SmdaGraphViewer") as graphs:
         function_id_column = McritTableColumn.columnTypeToIndex(
             McritTableColumn.FUNCTION_ID, form.config.FUNCTION_MATCHES_TABLE_COLUMNS
         )
@@ -423,8 +417,7 @@ def _exercise_block_widget(form, report, qt_application):
     )
 
     jumped_to = []
-    original_jump = block_widget.cc.ida_proxy.Jump
-    block_widget.cc.ida_proxy.Jump = lambda offset: jumped_to.append(offset)
+    block_widget.cc.backend.jump_to = lambda offset: jumped_to.append(offset)
     try:
         _emit_table_signal(
             block_widget.table_block_summary,
@@ -433,10 +426,10 @@ def _exercise_block_widget(form, report, qt_application):
             offset_column,
         )
     finally:
-        block_widget.cc.ida_proxy.Jump = original_jump
+        del block_widget.cc.backend.jump_to
     _assert(jumped_to, "Block Scope summary double-click did not navigate")
 
-    with _capture_graph_show("widgets.BlockMatchWidget") as graphs:
+    with _capture_graph_show("widgets.SmdaGraphViewer") as graphs:
         _emit_table_signal(block_widget.table_block_matches, "doubleClicked", 0, 0)
     _assert(graphs, "Block Scope double-click did not open a graph viewer")
     _assert(graphs[0][1] and graphs[0][2], "Block graph callbacks returned no content")
@@ -516,9 +509,7 @@ def _exercise_overview_widget(form, report, qt_application):
     _assert(offset_cell is not None, "Overview local-functions table is empty after filter reset")
     imported_offset = int(offset_cell.text(), 16)
     original_name = ida_funcs.get_func_name(imported_offset)
-    overview.cc.ida_proxy.set_name(
-        imported_offset, f"sub_{imported_offset:X}", overview.cc.ida_proxy.SN_NOWARN
-    )
+    overview.cc.backend.set_function_name(imported_offset, f"sub_{imported_offset:X}")
     overview.b_import_labels.click()
     imported_name = ida_funcs.get_func_name(imported_offset)
     _assert(
@@ -526,9 +517,7 @@ def _exercise_overview_widget(form, report, qt_application):
         "Overview label import did not rename a function",
     )
     if original_name and original_name != imported_name:
-        overview.cc.ida_proxy.set_name(
-            imported_offset, original_name, overview.cc.ida_proxy.SN_NOWARN
-        )
+        overview.cc.backend.set_function_name(imported_offset, original_name)
 
     # Populate the Function Scope name table after labels are loaded and use its
     # real double-click import path as well.

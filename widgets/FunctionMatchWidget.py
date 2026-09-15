@@ -1,12 +1,3 @@
-import ida_funcs
-import ida_kernwin
-import idaapi
-
-try:
-    import ida_hexrays
-except ImportError:
-    ida_hexrays = None
-
 import helpers.McritTableColumn as McritTableColumn
 import helpers.QtShim as QtShim
 from helpers.minimcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
@@ -14,7 +5,6 @@ from helpers.minimcrit.storage.MatchedFunctionEntry import MatchedFunctionEntry
 from helpers.minimcrit.storage.MatchingResult import MatchingResult
 from helpers.ScoreColorProvider import ScoreColorProvider
 from widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
-from widgets.SmdaGraphViewer import SmdaGraphViewer
 
 QMainWindow = QtShim.get_QMainWindow()
 QColor = QtShim.get_QColor()
@@ -166,51 +156,10 @@ class FunctionMatchWidget(QMainWindow):
         return True
 
     def updateCurrentFunction(self, view):
-        """
-        Courtesy of Alex Hanel's FunctionTrapperKeeper
-        https://github.com/alexander-hanel/FunctionTrapperKeeper/blob/main/function_trapper_keeper.py
-        """
-        if view is None:
-            return
-        widgetType = idaapi.get_widget_type(view)
-        if widgetType == idaapi.BWN_DISASM:
-            ea = ida_kernwin.get_screen_ea()
-            if ea is None or ea == idaapi.BADADDR:
-                return
-            # validate offset is within a function
-            temp_current_function = ida_funcs.get_func(ea)
-            if not temp_current_function:
-                return
-            # get the start of the function
-            temp_current_f = temp_current_function.start_ea
-            if temp_current_f is None or temp_current_f == idaapi.BADADDR:
-                return
-            if temp_current_f != self.parent.current_function:
-                self.parent.current_function = temp_current_f
-
-        elif widgetType == idaapi.BWN_PSEUDOCODE:
-            ea = ida_kernwin.get_screen_ea()
-            if not ea or ida_hexrays is None:
-                return
-            try:
-                cfunc = ida_hexrays.decompile(ea)
-            except ida_hexrays.DecompilationFailure:
-                return
-            for cc, item in enumerate(cfunc.treeitems):
-                if item.ea != idaapi.BADADDR:
-                    if cfunc.treeitems.at(cc).ea == ea:
-                        # cursor offset was found in decompiler tree
-                        # validate offset is within a function
-                        cur_func = ida_funcs.get_func(ea)
-                        if not cur_func:
-                            return
-                            # get the start of the function
-                        current_f = cur_func.start_ea
-                        if current_f is None or current_f == idaapi.BADADDR:
-                            return
-                        if current_f != self.parent.current_function:
-                            self.parent.current_function = current_f
-        return self.parent.current_function
+        function_start = self.cc.backend.get_current_function(view)
+        if function_start is not None:
+            self.parent.current_function = function_start
+        return function_start
 
     def queryCurrentFunction(self):
         self.parent.main_widget.hideLocalWidget()
@@ -526,8 +475,9 @@ class FunctionMatchWidget(QMainWindow):
             )
             coloring = fcm.getColoredMatches()
             coloring = {int(k[6:], 16): int(v[1:], 16) for k, v in coloring["b"].items()}
-            g = SmdaGraphViewer(self, sample_entry_b, function_entry_b, smda_function_b, coloring)
-            g.Show()
+            self.cc.backend.show_function_graph(
+                self, sample_entry_b, function_entry_b, smda_function_b, coloring
+            )
 
     def _onTableFunctionNameDoubleClicked(self, mi):
         """
@@ -574,14 +524,15 @@ class FunctionMatchWidget(QMainWindow):
             )
             coloring = fcm.getColoredMatches()
             coloring = {int(k[6:], 16): int(v[1:], 16) for k, v in coloring["b"].items()}
-            g = SmdaGraphViewer(self, sample_entry_b, function_entry_b, smda_function_b, coloring)
-            g.Show()
+            self.cc.backend.show_function_graph(
+                self, sample_entry_b, function_entry_b, smda_function_b, coloring
+            )
         elif function_label_column_index is not None and mi.column() == function_label_column_index:
             function_name = self.table_function_names.item(
                 mi.row(), function_label_column_index
             ).text()
             # print(function_name)
-            self.cc.ida_proxy.set_name(self.last_viewed, function_name, self.cc.ida_proxy.SN_NOWARN)
+            self.cc.backend.set_function_name(self.last_viewed, function_name)
 
     def _onTableFunctionMatchRightClicked(self, position):
         """

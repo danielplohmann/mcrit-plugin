@@ -7,13 +7,9 @@ from helpers.minimcrit.client.McritClient import McritClient
 from helpers.minimcrit.storage.MatchingResult import MatchingResult
 
 try:
-    from smda.common.BinaryInfo import BinaryInfo
     from smda.Disassembler import Disassembler
-    from smda.ida.IdaInterface import IdaInterface
 except Exception as exc:
     Disassembler = None
-    IdaInterface = None
-    BinaryInfo = None
     _SMDA_IMPORT_ERROR = exc
 else:
     _SMDA_IMPORT_ERROR = None
@@ -21,12 +17,13 @@ else:
 
 
 class McritInterface(object):
-    def __init__(self, parent):
-        if Disassembler is None or IdaInterface is None or BinaryInfo is None:
+    def __init__(self, parent, backend):
+        if Disassembler is None:
             raise ImportError(
                 "SMDA not found, please install it (and its dependencies) as a python package to proceed!"
             ) from _SMDA_IMPORT_ERROR
         self.parent = parent
+        self.backend = backend
         self.config = parent.config
         self._mcrit_server = self.config.MCRIT_SERVER
         self.mcrit_client = McritClient(self.config.MCRIT_SERVER)
@@ -37,9 +34,6 @@ class McritInterface(object):
             self.mcrit_client.setApitoken(self.config.MCRITWEB_API_TOKEN)
         if self.config.MCRITWEB_USERNAME:
             self.mcrit_client.setUsername(self.config.MCRITWEB_USERNAME)
-        # self.smda_config = SmdaConfig()
-        self.smda_disassembler = Disassembler(backend="IDA")
-        self.smda_ida = IdaInterface()
         # IDA 6.x Windows workaronud to avoid lost imports
         self.json = json
         self.os = os
@@ -57,28 +51,6 @@ class McritInterface(object):
             return value.strip().lower() in {"1", "true", "yes", "on"}
         return bool(value)
 
-    def _run_on_ui_thread(self, func):
-        try:
-            import ida_kernwin
-
-            mff_flag = getattr(ida_kernwin, "MFF_FAST", None)
-            if mff_flag is None:
-                import idaapi
-
-                mff_flag = idaapi.MFF_FAST
-            return ida_kernwin.execute_sync(func, mff_flag)
-        except Exception as e:
-            print(f"[MCRIT] Failed to run on UI thread via ida_kernwin, falling back. Error: {e}")
-            try:
-                import idaapi
-
-                return idaapi.execute_sync(func, idaapi.MFF_FAST)
-            except Exception as e2:
-                print(
-                    f"[MCRIT] Failed to run on UI thread via idaapi, running directly. Error: {e2}"
-                )
-                return func()
-
     def _select_smda_backend(self, binary_info):
         arch = (binary_info.architecture or "").lower()
         if "x86" in arch or "amd64" in arch or "i386" in arch or "intel" in arch:
@@ -91,25 +63,15 @@ class McritInterface(object):
             return "ppc"
         return None
 
-    def convertIdbToSmda(self):
+    def convertToSmda(self):
         self.parent.local_widget.updateActivityInfo("Converting to SMDA report...")
-        report = self.smda_disassembler.disassembleBuffer(self.smda_ida.getBinary(), 0)
-        self.parent.local_widget.updateActivityInfo("Conversion from IDB to SMDA finished.")
+        report = self.backend.export_smda_report()
+        self.parent.local_widget.updateActivityInfo("Conversion to SMDA finished.")
         return report
 
-    def getIdaBinaryInfo(self):
-        binary_info = BinaryInfo(self.smda_ida.getBinary())
-        if not binary_info.architecture:
-            binary_info.architecture = self.smda_ida.getArchitecture()
-        if not binary_info.base_addr:
-            binary_info.base_addr = self.smda_ida.getBaseAddr()
-        if not binary_info.bitness:
-            binary_info.bitness = self.smda_ida.getBitness()
-        return binary_info
-
-    def convertIdbToSmdaUsingSmda(self):
+    def convertToSmdaUsingSmda(self):
         self.parent.local_widget.updateActivityInfo("Converting to SMDA report using SMDA...")
-        binary_info = self.getIdaBinaryInfo()
+        binary_info = self.backend.get_binary_info()
         backend = self._select_smda_backend(binary_info)
         if backend:
             self.parent.local_widget.updateActivityInfo(f"SMDA backend selected: {backend}")
@@ -123,7 +85,7 @@ class McritInterface(object):
             )
             smda_disassembler = Disassembler(backend="intel")
         report = smda_disassembler._disassemble(binary_info, timeout=300)
-        function_symbols = self.smda_ida.getFunctionSymbols()
+        function_symbols = self.backend.get_function_symbols()
         for smda_function in report.getFunctions():
             if smda_function.offset in function_symbols:
                 smda_function.function_name = function_symbols[smda_function.offset]
@@ -166,7 +128,7 @@ class McritInterface(object):
 
             def runner():
                 result = self._check_connection_impl()
-                self._run_on_ui_thread(lambda: apply_result(result))
+                self.backend.run_on_ui_thread(lambda: apply_result(result))
 
             thread = threading.Thread(target=runner, daemon=True)
             thread.start()

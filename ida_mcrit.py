@@ -12,8 +12,8 @@ from ida_kernwin import PluginForm
 import config
 
 SmdaReport = None
-IdaInterface = None
 _SMDA_IMPORT_ERROR = None
+IdaBackend = None
 pyperclip = None
 QtShim = None
 ClassCollection = None
@@ -39,7 +39,7 @@ def _require_gui():
 def _load_dependencies():
     """Load MCRIT's SMDA and Qt widget graph only when its form is opened."""
     _require_gui()
-    global SmdaReport, IdaInterface, _SMDA_IMPORT_ERROR
+    global SmdaReport, _SMDA_IMPORT_ERROR, IdaBackend
     global pyperclip, QtShim, ClassCollection, McritInterface
     global BlockMatchWidget, FunctionMatchWidget, FunctionOverviewWidget
     global LocalInfoWidget, MainWidget, SampleInfoWidget
@@ -50,17 +50,16 @@ def _load_dependencies():
 
     try:
         from smda.common.SmdaReport import SmdaReport as _SmdaReport
-        from smda.ida.IdaInterface import IdaInterface as _IdaInterface
     except Exception as exc:
         _SMDA_IMPORT_ERROR = exc
     else:
         SmdaReport = _SmdaReport
-        IdaInterface = _IdaInterface
         _SMDA_IMPORT_ERROR = None
 
     import helpers.pyperclip as _pyperclip
     import helpers.QtShim as _QtShim
     from helpers.ClassCollection import ClassCollection as _ClassCollection
+    from helpers.IdaBackend import IdaBackend as _IdaBackend
     from helpers.McritInterface import McritInterface as _McritInterface
     from widgets.BlockMatchWidget import BlockMatchWidget as _BlockMatchWidget
     from widgets.FunctionMatchWidget import FunctionMatchWidget as _FunctionMatchWidget
@@ -74,6 +73,7 @@ def _load_dependencies():
     pyperclip = _pyperclip
     QtShim = _QtShim
     ClassCollection = _ClassCollection
+    IdaBackend = _IdaBackend
     McritInterface = _McritInterface
     BlockMatchWidget = _BlockMatchWidget
     FunctionMatchWidget = _FunctionMatchWidget
@@ -90,7 +90,6 @@ def _load_dependencies():
 # Core of the MCRIT4IDA GUI.
 ################################################################################
 
-HOTKEYS = None
 MCRIT4IDA = None
 NAME = "MCRIT4IDA v%s" % config.VERSION
 
@@ -135,9 +134,7 @@ class Mcrit4IdaForm(PluginForm):
     def __init__(self):
         _load_dependencies()
         super(Mcrit4IdaForm, self).__init__()
-        global HOTKEYS
-        HOTKEYS = []
-        self.cc = ClassCollection(QtShim)
+        self.cc = ClassCollection(QtShim, IdaBackend())
         self.tabs = None
         self.parent = None
         self.config = config
@@ -170,7 +167,7 @@ class Mcrit4IdaForm(PluginForm):
         self.picblockhash_matches = {}
         ##### some more setup
         self.icon = self.cc.QIcon(config.ICON_FILE_PATH + "relationship.png")
-        self.mcrit_interface = McritInterface(self)
+        self.mcrit_interface = McritInterface(self, self.cc.backend)
         self.hook_subscribed_widgets = []
         self.view_hook = None
 
@@ -258,8 +255,7 @@ class Mcrit4IdaForm(PluginForm):
         # check if there is a mismatch between function names stored in self.local_smda_report and the atual IDB
         # if yes, ask the user if they want to upload an updated report to the MCRIT server
         if config.SUBMIT_FUNCTION_NAMES_ON_CLOSE:
-            ida_interface = IdaInterface()
-            ida_function_names = ida_interface.getFunctionSymbols()
+            ida_function_names = self.cc.backend.get_function_symbols()
             print("Checking for unsynced function names...")
             if self.local_smda_report is not None:
                 smda_report_function_names = {
@@ -278,11 +274,9 @@ class Mcrit4IdaForm(PluginForm):
                         unsynced_function_names.append((offset, None, ida_function_name))
                 if len(unsynced_function_names) > 0:
                     # currently this loops infinitely?!
-                    res = ida_kernwin.ask_yn(
-                        0,
-                        "There are new function name changes in the IDB. Do you want to upload an updated report to the MCRIT server before closing?",
-                    )
-                    if res == ida_kernwin.ASKBTN_YES:
+                    if self.cc.backend.ask_yes_no(
+                        "There are new function name changes in the IDB. Do you want to upload an updated report to the MCRIT server before closing?"
+                    ):
                         # save metadata before upload to not overwrite it
                         local_family = (
                             self.local_smda_report.family if self.local_smda_report else ""
@@ -314,7 +308,7 @@ class Mcrit4IdaForm(PluginForm):
             MCRIT4IDA = None
 
     def Show(self):
-        if self.cc.ida_proxy.GetInputMD5() is not None:
+        if self.cc.backend.get_input_md5() is not None:
             return PluginForm.Show(
                 self,
                 NAME,
@@ -323,29 +317,6 @@ class Mcrit4IdaForm(PluginForm):
                 ),
             )
         return None
-
-    ################################################################################
-    # functionality offered to MCRIT4IDA's widgets
-    ################################################################################
-
-    def registerHotkey(self, shortcut, py_function_pointer):
-        """
-        Can be used by MCRIT4IDA widgets to register hotkeys.
-        Uses a global list HOTKEYS of function pointers that link to the desired functionality.
-        Right now, linked functions cannot take parameters and should scrape all information they need by themselves.
-        @param shortcut: A string describing a shortcut, e.g. "ctrl+F3"
-        @type shortcut: str
-        @param py_function_pointer: a python function that shall be called when the shortcut is triggered.
-        @type py_function_pointer: a pointer to a python function
-        """
-        global HOTKEYS
-        hotkey_index = len(HOTKEYS)
-        hotkey_name = "MCRIT4IDA_HOTKEY_%d" % hotkey_index
-        HOTKEYS.append(py_function_pointer)
-        self.cc.ida_proxy.CompileLine(
-            'static %s() { RunPythonStatement("HOTKEYS[%d]()"); }' % (hotkey_name, hotkey_index)
-        )
-        self.cc.ida_proxy.AddHotkey(shortcut, hotkey_name)
 
 
 ################################################################################

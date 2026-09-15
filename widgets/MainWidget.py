@@ -1,9 +1,6 @@
 import json
 import os
 
-import ida_kernwin
-import idaapi
-
 import helpers.QtShim as QtShim
 from widgets.ResultChooserDialog import ResultChooserDialog
 from widgets.SmdaInfoDialog import SmdaInfoDialog
@@ -155,12 +152,12 @@ class MainWidget(QMainWindow):
         return
 
     def getLocalSmdaReport(self):
-        ida_converted_report = self.parent.mcrit_interface.convertIdbToSmda()
+        ida_converted_report = self.parent.mcrit_interface.convertToSmda()
         local_report = ida_converted_report
         # check of we alternatively want to use SMDA for analysis
         smda_converted_report = None
         if self.parent.config.USE_SMDA_FOR_ANALYSIS:
-            smda_converted_report = self.parent.mcrit_interface.convertIdbToSmdaUsingSmda()
+            smda_converted_report = self.parent.mcrit_interface.convertToSmdaUsingSmda()
         if smda_converted_report is not None:
             ida_report_offsets = [func.offset for func in ida_converted_report.getFunctions()]
             smda_report_offsets = [func.offset for func in smda_converted_report.getFunctions()]
@@ -192,9 +189,9 @@ class MainWidget(QMainWindow):
             local_report = smda_converted_report
         if local_report is not None:
             # some information obtained from IDA directly
-            local_report.sha256 = idaapi.retrieve_input_file_sha256().hex()
-            local_report.filename = self.os_path.basename(idaapi.get_root_filename())
-            local_report.buffer_size = idaapi.retrieve_input_file_size()
+            local_report.sha256 = self.cc.backend.get_input_sha256()
+            local_report.filename = self.cc.backend.get_input_filename()
+            local_report.buffer_size = self.cc.backend.get_input_size()
             local_report.smda_version = "MCRIT4IDA v%s via SMDA %s" % (
                 self.parent.config.VERSION,
                 local_report.smda_version,
@@ -207,16 +204,11 @@ class MainWidget(QMainWindow):
         return local_report
 
     def _onBuildYaraStringButtonClicked(self):
-        ida_selection_start = self.cc.ida_proxy.ReadSelectionStart()
-        ida_selection_end = self.cc.ida_proxy.ReadSelectionEnd()
-        has_selection = (
-            ida_selection_start is not None
-            and ida_selection_end is not None
-            and ida_selection_start != ida_selection_end
-        )
+        selection_start, selection_end = self.cc.backend.get_selection()
+        has_selection = selection_start is not None and selection_start != selection_end
 
         # fetch instruction, block, and function information based on current cursor position
-        current_ea = ida_kernwin.get_screen_ea()
+        current_ea = self.cc.backend.get_cursor_address()
         current_function = self.parent.local_smda_report.findFunctionByContainedAddress(current_ea)
         current_block = self.parent.local_smda_report.findBlockByContainedAddress(current_ea)
 
@@ -227,8 +219,8 @@ class MainWidget(QMainWindow):
             for smda_function in self.parent.local_smda_report.getFunctions():
                 for smda_instruction in smda_function.getInstructions():
                     if (
-                        smda_instruction.offset >= ida_selection_start
-                        and smda_instruction.offset < ida_selection_end
+                        smda_instruction.offset >= selection_start
+                        and smda_instruction.offset < selection_end
                     ):
                         selected_ins_sequence.append(smda_instruction)
             selected_ins_sequence.sort(key=lambda ins: ins.offset)
@@ -248,8 +240,8 @@ class MainWidget(QMainWindow):
 
         data_bytes = b""
         if not selected_ins_sequence and has_selection:
-            data_bytes = self.cc.ida_proxy.GetBytes(
-                ida_selection_start, ida_selection_end - ida_selection_start
+            data_bytes = self.cc.backend.read_bytes(
+                selection_start, selection_end - selection_start
             )
         # Create and show the dialog
         dialog = self.YaraStringBuilderDialog(
@@ -260,8 +252,8 @@ class MainWidget(QMainWindow):
             function_sequence=functions_ins_sequence,
             sha256=self.parent.local_smda_report.sha256 if self.parent.local_smda_report else "",
             offset=current_ea,
-            selection_start=ida_selection_start or current_ea,
-            selection_end=ida_selection_end or current_ea,
+            selection_start=selection_start or current_ea,
+            selection_end=selection_end or current_ea,
         )
         dialog.exec_()
 
@@ -311,8 +303,8 @@ class MainWidget(QMainWindow):
         self.parent.local_smda_report.version = local_version
         self.parent.local_smda_report.is_library = local_library
         if self.parent.local_smda_report:
-            filepath = ida_kernwin.ask_file(
-                1, self.parent.local_smda_report.filename + ".smda", "Export SMDA report to file..."
+            filepath = self.cc.backend.ask_save_file(
+                self.parent.local_smda_report.filename + ".smda", "Export SMDA report to file..."
             )
             if filepath:
                 with open(filepath, "w") as fout:

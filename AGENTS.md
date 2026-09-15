@@ -12,7 +12,7 @@ For the MCRIT methodology (PicHash/MinHash, LSH banding) see the [mcrit `AGENTS.
 - `helpers/` — plugin logic.
   - `McritInterface.py` — orchestrates server communication, background jobs, UI-thread dispatch.
   - `McritClient` (under `helpers/minimcrit/`) — the **internalized** MCRIT client + DTOs (the `mcrit` package is no longer a dependency; see "Vendored vs. internalized" below).
-  - `IdaProxy.py` — abstraction over the IDA/IDAPython API.
+  - `Backend.py` — disassembler interface used by `McritInterface` and the widgets; `IdaBackend.py` implements it for IDA.
   - `QtShim.py` — PySide6/Qt abstraction for the widgets.
   - `ScoreColorProvider.py`, `McritTableColumn.py`, `ClassCollection.py`, `HeadlessMcritContext.py` — UI/util helpers.
   - `minimcrit/`, `pylev/`, `pyperclip/` — see "Vendored vs. internalized".

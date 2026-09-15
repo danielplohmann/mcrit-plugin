@@ -81,8 +81,9 @@ def _load_plugin(plugin_root):
 def _exercise_live_mcrit():
     import config
     from helpers.HeadlessMcritContext import HeadlessMcritContext
+    from helpers.IdaBackend import IdaBackend
 
-    context = HeadlessMcritContext(config)
+    context = HeadlessMcritContext(config, IdaBackend())
     interface = context.mcrit_interface
     client = interface.mcrit_client
     interface.checkConnection(async_=False)
@@ -90,7 +91,7 @@ def _exercise_live_mcrit():
         context.local_widget.server and context.local_widget.server[1], "MCRIT connection failed"
     )
 
-    report = interface.convertIdbToSmda()
+    report = interface.convertToSmda()
     _assert(
         report is not None and list(report.getFunctions()),
         "IDALib conversion produced no functions",

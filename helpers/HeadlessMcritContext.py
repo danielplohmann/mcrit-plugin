@@ -25,7 +25,7 @@ class HeadlessActivity:
 class HeadlessMcritContext:
     """State surface required by MCRIT operations outside the IDA GUI."""
 
-    def __init__(self, config):
+    def __init__(self, config, backend):
         self.config = config
         self.local_widget = HeadlessActivity()
         self.remote_sample_id = None
@@ -40,4 +40,4 @@ class HeadlessMcritContext:
         self.function_matches = {}
         self.pichash_matches = {}
         self.pichash_match_summaries = {}
-        self.mcrit_interface = McritInterface(self)
+        self.mcrit_interface = McritInterface(self, backend)

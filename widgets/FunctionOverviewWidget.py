@@ -1,7 +1,3 @@
-import re
-
-import ida_funcs
-
 import helpers.McritTableColumn as McritTableColumn
 import helpers.QtShim as QtShim
 from widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
@@ -446,11 +442,8 @@ class FunctionOverviewWidget(QMainWindow):
                 )
                 continue
             label_via_table = label_via_table.split("|")[1]
-            # check if IDA function has default name
-            ida_function_name = ida_funcs.get_func_name(offset)
-            if ida_function_name and re.match("sub_[0-9A-Fa-f]+$", ida_function_name):
-                # apply label
-                self.cc.ida_proxy.set_name(offset, label_via_table, self.cc.ida_proxy.SN_NOWARN)
+            if self.cc.backend.has_default_function_name(offset):
+                self.cc.backend.set_function_name(offset, label_via_table)
                 num_names_applied += 1
         if num_names_applied:
             self.parent.local_widget.updateActivityInfo(
@@ -633,8 +626,7 @@ class FunctionOverviewWidget(QMainWindow):
         crit_matches_beyond_filters = 0
         crit_function_labels = []
         for function_id, function_info in sorted(aggregated_matches.items()):
-            ida_function_name = ida_funcs.get_func_name(function_info["offset"])
-            is_custom_name = re.match("sub_[0-9A-Fa-f]+$", ida_function_name) is None
+            is_custom_name = not self.cc.backend.has_default_function_name(function_info["offset"])
             criticality = self._calculateLabelCriticality(
                 list(sorted(function_info["labels"], reverse=True)),
                 has_function_name=is_custom_name,
@@ -920,9 +912,9 @@ class FunctionOverviewWidget(QMainWindow):
             return
         clicked_function_address = offset_item.text()
         if mi.column() not in [function_offset_column, function_label_column]:
-            self.cc.ida_proxy.Jump(int(clicked_function_address, 16))
+            self.cc.backend.jump_to(int(clicked_function_address, 16))
             # change to function scope tab
             self.parent.main_widget.tabs.setCurrentIndex(1)
             self.parent.function_match_widget.queryCurrentFunction()
         elif mi.column() == function_offset_column:
-            self.cc.ida_proxy.Jump(int(clicked_function_address, 16))
+            self.cc.backend.jump_to(int(clicked_function_address, 16))

@@ -1,0 +1,90 @@
+from abc import ABC, abstractmethod
+
+
+class Backend(ABC):
+    """Disassembler operations used by the shared MCRIT core and widgets.
+
+    Addresses are plain ints; "no address" is None, never a tool-specific BADADDR.
+    """
+
+    name = ""
+
+    @abstractmethod
+    def get_input_md5(self):
+        """Hex MD5 of the input file, or None when no input is loaded."""
+
+    @abstractmethod
+    def get_input_sha256(self):
+        """Hex SHA256 of the input file."""
+
+    @abstractmethod
+    def get_input_filename(self):
+        """Base name of the input file."""
+
+    @abstractmethod
+    def get_input_size(self):
+        """Size of the input file in bytes."""
+
+    @abstractmethod
+    def export_smda_report(self):
+        """SmdaReport built from the disassembler's own analysis."""
+
+    @abstractmethod
+    def get_binary_info(self):
+        """SMDA BinaryInfo (mapped bytes, architecture, base, bitness) for SMDA's own disassembly."""
+
+    @abstractmethod
+    def get_function_symbols(self):
+        """Dict of function start address -> current function name."""
+
+    @abstractmethod
+    def get_cursor_address(self):
+        """Address under the cursor in the active view, or None."""
+
+    @abstractmethod
+    def get_selection(self):
+        """(start, end) of the active selection, end exclusive; (None, None) without one."""
+
+    @abstractmethod
+    def get_current_function(self, view=None):
+        """Start address of the function under the cursor in view, or None."""
+
+    @abstractmethod
+    def read_bytes(self, address, size):
+        """Bytes of the analyzed image."""
+
+    @abstractmethod
+    def jump_to(self, address):
+        """Navigate the active view to address."""
+
+    @abstractmethod
+    def get_function_name(self, address):
+        """Name of the function starting at address, or None."""
+
+    @abstractmethod
+    def set_function_name(self, address, name):
+        """Rename the function starting at address."""
+
+    @abstractmethod
+    def has_default_function_name(self, address):
+        """True when the function still carries the disassembler's auto-generated name."""
+
+    @abstractmethod
+    def run_on_ui_thread(self, func):
+        """Run func on the UI thread and wait for it."""
+
+    @abstractmethod
+    def ask_save_file(self, default_name, prompt):
+        """Path chosen in a save-file dialog, or None."""
+
+    @abstractmethod
+    def ask_yes_no(self, prompt):
+        """True when the user confirms."""
+
+    @abstractmethod
+    def show_warning(self, message):
+        """Modal warning."""
+
+    @abstractmethod
+    def show_function_graph(self, parent, sample_entry, function_entry, smda_function, coloring):
+        """Show the CFG of a remote SMDA function; coloring maps block offset -> 0xRRGGBB."""

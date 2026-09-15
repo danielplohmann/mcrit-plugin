@@ -5,11 +5,9 @@ import sys
 import time
 from collections import deque
 
-from helpers.IdaProxy import IdaProxy
-
 
 class ClassCollection:
-    def __init__(self, shim):
+    def __init__(self, shim, backend):
         # python imports
         self.json = json
         self.os = os
@@ -66,5 +64,4 @@ class ClassCollection:
         self.QFrameShadow = self.QtShim.get_QFrameShadow()
         self.QSpinBox = self.QtShim.get_QSpinBox()
         self.QFont = self.QtShim.get_QFont()
-        # ida_proxy
-        self.ida_proxy = IdaProxy()
+        self.backend = backend
