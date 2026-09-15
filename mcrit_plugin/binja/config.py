@@ -58,7 +58,7 @@ def register_settings():
 def _get_secret(key, settings):
     """Move a value typed into Settings into the system keychain, then read it from there."""
     full_key = f"{GROUP}.{key}"
-    provider = SecretsProvider[KEYCHAIN_PROVIDER]
+    provider = SecretsProvider.get(KEYCHAIN_PROVIDER)
     typed_value = settings.get_string(full_key)
     if typed_value:
         if provider is None or not provider.store_data(full_key, typed_value):
@@ -72,13 +72,13 @@ def _get_secret(key, settings):
 
 
 def clear_stored_secrets():
-    provider = SecretsProvider[KEYCHAIN_PROVIDER]
-    if provider is None:
-        return
+    provider = SecretsProvider.get(KEYCHAIN_PROVIDER)
+    settings = Settings()
     for key in SECRET_SETTINGS:
         full_key = f"{GROUP}.{key}"
-        if provider.has_data(full_key):
+        if provider is not None and provider.has_data(full_key):
             provider.delete_data(full_key)
+        settings.reset(full_key)
 
 
 def _get_setting(key):

@@ -30,7 +30,7 @@ class BinjaBackend(Backend):
         self.view_frame = None
         self.cursor_offset = None
         self._input_hashes = None
-        self._mutation_depth = 0
+        self.closed = False
 
     def _smda_interface(self):
         return BinjaSmdaInterface(self.bv)
@@ -123,16 +123,8 @@ class BinjaBackend(Backend):
 
     @contextmanager
     def mutation(self, title):
-        if self._mutation_depth:
-            # an enclosing mutation already records these changes as one undo step
+        with self.bv.undoable_transaction():
             yield
-            return
-        self._mutation_depth += 1
-        try:
-            with self.bv.undoable_transaction():
-                yield
-        finally:
-            self._mutation_depth -= 1
 
     def set_function_name(self, address, name):
         function = self.bv.get_function_at(address)
@@ -161,18 +153,36 @@ class BinjaBackend(Backend):
                     result = work()
                 except Exception:
                     logger.log_error(f"{title} failed:\n{traceback.format_exc()}")
-                    binaryninja.execute_on_main_thread(
+                    backend._on_main_thread(
                         lambda: backend.show_warning(f"{title} failed, see the log for details.")
                     )
                     return
-                binaryninja.execute_on_main_thread(lambda: on_done(result))
+                backend._on_main_thread(lambda: on_done(result))
 
         Task(title, False).start()
 
+    def _on_main_thread(self, func):
+        binaryninja.execute_on_main_thread(lambda: None if self.closed else func())
+
     def run_on_ui_thread(self, func):
-        result = []
-        binaryninja.execute_on_main_thread_and_wait(lambda: result.append(func()))
-        return result[0] if result else None
+        outcome = []
+
+        def call():
+            if self.closed:
+                return
+            try:
+                outcome.append((func(), None))
+            except Exception as exc:
+                # execute_on_main_thread_and_wait swallows exceptions raised here
+                outcome.append((None, exc))
+
+        binaryninja.execute_on_main_thread_and_wait(call)
+        if not outcome:
+            return None
+        result, error = outcome[0]
+        if error is not None:
+            raise error
+        return result
 
     def ask_save_file(self, default_name, prompt):
         return interaction.get_save_filename_input(prompt, "smda", default_name) or None
@@ -202,7 +212,7 @@ class BinjaBackend(Backend):
             for target in targets
         }
 
-    def show_function_graph(self, parent, sample_entry, function_entry, smda_function, coloring):
+    def show_function_graph(self, _parent, sample_entry, function_entry, smda_function, coloring):
         if smda_function is None:
             return
         graph = binaryninja.FlowGraph()

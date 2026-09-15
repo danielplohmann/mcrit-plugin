@@ -14,7 +14,7 @@ from binaryninjaui import (
     UIContextNotification,
 )
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QColor, QImage, QPainter
+from PySide6.QtGui import QImage, QPainter
 from PySide6.QtWidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
 
 from mcrit_plugin.binja.BinjaBackend import BinjaBackend, logger
@@ -67,26 +67,29 @@ class McritSidebarWidget(SidebarWidget):
 
 
 def _forget(widget):
+    # background results must not reach the destroyed Qt widgets behind this session
+    widget.backend.closed = True
     if widget in _SIDEBAR_WIDGETS:
         _SIDEBAR_WIDGETS.remove(widget)
 
 
 def _sidebar_icon():
     """Grayscale 56x56 mask of the MCRIT logo; Binary Ninja tints white shapes to the theme."""
-    logo = QImage(config.ICON_FILE_PATH + "mcrit.png").scaled(
-        56, 56, Qt.KeepAspectRatio, Qt.SmoothTransformation
-    )
+    source = QImage(config.ICON_FILE_PATH + "mcrit.png")
+    if source.isNull():
+        logger.log_warn(f"MCRIT sidebar icon not found: {config.ICON_FILE_PATH}mcrit.png")
+    logo = source.scaled(56, 56, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    mask = QImage(56, 56, QImage.Format_ARGB32)
+    mask.fill(Qt.transparent)
+    painter = QPainter(mask)
+    painter.drawImage((56 - logo.width()) // 2, (56 - logo.height()) // 2, logo)
+    painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+    painter.fillRect(mask.rect(), Qt.white)
+    painter.end()
     icon = QImage(56, 56, QImage.Format_RGB32)
-    icon.fill(0)
+    icon.fill(Qt.black)
     painter = QPainter(icon)
-    x_offset = (56 - logo.width()) // 2
-    y_offset = (56 - logo.height()) // 2
-    for y in range(logo.height()):
-        for x in range(logo.width()):
-            alpha = logo.pixelColor(x, y).alpha()
-            if alpha:
-                painter.setPen(QColor(alpha, alpha, alpha))
-                painter.drawPoint(x + x_offset, y + y_offset)
+    painter.drawImage(0, 0, mask)
     painter.end()
     return icon
 
