@@ -114,7 +114,15 @@ class McritSidebarWidgetType(SidebarWidgetType):
         return SidebarContextSensitivity.PerViewTypeSidebarContext
 
 
-class McritCloseNotification(UIContextNotification):
+class McritContextNotification(UIContextNotification):
+    def OnAddressChange(self, context, frame, view, location):
+        # navigation from the Symbols pane reaches the sidebar only through this global notification
+        if view is None or location is None or not location.isValid():
+            return
+        widget = _widget_for_view(view.getData())
+        if widget is not None:
+            widget.notifyOffsetChanged(location.getOffset())
+
     def OnBeforeCloseFile(self, context, file, frame):
         if not config.SUBMIT_FUNCTION_NAMES_ON_CLOSE:
             return True
@@ -135,15 +143,22 @@ class McritCloseNotification(UIContextNotification):
         return True
 
 
-def _session_for(context):
-    """Open the MCRIT sidebar for the action's view and return its session."""
+def _activate_sidebar(context):
+    """Open the MCRIT sidebar for the action's view."""
     ui_context = context.context or UIContext.activeContext()
-    if ui_context is None or context.binaryView is None:
-        return None
+    if ui_context is None:
+        return False
     sidebar = ui_context.sidebar()
     if sidebar is None:
-        return None
+        return False
     sidebar.activate(SIDEBAR_NAME)
+    return True
+
+
+def _session_for(context):
+    """Open the MCRIT sidebar for the action's view and return its session."""
+    if context.binaryView is None or not _activate_sidebar(context):
+        return None
     widget = _widget_for_view(context.binaryView)
     if widget is None:
         logger.log_warn("No MCRIT sidebar for the current view; open the MCRIT sidebar and retry.")
@@ -164,9 +179,9 @@ def _has_report(session):
     return session.local_smda_report is not None
 
 
-# (action name, handler(session), enabled(session) or None when always available)
+# (action name, handler(session) or None to only open the sidebar, enabled(session) or None when always available)
 _ACTIONS = [
-    ("MCRIT\\Show Sidebar", lambda session: None, None),
+    ("MCRIT\\Show Sidebar", None, None),
     (
         "MCRIT\\Convert to SMDA Report",
         lambda session: session.main_widget._onConvertSmdaButtonClicked(),
@@ -218,6 +233,9 @@ def _register_actions():
     for name, handler, enabled in _ACTIONS:
 
         def activate(context, handler=handler):
+            if handler is None:
+                _activate_sidebar(context)
+                return
             session = _session_for(context)
             if session is not None:
                 handler(session)
@@ -235,15 +253,15 @@ def _register_actions():
         Menu.mainMenu("Plugins").addAction(name, "MCRIT")
 
 
-_close_notification = None
+_context_notification = None
 
 
 def register():
-    global _close_notification
-    if _close_notification is not None:
+    global _context_notification
+    if _context_notification is not None:
         return
     Sidebar.addSidebarWidgetType(McritSidebarWidgetType())
     _register_actions()
     _register_global_actions()
-    _close_notification = McritCloseNotification()
-    UIContext.registerNotification(_close_notification)
+    _context_notification = McritContextNotification()
+    UIContext.registerNotification(_context_notification)

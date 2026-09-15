@@ -6,7 +6,7 @@ uses the BackendInterface methods, so reports come out in the same shape as IDA 
 
 import re
 
-from binaryninja import SymbolType, demangle_generic
+from binaryninja import DemanglerConfig, SymbolType, demangle_any
 
 # sections Binary Ninja synthesizes for imports and compiler builtins; they hold no real code
 _SYNTHETIC_SECTIONS = {".extern", ".synthetic_builtins"}
@@ -87,8 +87,10 @@ class BinjaSmdaInterface:
 
     def _functionName(self, function, demangle):
         if demangle:
-            _type, name = demangle_generic(self.bv.arch, function.symbol.raw_name, self.bv)
-            return "::".join(name) if name else function.name
+            result = demangle_any(
+                function.symbol.raw_name, DemanglerConfig.for_binary_view(self.bv)
+            )
+            return str(result.name) if result else function.name
         return function.name
 
     def getFunctionSymbols(self, demangle=False):
