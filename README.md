@@ -239,7 +239,7 @@ directory:
 python3 -m venv .venv-idalib
 .venv-idalib/bin/python -m pip install --upgrade \
   "/path/to/IDA Professional 9.3/idalib/python"/idapro-*.whl \
-  "smda==4.3.10" "ida-settings==3.5.1"
+  "smda==4.8.0" "ida-settings==3.5.1"
 
 python scripts/common/build_test_fixture.py \
   --source tests/fixtures/mcrit_sample.c \
