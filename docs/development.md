@@ -3,23 +3,28 @@
 ## Layout
 
 ```text
-plugin.json                  Binary Ninja manifest (must stay at the root)
-__init__.py                  Binary Ninja entry point (must stay at the root)
-requirements.txt             Binary Ninja dependencies (must stay at the root)
-mcrit_plugin/
-  core/                      MCRIT client, settings, Backend interface, SMDA conversion; no GUI imports
-    minimcrit/               internalized MCRIT REST client
-    pylev/                   vendored Levenshtein helper (do not edit)
-  ui_qt/                     Qt widgets shared by IDA and Binary Ninja
-  ida/                       ida-plugin.json, ida_mcrit.py, IDA backend, graph viewer
-  binja/                     Binary Ninja backend, SMDA exporter interface, settings, sidebar
-  headless/                  backend without a disassembler: SMDA disassembles the file itself
-scripts/
-  common/ ida/ binja/        packaging, checks and integration test runners
-tests/
-  core/ ida/ binja/          pytest suite and in-disassembler integration tests
-.github/workflows/scripts/ida/
-  release_guard.py           tag, version and changelog gates for the IDA release
+mcrit-plugin/
+├── plugin.json              # Binary Ninja manifest (must stay at the root)
+├── __init__.py              # Binary Ninja entry point (must stay at the root)
+├── requirements.txt         # Binary Ninja dependencies (must stay at the root)
+├── mcrit_plugin/
+│   ├── core/                # MCRIT client, settings, Backend interface, SMDA conversion; no GUI imports
+│   │   ├── minimcrit/       # internalized MCRIT REST client
+│   │   └── pylev/           # vendored Levenshtein helper (do not edit)
+│   ├── ui_qt/               # Qt widgets shared by IDA and Binary Ninja
+│   ├── ida/                 # ida-plugin.json, ida_mcrit.py, IDA backend, graph viewer
+│   ├── binja/               # Binary Ninja backend, SMDA exporter interface, settings, sidebar
+│   └── headless/            # backend without a disassembler: SMDA disassembles the file itself
+├── scripts/
+│   ├── common/              # shared checks, fixtures, headless integration runner
+│   ├── ida/                 # IDA packaging, metadata sync, integration runners
+│   └── binja/               # Binary Ninja metadata sync, integration runner
+├── tests/
+│   ├── core/                # pytest suite
+│   ├── ida/                 # in-IDA integration tests
+│   └── binja/               # in-Binary Ninja integration tests
+└── .github/workflows/
+    └── scripts/ida/release_guard.py   # tag, version and changelog gates for the IDA release
 ```
 
 Everything that touches a disassembler goes through `mcrit_plugin/core/Backend.py`.
