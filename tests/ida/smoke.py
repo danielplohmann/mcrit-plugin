@@ -65,6 +65,21 @@ def _process_events(qt_application, rounds=1):
         qt_application.processEvents()
 
 
+def _release_qt_objects(form, qt_application):
+    # qexit() calls exit() without returning to Qt's event loop; deferred deletes still queued
+    # then run during C++ static destruction and abort IDA (seen with macOS style animations).
+    import mcrit_plugin.core.QtShim as QtShim
+
+    qt_core = QtShim.get_QtCore()
+    if form is not None and form.parent is not None:
+        form.parent.close()
+        form.parent.deleteLater()
+        form.parent = None
+    for _ in range(3):
+        qt_application.processEvents()
+        qt_core.QCoreApplication.sendPostedEvents(None, qt_core.QEvent.Type.DeferredDelete)
+
+
 def _emit_table_signal(table, signal_name, row=0, column=0):
     index = table.model().index(row, column)
     getattr(table, signal_name).emit(index)
@@ -685,6 +700,8 @@ def _exercise_offline_plugin(form, qt_application):
 
 
 def main() -> int:
+    form = None
+    qt_application = None
     try:
         import ida_auto
 
@@ -702,6 +719,7 @@ def main() -> int:
             _exercise_offline_plugin(form, qt_application)
 
         form.OnClose(None)
+        _release_qt_objects(form, qt_application)
         print("MCRIT_IDA_SMOKE_OK")
         _qexit(0)
         return 0
@@ -711,6 +729,8 @@ def main() -> int:
 
         traceback.print_exc()
         try:
+            if qt_application is not None:
+                _release_qt_objects(form, qt_application)
             _qexit(1)
         except Exception:
             pass
