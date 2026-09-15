@@ -49,7 +49,7 @@ hcli plugin uninstall mcrit-ida
 If the plugin has not been indexed yet, or you want to test a local build first, package the plugin locally and install the ZIP:
 
 ```bash
-python scripts/package_plugin.py --repo . --output ../mcrit-ida.zip
+python scripts/ida/package_plugin.py --repo . --output ../mcrit-ida.zip
 hcli plugin install ../mcrit-ida.zip
 ```
 
@@ -67,7 +67,7 @@ hcli plugin install ../mcrit-ida.zip \
 
 If you do not want to use HCLI at all, you can install the plugin manually:
 
-1. Copy this repository, or extract a packaged release ZIP, into `$IDAUSR/plugins/mcrit-ida/`.
+1. Extract a packaged release ZIP (or one built with `scripts/ida/package_plugin.py`) into `$IDAUSR/plugins/mcrit-ida/`. A repository checkout is not an IDA plugin directory: the packager places `ida-plugin.json` and `ida_mcrit.py` at the archive root.
 2. Ensure the plugin directory contains at least `ida-plugin.json`, `ida_mcrit.py`, `mcrit_plugin/`, and `icons/`.
 3. Install the Python dependencies with the Python interpreter bundled with your IDA installation:
 
@@ -125,7 +125,7 @@ hcli plugin install ida-settings-editor
 
 ### Configure Manually
 
-If you are not using HCLI, the most practical manual override is a `config_override.json` placed in the plugin root, next to `ida_mcrit.py`. A minimal example looks like this:
+If you are not using HCLI, the most practical manual override is a `config_override.json` placed in the installed plugin root, next to `ida_mcrit.py` (template: `docs/config_override.json.template`). A minimal example looks like this:
 
 ```json
 {
@@ -162,16 +162,25 @@ Configure the plugin to connect to your MCRIT instance:
 ### Project Structure
 ```text
 mcrit-plugin/
-├── ida-plugin.json   # IDA plugin metadata
-├── ida_mcrit.py      # IDA entry point
-├── plugin.json       # Binary Ninja plugin metadata
-├── __init__.py       # Binary Ninja entry point
+├── plugin.json            # Binary Ninja plugin metadata (must stay at the repository root)
+├── __init__.py            # Binary Ninja entry point
+├── requirements.txt       # Binary Ninja Python dependencies
 ├── mcrit_plugin/
-│   ├── core/         # MCRIT client, settings, disassembler Backend interface (incl. vendored pylev)
-│   ├── widgets/      # Qt UI components shared across disassemblers
-│   ├── ida/          # IDA backend, ida-settings binding, graph viewer
-│   └── binja/        # Binary Ninja backend, SMDA exporter interface, settings, sidebar and actions
-└── icons/            # Resources
+│   ├── core/              # MCRIT client, settings (+ settings.json), Backend interface, vendored pylev
+│   ├── widgets/           # Qt UI components shared across disassemblers
+│   ├── ida/               # ida-plugin.json, ida_mcrit.py entry, IDA backend, ida-settings binding, graph viewer
+│   └── binja/             # Binary Ninja backend, SMDA exporter interface, settings, sidebar and actions
+├── icons/                 # Resources shared by both plugins
+├── tests/
+│   ├── core/              # pytest suite (IDA and SMDA are stubbed in tests/conftest.py)
+│   ├── ida/               # IDA GUI and IDALib integration tests
+│   ├── binja/             # Binary Ninja GUI integration test
+│   └── fixtures/
+├── scripts/
+│   ├── ida/               # packaging, metadata check, IDA integration runners
+│   ├── binja/             # Binary Ninja integration runner
+│   └── common/            # settings check, quality checks, fixtures, MCRIT seeding
+└── docs/                  # config_override.json.template, Qt Designer mockup
 ```
 
 ### Local Build & Install
@@ -183,7 +192,7 @@ git clone https://github.com/danielplohmann/mcrit-plugin.git
 cd mcrit-plugin
 
 # 2. Package
-python scripts/package_plugin.py --repo . --output ../mcrit-ida.zip
+python scripts/ida/package_plugin.py --repo . --output ../mcrit-ida.zip
 
 # 3. Install
 hcli plugin install ../mcrit-ida.zip
@@ -193,10 +202,10 @@ hcli plugin install ../mcrit-ida.zip
 Run the local checks before publishing:
 
 ```bash
-python scripts/verify_metadata_sync.py --repo .
-python scripts/verify_settings_sync.py --repo .
-python scripts/run_quality_checks.py --repo .
-python scripts/package_plugin.py --repo . --output dist/mcrit-ida.zip
+python scripts/ida/verify_metadata_sync.py --repo .
+python scripts/common/verify_settings_sync.py --repo .
+python scripts/common/run_quality_checks.py --repo .
+python scripts/ida/package_plugin.py --repo . --output dist/mcrit-ida.zip
 hcli plugin lint .
 hcli plugin lint dist/mcrit-ida.zip
 ```
@@ -211,14 +220,14 @@ do not receive those secrets.
 
 The required Linux job installs IDA Pro 9.3, starts a local MCRIT server backed
 by MongoDB, seeds a deterministic reference binary, and runs an IDALib MCRIT
-smoke test followed by a GUI-process toolbar smoke test. To run the broader
+integration test followed by a GUI-process toolbar integration test. To run the broader
 IDA-version/platform IDALib checks, manually dispatch the workflow with
 `run_matrix` enabled.
 
-#### Local IDALib integration smoke test
+#### Local IDALib integration test
 
 IDALib runs the IDA analysis APIs without a GUI. Use it for the package,
-conversion, upload, and matching workflow; the separate GUI smoke below covers
+conversion, upload, and matching workflow; the separate GUI integration test below covers
 the actual toolbar callbacks. Use the Python ABI configured for the installed
 IDA version (the CI job deliberately selects Python 3.12); install the
 `idapro` package from that IDA distribution and use an isolated IDA user
@@ -230,12 +239,12 @@ python3 -m venv .venv-idalib
   "/path/to/IDA Professional 9.3/idalib/python"/idapro-*.whl \
   "smda==4.3.10" "ida-settings==3.5.1"
 
-python scripts/build_test_fixture.py \
+python scripts/common/build_test_fixture.py \
   --source tests/fixtures/mcrit_sample.c \
   --output /tmp/mcrit-idalib-fixture \
   --variant 1
 
-.venv-idalib/bin/python scripts/run_idalib_smoke.py \
+.venv-idalib/bin/python scripts/ida/run_idalib_integration.py \
   --ida-dir "/path/to/IDA Professional 9.3" \
   --input /tmp/mcrit-idalib-fixture \
   --idausr /tmp/mcrit-idalib-user \
@@ -247,7 +256,7 @@ ZIP into the isolated profile, and restores its MCRIT settings afterwards.
 Use `--offline` to validate package loading and IDB-to-SMDA conversion without
 a MCRIT service.
 
-#### Local GUI toolbar smoke test
+#### Local IDA GUI integration test
 
 The local runner uses an existing IDA installation and your normal IDA user
 profile; it does not require an HCLI API key. When `hcli` is available it
@@ -260,12 +269,12 @@ because IDA's `idat` binary refuses to import PySide6. It uses the native
 `--qt-platform` to override either choice.
 
 ```bash
-python scripts/build_test_fixture.py \
+python scripts/common/build_test_fixture.py \
   --source tests/fixtures/mcrit_sample.c \
   --output /tmp/mcrit-ida-fixture \
   --variant 1
 
-python scripts/run_ida_smoke.py \
+python scripts/ida/run_gui_integration.py \
   --ida-dir "/path/to/IDA Professional 9.3.app" \
   --input /tmp/mcrit-ida-fixture \
   --mcrit-server http://127.0.0.1:8000
@@ -275,7 +284,7 @@ If the plugin is already installed and should not be replaced, pass its
 installed directory explicitly:
 
 ```bash
-python scripts/run_ida_smoke.py \
+python scripts/ida/run_gui_integration.py \
   --ida-dir "/path/to/IDA Professional 9.3.app" \
   --input /tmp/mcrit-ida-fixture \
   --plugin-root "$HOME/.idapro/plugins/mcrit-ida" \
@@ -309,38 +318,38 @@ For a deterministic positive local match, build and seed the reference variant
 before running the query fixture; `seed_mcrit.py` waits for the worker:
 
 ```bash
-python scripts/build_test_fixture.py \
+python scripts/common/build_test_fixture.py \
   --source tests/fixtures/mcrit_sample.c \
   --output /tmp/mcrit-ida-reference \
   --variant 0
-.venv-mcrit/bin/python scripts/seed_mcrit.py \
+.venv-mcrit/bin/python scripts/common/seed_mcrit.py \
   --server http://127.0.0.1:8000 \
   --sample /tmp/mcrit-ida-reference
 ```
 
-Use `--offline` with `run_ida_smoke.py` when a live MCRIT service is not
-available; the GUI smoke still drives conversion, metadata dialogs, YARA, and
+Use `--offline` with `run_gui_integration.py` when a live MCRIT service is not
+available; the GUI integration test still drives conversion, metadata dialogs, YARA, and
 isolated settings. With a live service it additionally drives
 upload/query/matching, labels, graphs, and SMDA export. A manual GUI pass is
 still useful for visual rendering: open the MCRIT views, inspect labels and
 graphs, and verify settings through the Plugin Settings Manager.
 
-#### Local Binary Ninja GUI smoke test
+#### Local Binary Ninja GUI integration test
 
 Requires a licensed Binary Ninja installation (the test runs in the GUI, not headless), a live MCRIT
 service seeded with a reference sample, and a Python 3 environment matching Binary Ninja's
 interpreter with `smda` and `requests` installed:
 
 ```bash
-python scripts/run_binja_smoke.py \
+python scripts/binja/run_gui_integration.py \
   --input /tmp/mcrit-binja-query.exe \
   --reference-sha256 <sha256 of the seeded reference sample> \
   --mcrit-server http://127.0.0.1:8000/
 ```
 
 The runner creates a throwaway Binary Ninja user directory (license copy, this checkout linked
-as a plugin, `tests/binja/smoke.py` as `startup.py`), so the local Binary Ninja profile is not
-touched. The smoke drives the MCRIT sidebar through conversion, upload, matching job creation
+as a plugin, `tests/binja/gui_integration.py` as `startup.py`), so the local Binary Ninja profile is not
+touched. The test drives the MCRIT sidebar through conversion, upload, matching job creation
 and selection, cursor-following function queries, undoable renames, and the CFG graph report.
 
 ### Release Workflow

@@ -7,7 +7,7 @@ from mcrit_plugin.core.config import PLUGIN_ROOT, McritConfig
 
 GROUP = "mcrit"
 SECRET_SETTINGS = {"mcritweb_api_token"}
-# ida-settings only has string/boolean, so numeric settings are declared as strings in ida-plugin.json
+# ida-settings only has string/boolean, so numeric settings are declared as strings in the manifest
 NUMBER_SETTINGS = {
     "mcrit_request_timeout": (0, 3600),
     "blocks_min_size": (4, 20),

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the IDA headless smoke test with an existing local IDA installation."""
+"""Run the IDA headless integration test with an existing local IDA installation."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def _build_plugin_zip(repo_root: Path, output: Path) -> None:
     subprocess.run(
         [
             sys.executable,
-            str(repo_root / "scripts" / "package_plugin.py"),
+            str(repo_root / "scripts" / "ida" / "package_plugin.py"),
             "--repo",
             str(repo_root),
             "--output",
@@ -194,7 +194,7 @@ def _install_with_hcli(
 ) -> bool:
     if (idausr / "plugins" / "mcrit-ida" / "ida_mcrit.py").is_file():
         print(
-            "[ida-smoke] mcrit-ida is already installed; updating its files directly "
+            "[ida-integration] mcrit-ida is already installed; updating its files directly "
             "without requiring an HCLI API key"
         )
         return False
@@ -227,12 +227,12 @@ def _install_with_hcli(
         if isinstance(value, bool):
             value = str(value).lower()
         command.extend(["--config", f"{key}={value}"])
-    print("[ida-smoke] installing plugin with hcli")
+    print("[ida-integration] installing plugin with hcli")
     try:
         subprocess.run(command, check=True, env=environment)
     except subprocess.CalledProcessError as exc:
         print(
-            f"[ida-smoke] hcli plugin install failed ({exc.returncode}); "
+            f"[ida-integration] hcli plugin install failed ({exc.returncode}); "
             "falling back to manual extraction of the plugin archive",
         )
         return False
@@ -264,7 +264,7 @@ def main() -> int:
     parser.add_argument("--require-hcli", action="store_true")
     args = parser.parse_args()
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     input_path = args.input.expanduser().resolve()
     ida_dir = args.ida_dir.expanduser().resolve()
     if not input_path.is_file():
@@ -315,8 +315,8 @@ def main() -> int:
         ida_binary = (
             args.ida_binary.expanduser().resolve() if args.ida_binary else _find_ida_binary(ida_dir)
         )
-        smoke_script = repo_root / "tests" / "ida" / "smoke.py"
-        log_path = args.log.expanduser().resolve() if args.log else idausr / "ida-smoke.log"
+        integration_script = repo_root / "tests" / "ida" / "gui_integration.py"
+        log_path = args.log.expanduser().resolve() if args.log else idausr / "ida-integration.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
         qt_platform = (
             args.qt_platform
@@ -330,18 +330,18 @@ def main() -> int:
             {
                 "IDAUSR": str(idausr),
                 "MCRIT_IDA_PLUGIN_ROOT": str(plugin_root),
-                "MCRIT_IDA_SMOKE_LIVE": "0" if args.offline else "1",
-                "MCRIT_IDA_SMOKE_TIMEOUT": str(args.timeout),
+                "MCRIT_IDA_INTEGRATION_LIVE": "0" if args.offline else "1",
+                "MCRIT_IDA_INTEGRATION_TIMEOUT": str(args.timeout),
                 "QT_QPA_PLATFORM": qt_platform,
                 "PYTHONUTF8": "1",
             }
         )
         if args.reference_sha256:
-            environment["MCRIT_IDA_SMOKE_REFERENCE_SHA256"] = args.reference_sha256
+            environment["MCRIT_IDA_INTEGRATION_REFERENCE_SHA256"] = args.reference_sha256
         if args.artifacts:
             artifacts = args.artifacts.expanduser().resolve()
             artifacts.mkdir(parents=True, exist_ok=True)
-            environment["MCRIT_IDA_SMOKE_ARTIFACT_DIR"] = str(artifacts)
+            environment["MCRIT_IDA_INTEGRATION_ARTIFACT_DIR"] = str(artifacts)
         command = [str(ida_binary)]
         if ida_license := environment.get("IDA_LICENSE"):
             command.append(f"-Olicense:{ida_license}")
@@ -349,7 +349,7 @@ def main() -> int:
             [
                 "-A",
                 f"-L{log_path}",
-                f"-S{smoke_script}",
+                f"-S{integration_script}",
                 str(input_path),
             ]
         )
@@ -359,7 +359,7 @@ def main() -> int:
             else argument
             for argument in command
         ]
-        print("[ida-smoke]", " ".join(display_command))
+        print("[ida-integration]", " ".join(display_command))
         process_options = {}
         if os.name != "nt":
             process_options["start_new_session"] = True
@@ -388,7 +388,7 @@ def main() -> int:
                     if diagnostic_log:
                         print(diagnostic_log)
             raise RuntimeError(
-                f"IDA smoke test timed out after {process_timeout} seconds; "
+                f"IDA integration test timed out after {process_timeout} seconds; "
                 f"see {log_path} and IDALOG for startup diagnostics"
             )
         completed = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
@@ -404,22 +404,22 @@ def main() -> int:
         if "License not yet accepted" in log_text:
             raise RuntimeError(
                 "IDA has not accepted its license yet; start IDA Pro once interactively "
-                "and accept the license before running the headless smoke test"
+                "and accept the license before running the headless integration test"
             )
         if "Python 3 is not configured" in log_text:
             raise RuntimeError(
-                "IDA Python is not configured; configure it with idapyswitch before running the smoke test"
+                "IDA Python is not configured; configure it with idapyswitch before running the integration test"
             )
-        if completed.returncode != 0 and "MCRIT_IDA_SMOKE_OK" not in log_text:
+        if completed.returncode != 0 and "MCRIT_IDA_INTEGRATION_OK" not in log_text:
             if completed.stderr and completed.stderr.strip():
                 print(completed.stderr, file=sys.stderr)
             if completed.stdout and completed.stdout.strip():
                 print("--- IDA stdout ---", file=sys.stderr)
                 print(completed.stdout, file=sys.stderr)
-            raise RuntimeError(f"IDA smoke test failed with exit code {completed.returncode}")
-        if "MCRIT_IDA_SMOKE_OK" not in log_text:
-            raise RuntimeError(f"IDA smoke marker was not found in {log_path}")
-        print(f"[ida-smoke] completed successfully; log: {log_path}")
+            raise RuntimeError(f"IDA integration test failed with exit code {completed.returncode}")
+        if "MCRIT_IDA_INTEGRATION_OK" not in log_text:
+            raise RuntimeError(f"IDA integration test marker was not found in {log_path}")
+        print(f"[ida-integration] completed successfully; log: {log_path}")
         return 0
     finally:
         if ida_config_path is not None:

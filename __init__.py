@@ -1,4 +1,4 @@
-"""Binary Ninja entry point for the MCRIT plugin; the IDA entry point is ida_mcrit.py."""
+"""Binary Ninja entry point for the MCRIT plugin; the IDA entry point is mcrit_plugin/ida/ida_mcrit.py."""
 
 import os
 import sys

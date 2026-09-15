@@ -58,7 +58,7 @@ def main() -> int:
 
     repo = Path(args.repo).resolve()
     config_path = repo / "mcrit_plugin" / "ida" / "config.py"
-    plugin_path = repo / "ida-plugin.json"
+    plugin_path = repo / "mcrit_plugin" / "ida" / "ida-plugin.json"
     readme_path = repo / "README.md"
     changelog_path = repo / "CHANGELOG.md"
 

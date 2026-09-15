@@ -118,8 +118,8 @@ def test_version_matches_ida_plugin_json():
     import json
     import os
 
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-    with open(os.path.join(project_root, "ida-plugin.json"), "r") as fh:
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+    with open(os.path.join(project_root, "mcrit_plugin", "ida", "ida-plugin.json"), "r") as fh:
         manifest = json.load(fh)
     ida_config = importlib.import_module("mcrit_plugin.ida.config")
     assert manifest["plugin"]["version"] == ida_config.VERSION
@@ -129,8 +129,8 @@ def test_manifest_declares_sample_group_only_setting():
     import json
     import os
 
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-    with open(os.path.join(project_root, "ida-plugin.json"), "r") as fh:
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+    with open(os.path.join(project_root, "mcrit_plugin", "ida", "ida-plugin.json"), "r") as fh:
         manifest = json.load(fh)
 
     settings = {setting["key"]: setting for setting in manifest["plugin"]["settings"]}
@@ -142,8 +142,8 @@ def test_override_template_declares_sample_group_only_default():
     import json
     import os
 
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-    with open(os.path.join(project_root, "config_override.json.template"), "r") as fh:
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+    with open(os.path.join(project_root, "docs", "config_override.json.template"), "r") as fh:
         override_template = json.load(fh)
 
     assert override_template["sample_group_only"] is False

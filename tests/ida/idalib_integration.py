@@ -23,11 +23,11 @@ def _assert(condition, message):
 
 
 def _is_live():
-    return os.environ.get("MCRIT_IDA_SMOKE_LIVE", "1") == "1"
+    return os.environ.get("MCRIT_IDA_INTEGRATION_LIVE", "1") == "1"
 
 
 def _write_report_artifact(report):
-    value = os.environ.get("MCRIT_IDA_SMOKE_ARTIFACT_DIR")
+    value = os.environ.get("MCRIT_IDA_INTEGRATION_ARTIFACT_DIR")
     if not value:
         return
     artifact_dir = Path(value).resolve()
@@ -38,7 +38,7 @@ def _write_report_artifact(report):
 
 
 def _wait_for_functions(client, sample_id):
-    deadline = time.monotonic() + int(os.environ.get("MCRIT_IDA_SMOKE_TIMEOUT", "30"))
+    deadline = time.monotonic() + int(os.environ.get("MCRIT_IDA_INTEGRATION_TIMEOUT", "30"))
     while time.monotonic() < deadline:
         functions = client.getFunctionsBySampleId(sample_id) or []
         if functions:
@@ -116,7 +116,7 @@ def _exercise_live_mcrit():
     _assert(isinstance(result, dict), "MCRIT matching result was not a JSON object")
     matches = result.get("matches", {})
     _assert(matches.get("samples") or matches.get("functions"), "MCRIT returned no matches")
-    reference_sha256 = os.environ.get("MCRIT_IDA_SMOKE_REFERENCE_SHA256")
+    reference_sha256 = os.environ.get("MCRIT_IDA_INTEGRATION_REFERENCE_SHA256")
     if reference_sha256:
         reference = client.getSampleBySha256(reference_sha256)
         _assert(reference is not None, "MCRIT reference sample was not retrievable")
@@ -142,10 +142,10 @@ def main() -> int:
         _load_plugin(plugin_root)
         if _is_live():
             _exercise_live_mcrit()
-        print("MCRIT_IDALIB_SMOKE_OK")
+        print("MCRIT_IDALIB_INTEGRATION_OK")
         return 0
     except Exception as exc:
-        print(f"MCRIT_IDALIB_SMOKE_FAILURE: {exc}")
+        print(f"MCRIT_IDALIB_INTEGRATION_FAILURE: {exc}")
         traceback.print_exc()
         return 1
     finally:

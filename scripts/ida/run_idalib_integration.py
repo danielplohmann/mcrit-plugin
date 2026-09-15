@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the IDALib MCRIT integration smoke test with an installed IDA Pro."""
+"""Run the IDALib MCRIT integration test with an installed IDA Pro."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from run_ida_smoke import (
+from run_gui_integration import (
     _activate_current_venv,
     _build_plugin_zip,
     _find_installed_plugin,
@@ -61,7 +61,7 @@ def main() -> int:
     parser.add_argument("--require-hcli", action="store_true")
     args = parser.parse_args()
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     ida_dir = args.ida_dir.expanduser().resolve()
     input_path = args.input.expanduser().resolve()
     idausr = args.idausr.expanduser().resolve()
@@ -97,8 +97,10 @@ def main() -> int:
             raise FileNotFoundError(f"mcrit-ida entrypoint was not found at {plugin_root}")
 
         ida_config_path, previous_ida_config = _prepare_ida_settings(idausr, settings)
-        smoke_script = repo_root / "tests" / "ida" / "idalib_smoke.py"
-        log_path = args.log.expanduser().resolve() if args.log else idausr / "idalib-smoke.log"
+        integration_script = repo_root / "tests" / "ida" / "idalib_integration.py"
+        log_path = (
+            args.log.expanduser().resolve() if args.log else idausr / "idalib-integration.log"
+        )
         log_path.parent.mkdir(parents=True, exist_ok=True)
         environment = os.environ.copy()
         _activate_current_venv(environment)
@@ -106,20 +108,20 @@ def main() -> int:
             {
                 "IDAUSR": str(idausr),
                 "MCRIT_IDA_PLUGIN_ROOT": str(plugin_root),
-                "MCRIT_IDA_SMOKE_LIVE": "0" if args.offline else "1",
-                "MCRIT_IDA_SMOKE_TIMEOUT": str(args.timeout),
+                "MCRIT_IDA_INTEGRATION_LIVE": "0" if args.offline else "1",
+                "MCRIT_IDA_INTEGRATION_TIMEOUT": str(args.timeout),
                 "PYTHONUTF8": "1",
             }
         )
         if args.reference_sha256:
-            environment["MCRIT_IDA_SMOKE_REFERENCE_SHA256"] = args.reference_sha256
+            environment["MCRIT_IDA_INTEGRATION_REFERENCE_SHA256"] = args.reference_sha256
         if args.artifacts:
             artifacts = args.artifacts.expanduser().resolve()
             artifacts.mkdir(parents=True, exist_ok=True)
-            environment["MCRIT_IDA_SMOKE_ARTIFACT_DIR"] = str(artifacts)
+            environment["MCRIT_IDA_INTEGRATION_ARTIFACT_DIR"] = str(artifacts)
 
         completed = subprocess.run(
-            [sys.executable, str(smoke_script), "--input", str(input_path)],
+            [sys.executable, str(integration_script), "--input", str(input_path)],
             env=environment,
             check=False,
             text=True,
@@ -127,9 +129,11 @@ def main() -> int:
         )
         log_path.write_text(completed.stdout + completed.stderr, encoding="utf-8")
         print(log_path.read_text(encoding="utf-8", errors="replace"))
-        if completed.returncode != 0 or "MCRIT_IDALIB_SMOKE_OK" not in completed.stdout:
-            raise RuntimeError(f"IDALib smoke test failed with exit code {completed.returncode}")
-        print(f"[idalib-smoke] completed successfully; log: {log_path}")
+        if completed.returncode != 0 or "MCRIT_IDALIB_INTEGRATION_OK" not in completed.stdout:
+            raise RuntimeError(
+                f"IDALib integration test failed with exit code {completed.returncode}"
+            )
+        print(f"[idalib-integration] completed successfully; log: {log_path}")
         return 0
     finally:
         if ida_config_path is not None:

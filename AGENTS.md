@@ -6,8 +6,8 @@ For the MCRIT methodology (PicHash/MinHash, LSH banding) see the [mcrit `AGENTS.
 
 ## Repository layout
 
-- `ida_mcrit.py` — plugin entry point (registers actions, widgets, menus in IDA).
-- `ida-plugin.json` — **HCLI/IDA plugin metadata**: the single source of truth for the plugin `version` and the declarative `settings` list.
+- `mcrit_plugin/ida/ida_mcrit.py` — IDA plugin entry point (registers actions, widgets, menus in IDA); `scripts/ida/package_plugin.py` places it at the archive root.
+- `mcrit_plugin/ida/ida-plugin.json` — **HCLI/IDA plugin metadata**: the single source of truth for the IDA plugin `version` and the declarative `settings` list (mirrored by `mcrit_plugin/core/settings.json`); placed at the archive root by the packager and excluded from GitHub source archives.
 - `mcrit_plugin/core/` — disassembler-independent plugin logic.
   - `config.py` — `McritConfig`: **defaults** for every setting, type coercion, table layouts; reads values through a disassembler-specific getter.
   - `McritInterface.py` — orchestrates server communication, background jobs, UI-thread dispatch.
@@ -18,10 +18,10 @@ For the MCRIT methodology (PicHash/MinHash, LSH banding) see the [mcrit `AGENTS.
   - `minimcrit/`, `pylev/` — see "Vendored vs. internalized".
 - `mcrit_plugin/widgets/` — Qt views (`MainWidget`, `FunctionMatchWidget`, `BlockMatchWidget`, `FunctionOverviewWidget`, `SampleInfoWidget`, `LocalInfoWidget`, dialogs).
 - `mcrit_plugin/ida/` — `IdaBackend`, `SmdaGraphViewer`, and `config.py` (plugin `VERSION` plus the `ida-settings` binding).
-- `mcrit_plugin/binja/` — Binary Ninja frontend: `BinjaBackend`, `BinjaSmdaInterface` (SMDA `BackendInterface` fed to SMDA's `IdaExporter`), `config.py` (Binary Ninja Settings registered from the `ida-plugin.json` declarations; `VERSION` from `plugin.json`), and `McritSidebar` (sidebar, UI actions, close hook). Root `plugin.json` / `__init__.py` / `requirements.txt` are the Binary Ninja manifest, entry point and dependencies; `scripts/package_plugin.py` keeps `mcrit_plugin/binja` out of the IDA archive.
-- `scripts/` — packaging, metadata/settings verification, and IDA/IDALib smoke-test harnesses.
-- `tests/` — pure-Python pytest suite (IDA/SMDA are stubbed in `conftest.py`).
-- `icons/`, `qt-designer-mockup/` — resources.
+- `mcrit_plugin/binja/` — Binary Ninja frontend: `BinjaBackend`, `BinjaSmdaInterface` (SMDA `BackendInterface` fed to SMDA's `IdaExporter`), `config.py` (Binary Ninja Settings registered from the `ida-plugin.json` declarations; `VERSION` from `plugin.json`), and `McritSidebar` (sidebar, UI actions, close hook). Root `plugin.json` / `__init__.py` / `requirements.txt` are the Binary Ninja manifest, entry point and dependencies; `scripts/ida/package_plugin.py` keeps `mcrit_plugin/binja` out of the IDA archive.
+- `scripts/ida/` — packaging, metadata verification, IDA GUI/IDALib integration runners; `scripts/binja/` — Binary Ninja GUI integration runner; `scripts/common/` — settings verification, quality checks, fixture building, MCRIT seeding.
+- `tests/core/` — pure-Python pytest suite (IDA/SMDA are stubbed in `tests/conftest.py`); `tests/ida/`, `tests/binja/` — integration tests run inside the disassemblers.
+- `icons/` — resources; `docs/` — `config_override.json.template` and the Qt Designer mockup.
 
 ## Development setup
 
@@ -53,15 +53,15 @@ python -m pytest tests
 Packaging metadata / settings sanity (must pass before release; see "Settings & version sync"):
 
 ```bash
-python scripts/verify_metadata_sync.py --repo .
-python scripts/verify_settings_sync.py --repo .
-python scripts/run_quality_checks.py --repo .
-python scripts/package_plugin.py --repo . --output dist/mcrit-ida.zip
+python scripts/ida/verify_metadata_sync.py --repo .
+python scripts/common/verify_settings_sync.py --repo .
+python scripts/common/run_quality_checks.py --repo .
+python scripts/ida/package_plugin.py --repo . --output dist/mcrit-ida.zip
 ```
 
 ## Architecture primer
 
-- **Entry** (`ida_mcrit.py`) registers IDA menus/actions/hotkeys and the MCRIT widget subviews.
+- **Entry** (`mcrit_plugin/ida/ida_mcrit.py`) registers IDA menus/actions/hotkeys and the MCRIT widget subviews.
 - **`McritInterface`** owns the connection to the MCRIT server, runs long operations (convert IDB→SMDA, upload, query, match) off the UI thread, and dispatches results back to the widgets.
 - **`McritClient`** (internalized under `mcrit_plugin/core/minimcrit/`) is the HTTP client speaking the MCRIT REST API. The plugin intentionally vendors a minified copy of the core client so it has no hard dependency on the `mcrit` package.
 - **IDB→SMDA conversion** uses SMDA (optionally as the analysis backend via `use_smda_for_analysis`); results feed matching and label sync.
@@ -76,7 +76,7 @@ These mirror the MCRIT core vocabulary (the plugin is a client of them):
 - **Band / LSH** — candidate generation during fuzzy matching.
 - **Family / Sample / Function** — the three-tier storage hierarchy on the server.
 - **Label** — a server-side function name; the plugin can fetch, sync, and push function names.
-- **Settings** — per-plugin configuration via `ida-settings`, declared in `ida-plugin.json`.
+- **Settings** — per-plugin configuration via `ida-settings`, declared in `mcrit_plugin/ida/ida-plugin.json`.
 
 ## Code conventions
 
@@ -89,11 +89,11 @@ These mirror the MCRIT core vocabulary (the plugin is a client of them):
 - **Never** run `git commit`, `git push`, or open a PR unless explicitly instructed.
 - **Never** commit secrets: `mcritweb_api_token`, `mcritweb_username`, `ida-config.json`, or a `config_override.json` containing credentials. These must stay out of the tree.
 - **Settings & version sync** (this is the easy-to-break part):
-  - Settings are **declared** in `ida-plugin.json` (`settings` array) and have **defaults** in `mcrit_plugin/core/config.py` (`McritConfig._defaults`). These two must stay in sync; `verify_settings_sync.py` enforces it.
-  - The plugin `version` lives only in `ida-plugin.json` and is mirrored in the README changelog. **Do not bump the version unless explicitly asked.** When it is bumped, update both `ida-plugin.json` and the README "Version History".
+  - Settings are **declared** in `mcrit_plugin/ida/ida-plugin.json` (`settings` array, mirrored in `mcrit_plugin/core/settings.json`) and have **defaults** in `mcrit_plugin/core/config.py` (`McritConfig._defaults`). These two must stay in sync; `verify_settings_sync.py` enforces it.
+  - The IDA plugin `version` lives in `mcrit_plugin/ida/ida-plugin.json` (and `mcrit_plugin/ida/config.py`) and is mirrored in the README changelog. **Do not bump the version unless explicitly asked.** When it is bumped, update both `ida-plugin.json` and the README "Version History".
   - Always run `verify_metadata_sync.py` and `verify_settings_sync.py` after touching either file.
 - **Testing**: run `ruff format --check`, `ruff check`, and `python -m pytest tests` before considering work complete. The pure pytest suite is secret-free and runs in CI on every push/PR.
-- **IDA-licensed integration tests** (`.github/workflows/ida-tests.yml`) require a licensed IDA Pro and the `IDA_LICENSE_ID`/`HCLI_API_KEY` secrets. They are **not** available to fork PRs and must **not** be run by default. They are referenced here for completeness only; drive them via manual workflow dispatch or the local `scripts/run_idalib_smoke.py` / `scripts/run_ida_smoke.py` harnesses when a licensed IDA is present.
+- **IDA-licensed integration tests** (`.github/workflows/ida-tests.yml`) require a licensed IDA Pro and the `IDA_LICENSE_ID`/`HCLI_API_KEY` secrets. They are **not** available to fork PRs and must **not** be run by default. They are referenced here for completeness only; drive them via manual workflow dispatch or the local `scripts/ida/run_idalib_integration.py` / `scripts/ida/run_gui_integration.py` harnesses when a licensed IDA is present.
 - **Vendored vs. internalized**:
   - `mcrit_plugin/core/pylev` is a third-party vendored library. Do **not** edit it.
   - `mcrit_plugin/core/minimcrit` is the *minified* MCRIT API surface internalized for this plugin. Enhancing it (e.g. exposing more functionality) is allowed, **but its `McritClient` interface must not deviate from the core `mcrit` package's `McritClient`** unless the core client is enhanced in lockstep. Keep the two aligned.

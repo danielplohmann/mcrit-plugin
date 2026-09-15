@@ -29,7 +29,7 @@ def _assert(condition, message):
 
 
 def _is_live() -> bool:
-    return os.environ.get("MCRIT_IDA_SMOKE_LIVE", "1") == "1"
+    return os.environ.get("MCRIT_IDA_INTEGRATION_LIVE", "1") == "1"
 
 
 def _qexit(code: int) -> None:
@@ -44,7 +44,7 @@ def _qexit(code: int) -> None:
 
 
 def _artifact_dir():
-    value = os.environ.get("MCRIT_IDA_SMOKE_ARTIFACT_DIR")
+    value = os.environ.get("MCRIT_IDA_INTEGRATION_ARTIFACT_DIR")
     if not value:
         return None
     artifact_dir = Path(value).resolve()
@@ -86,7 +86,7 @@ def _emit_table_signal(table, signal_name, row=0, column=0):
 
 
 def _wait_for_functions(client, sample_id, qt_application=None):
-    timeout = int(os.environ.get("MCRIT_IDA_SMOKE_TIMEOUT", "30"))
+    timeout = int(os.environ.get("MCRIT_IDA_INTEGRATION_TIMEOUT", "30"))
     deadline = time.monotonic() + timeout
     last_functions = None
     while time.monotonic() < deadline:
@@ -611,7 +611,7 @@ def _exercise_live_mcrit(form, qt_application):
     _assert(isinstance(result, dict), "MCRIT matching result was not a JSON object")
     matches = result.get("matches", {})
     _assert(matches.get("samples") or matches.get("functions"), "MCRIT returned no matches")
-    reference_sha256 = os.environ.get("MCRIT_IDA_SMOKE_REFERENCE_SHA256")
+    reference_sha256 = os.environ.get("MCRIT_IDA_INTEGRATION_REFERENCE_SHA256")
     if reference_sha256:
         reference_sample = client.getSampleBySha256(reference_sha256)
         _assert(reference_sample is not None, "MCRIT reference sample could not be retrieved")
@@ -667,7 +667,7 @@ def _exercise_live_mcrit(form, qt_application):
         export_path = (
             artifact_dir / "exported-smda.json"
             if artifact_dir is not None
-            else Path(tempfile.gettempdir()) / "mcrit-ida-smoke.smda"
+            else Path(tempfile.gettempdir()) / "mcrit-ida-integration.smda"
         )
         import ida_kernwin
 
@@ -721,11 +721,11 @@ def main() -> int:
 
         form.OnClose(None)
         _release_qt_objects(form, qt_application)
-        print("MCRIT_IDA_SMOKE_OK")
+        print("MCRIT_IDA_INTEGRATION_OK")
         _qexit(0)
         return 0
     except Exception as exc:
-        print(f"MCRIT_IDA_SMOKE_FAILURE: {exc}")
+        print(f"MCRIT_IDA_INTEGRATION_FAILURE: {exc}")
         import traceback
 
         traceback.print_exc()

@@ -7,7 +7,7 @@ exclude = [
     "mcrit_plugin/core/minimcrit",
     "mcrit_plugin/core/pylev",
     "icons",
-    "qt-designer-mockup",
+    "docs/qt-designer-mockup",
 ]
 
 [tool.ruff.lint]

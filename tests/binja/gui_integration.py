@@ -1,8 +1,8 @@
-"""Binary Ninja GUI smoke test, installed as startup.py of a throwaway user directory.
+"""Binary Ninja GUI integration test, installed as startup.py of a throwaway user directory.
 
-scripts/run_binja_smoke.py prepares that directory and launches Binary Ninja on the query
+scripts/binja/run_gui_integration.py prepares that directory and launches Binary Ninja on the query
 sample. Checks run as chained event-loop callbacks so the UI thread is never blocked; the
-outcome is written to gui-smoke.log in the user directory.
+outcome is written to gui-integration.log in the user directory.
 """
 
 import os
@@ -16,8 +16,8 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 # startup.py is executed without __file__
-LOG = os.path.join(binaryninja.user_directory(), "gui-smoke.log")
-TIMEOUT = int(os.environ.get("MCRIT_BN_SMOKE_TIMEOUT", "120"))
+LOG = os.path.join(binaryninja.user_directory(), "gui-integration.log")
+TIMEOUT = int(os.environ.get("MCRIT_BN_INTEGRATION_TIMEOUT", "120"))
 
 
 def log(message):
@@ -25,7 +25,7 @@ def log(message):
         handle.write(f"{time.strftime('%H:%M:%S')} {message}\n")
 
 
-class Smoke:
+class IntegrationTest:
     def __init__(self, bv):
         self.bv = bv
         self.widget = None
@@ -34,8 +34,8 @@ class Smoke:
         self.target = None
 
     def finish(self, ok, message=""):
-        log("MCRIT_BN_SMOKE_OK" if ok else f"MCRIT_BN_SMOKE_FAILURE: {message}")
-        if os.environ.get("MCRIT_BN_SMOKE_KEEP_OPEN") != "1":
+        log("MCRIT_BN_INTEGRATION_OK" if ok else f"MCRIT_BN_INTEGRATION_FAILURE: {message}")
+        if os.environ.get("MCRIT_BN_INTEGRATION_KEEP_OPEN") != "1":
             QTimer.singleShot(1000, QApplication.instance().quit)
 
     def step(self, func, delay=0):
@@ -88,7 +88,7 @@ class Smoke:
 
     def convert(self):
         main_widget = self.session.main_widget
-        expected_sha256 = os.environ["MCRIT_BN_SMOKE_SHA256"]
+        expected_sha256 = os.environ["MCRIT_BN_INTEGRATION_SHA256"]
         self.check(
             self.session.cc.backend.get_input_sha256() == expected_sha256,
             "input sha256 matches file",
@@ -96,7 +96,7 @@ class Smoke:
 
         class InfoDialog(main_widget.SmdaInfoDialog):
             def exec_(dialog):
-                dialog.edit_family.setText("binja-smoke")
+                dialog.edit_family.setText("binja-integration")
                 dialog.edit_version.setText("fixture-query")
                 dialog._cb_is_library.setChecked(False)
                 dialog.ok_button.click()
@@ -174,7 +174,7 @@ class Smoke:
     def select_matching(self):
         client = self.session.mcrit_interface.mcrit_client
         main_widget = self.session.main_widget
-        reference_sha256 = os.environ.get("MCRIT_BN_SMOKE_REFERENCE_SHA256")
+        reference_sha256 = os.environ.get("MCRIT_BN_INTEGRATION_REFERENCE_SHA256")
         if reference_sha256:
             result = client.getResultForJob(self.job_id)
             reference = client.getSampleBySha256(reference_sha256)
@@ -247,10 +247,11 @@ class Smoke:
         backend = self.session.cc.backend
         original_name = self.target.name
         self.check(
-            backend.set_function_name(self.target.start, "mcrit_smoke_name"), "rename applied"
+            backend.set_function_name(self.target.start, "mcrit_integration_name"), "rename applied"
         )
         self.check(
-            backend.get_function_name(self.target.start) == "mcrit_smoke_name", "rename visible"
+            backend.get_function_name(self.target.start) == "mcrit_integration_name",
+            "rename visible",
         )
         self.bv.undo()
         self.check(self.target.name == original_name, "rename is undoable")
@@ -268,7 +269,7 @@ class Smoke:
         self.finish(True)
 
 
-class SmokeNotification(UIContextNotification):
+class IntegrationNotification(UIContextNotification):
     def __init__(self):
         UIContextNotification.__init__(self)
         self.started = False
@@ -279,16 +280,16 @@ class SmokeNotification(UIContextNotification):
         self.started = True
         bv = frame.getCurrentBinaryView()
         log(f"opened {bv.file.filename} ({bv.view_type})")
-        smoke = Smoke(bv)
+        integration = IntegrationTest(bv)
 
         def analyze():
             bv.update_analysis_and_wait()
-            binaryninja.execute_on_main_thread(lambda: smoke.step(smoke.start))
+            binaryninja.execute_on_main_thread(lambda: integration.step(integration.start))
 
         threading.Thread(target=analyze, daemon=True).start()
 
 
-if os.environ.get("MCRIT_BN_SMOKE_SHA256"):
+if os.environ.get("MCRIT_BN_INTEGRATION_SHA256"):
     open(LOG, "w").close()
-    _smoke_notification = SmokeNotification()
-    UIContext.registerNotification(_smoke_notification)
+    _integration_notification = IntegrationNotification()
+    UIContext.registerNotification(_integration_notification)

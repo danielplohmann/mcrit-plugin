@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the small deterministic binary used by the IDA/MCRIT smoke tests."""
+"""Build the small deterministic binary used by the IDA/MCRIT integration tests."""
 
 from __future__ import annotations
 

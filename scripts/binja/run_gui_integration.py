@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Run the Binary Ninja GUI smoke test against a live MCRIT server.
+"""Run the Binary Ninja GUI integration test against a live MCRIT server.
 
 A throwaway Binary Ninja user directory is created with a copy of the license, this checkout
-linked as a user plugin, and tests/binja/smoke.py installed as startup.py. The local Binary Ninja
+linked as a user plugin, and tests/binja/gui_integration.py installed as startup.py. The local Binary Ninja
 profile is never modified.
 """
 
@@ -20,7 +20,7 @@ import tempfile
 import time
 from pathlib import Path
 
-RESULT_MARKERS = ("MCRIT_BN_SMOKE_OK", "MCRIT_BN_SMOKE_FAILURE")
+RESULT_MARKERS = ("MCRIT_BN_INTEGRATION_OK", "MCRIT_BN_INTEGRATION_FAILURE")
 
 
 def _find_binja_binary(install_dir: Path) -> Path:
@@ -64,7 +64,7 @@ def _prepare_user_dir(
     plugins_dir = user_dir / "plugins"
     plugins_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(license_path, user_dir / "license.dat")
-    plugin_link = plugins_dir / "mcrit_plugin_smoke"
+    plugin_link = plugins_dir / "mcrit_plugin_integration"
     if not plugin_link.exists():
         plugin_link.symlink_to(repo_root, target_is_directory=True)
     settings = {
@@ -74,8 +74,8 @@ def _prepare_user_dir(
         "ui.allowWelcome": False,
     }
     (user_dir / "settings.json").write_text(json.dumps(settings, indent=2), encoding="utf-8")
-    shutil.copy2(repo_root / "tests" / "binja" / "smoke.py", user_dir / "startup.py")
-    return user_dir / "gui-smoke.log"
+    shutil.copy2(repo_root / "tests" / "binja" / "gui_integration.py", user_dir / "startup.py")
+    return user_dir / "gui-integration.log"
 
 
 def _wait_for_result(process: subprocess.Popen, result_log: Path, timeout: int) -> str:
@@ -108,7 +108,7 @@ def main() -> int:
     parser.add_argument("--keep-user-dir", action="store_true")
     args = parser.parse_args()
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     input_path = args.input.expanduser().resolve()
     if not input_path.is_file():
         raise FileNotFoundError(f"Input binary does not exist: {input_path}")
@@ -116,7 +116,7 @@ def main() -> int:
         raise FileNotFoundError(f"Binary Ninja license not found: {args.license}")
     binary = _find_binja_binary(args.install_dir)
 
-    user_dir = Path(tempfile.mkdtemp(prefix="mcrit-binja-smoke-"))
+    user_dir = Path(tempfile.mkdtemp(prefix="mcrit-binja-integration-"))
     process = None
     try:
         result_log = _prepare_user_dir(
@@ -126,13 +126,13 @@ def main() -> int:
         environment.update(
             {
                 "BN_USER_DIRECTORY": str(user_dir),
-                "MCRIT_BN_SMOKE_SHA256": _sha256(input_path),
-                "MCRIT_BN_SMOKE_TIMEOUT": str(args.step_timeout),
+                "MCRIT_BN_INTEGRATION_SHA256": _sha256(input_path),
+                "MCRIT_BN_INTEGRATION_TIMEOUT": str(args.step_timeout),
                 "PYTHONUTF8": "1",
             }
         )
         if args.reference_sha256:
-            environment["MCRIT_BN_SMOKE_REFERENCE_SHA256"] = args.reference_sha256
+            environment["MCRIT_BN_INTEGRATION_REFERENCE_SHA256"] = args.reference_sha256
         command = [str(binary), "-n"]
         if args.log:
             command += ["-l", str(args.log.expanduser().resolve())]
@@ -140,10 +140,10 @@ def main() -> int:
         process = subprocess.Popen(command, env=environment)
         text = _wait_for_result(process, result_log, args.timeout)
         print(text, end="")
-        if "MCRIT_BN_SMOKE_OK" not in text:
-            print("[binja-smoke] failed", file=sys.stderr)
+        if "MCRIT_BN_INTEGRATION_OK" not in text:
+            print("[binja-integration] failed", file=sys.stderr)
             return 1
-        print(f"[binja-smoke] completed successfully (user directory: {user_dir})")
+        print(f"[binja-integration] completed successfully (user directory: {user_dir})")
         return 0
     finally:
         if process is not None and process.poll() is None:

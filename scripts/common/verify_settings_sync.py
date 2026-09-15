@@ -37,7 +37,7 @@ def main() -> int:
 
     repo = Path(args.repo).resolve()
     config_path = repo / "mcrit_plugin" / "core" / "config.py"
-    plugin_path = repo / "ida-plugin.json"
+    plugin_path = repo / "mcrit_plugin" / "ida" / "ida-plugin.json"
 
     defaults = extract_defaults(config_path)
     plugin_data = json.loads(plugin_path.read_text(encoding="utf-8"))
