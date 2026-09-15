@@ -6,7 +6,6 @@
 
 import ida_graph
 from smda.common.SmdaFunction import SmdaFunction
-from smda.common.SmdaReport import SmdaReport
 
 
 class SmdaGraphViewer(ida_graph.GraphViewer):
@@ -84,20 +83,3 @@ class SmdaGraphViewer(ida_graph.GraphViewer):
         if not ida_graph.GraphViewer.Show(self):
             return False
         return True
-
-
-def show_example():
-    smda_report = SmdaReport.fromFile(
-        "0e967868c1f693097857d6d1069a3efca1e50f4516bb2637a10761d9bf4992ff_unpacked.smda"
-    )
-    g = SmdaGraphViewer(smda_report.getFunction(0x40D77A))
-    if g.Show():
-        return g
-    else:
-        return None
-
-
-if __name__ == "__main__":
-    g = show_example()
-    if g:
-        print("Graph created and displayed!")

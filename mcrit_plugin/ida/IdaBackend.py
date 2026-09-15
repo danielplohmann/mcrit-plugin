@@ -98,10 +98,11 @@ class IdaBackend(Backend):
         ea = self.get_cursor_address()
         if ea is None:
             return None
+        if hasattr(ida_funcs, "get_func_start"):
+            return _address_or_none(ida_funcs.get_func_start(ea))
+        # get_func is deprecated from IDA 9.4, but get_func_start does not exist before it
         func = ida_funcs.get_func(ea)
-        if not func:
-            return None
-        return _address_or_none(func.start_ea)
+        return _address_or_none(func.start_ea) if func else None
 
     def read_bytes(self, address, size):
         return ida_bytes.get_bytes(address, size)
