@@ -46,7 +46,7 @@ jobs:
 
           changed="$(gh api --paginate "repos/${REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename')"
 
-          if ! printf '%s\n' "${changed}" | grep -qE '^(mcrit_plugin/(core|ui_qt|ida)/|icons/)'; then
+          if ! printf '%s\n' "${changed}" | grep -qE '^(mcrit_plugin/(core|ui_qt|ida|binja)/|icons/)'; then
             echo "No shipped files changed; entry not required."
             exit 0
           fi

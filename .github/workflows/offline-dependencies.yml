@@ -33,7 +33,9 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+    timeout-minutes: 60
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
         variant: ${{ fromJSON(inputs.variants) }}
@@ -53,27 +55,23 @@ jobs:
     - name: Create virtual environment
       run: |
         python -m venv venv
-        .\venv\Scripts\activate
-        python -m pip install --upgrade pip wheel
+        .\venv\Scripts\python.exe -m pip install --upgrade pip wheel
 
     - name: Install dependencies
       env:
         PACKAGES: ${{ matrix.variant.packages }}
       run: |
-        .\venv\Scripts\activate
         $packages = $env:PACKAGES -split ' '
-        python -m pip install @packages
+        .\venv\Scripts\python.exe -m pip install @packages
 
     - name: Generate requirements
       run: |
-        .\venv\Scripts\activate
-        python -m pip freeze > requirements-frozen.txt
+        .\venv\Scripts\python.exe -m pip freeze > requirements-frozen.txt
 
     - name: Create wheels directory and download dependencies
       run: |
-        .\venv\Scripts\activate
         New-Item -ItemType Directory -Path "wheels" -Force
-        python -m pip wheel --wheel-dir wheels -r requirements-frozen.txt
+        .\venv\Scripts\python.exe -m pip wheel --wheel-dir wheels -r requirements-frozen.txt
         Copy-Item "requirements-frozen.txt" "wheels/requirements.txt"
 
     - name: Create bundle

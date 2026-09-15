@@ -65,11 +65,11 @@ jobs:
         run: |
           python scripts/common/build_test_fixture.py \
             --source tests/fixtures/mcrit_sample.c \
-            --output "${{ runner.temp }}/mcrit-reference" \
+            --output "$RUNNER_TEMP/mcrit-reference" \
             --variant 0
           python scripts/common/build_test_fixture.py \
             --source tests/fixtures/mcrit_sample.c \
-            --output "${{ runner.temp }}/mcrit-headless-query" \
+            --output "$RUNNER_TEMP/mcrit-headless-query" \
             --variant 1
 
       - name: Wait for MongoDB
@@ -122,16 +122,16 @@ jobs:
         run: |
           "$RUNNER_TEMP/mcrit-venv/bin/python" scripts/common/seed_mcrit.py \
             --server "$MCRIT_SERVER" \
-            --sample "${{ runner.temp }}/mcrit-reference" \
+            --sample "$RUNNER_TEMP/mcrit-reference" \
             --timeout 180
 
       - name: Run headless integration test
         shell: bash
         run: |
           python scripts/common/run_headless_integration.py \
-            --input "${{ runner.temp }}/mcrit-headless-query" \
+            --input "$RUNNER_TEMP/mcrit-headless-query" \
             --mcrit-server "$MCRIT_SERVER" \
-            --reference-sha256 "$(sha256sum '${{ runner.temp }}/mcrit-reference' | cut -d' ' -f1)"
+            --reference-sha256 "$(sha256sum "$RUNNER_TEMP/mcrit-reference" | cut -d' ' -f1)"
 
       - name: Show MCRIT logs on failure
         if: failure()

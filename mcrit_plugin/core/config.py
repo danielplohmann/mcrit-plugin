@@ -17,12 +17,12 @@ def _configure_plugin_loggers():
         logger = logging.getLogger(logger_name)
         logger.setLevel(LOG_LEVEL)
         logger.propagate = False
-        if any(getattr(handler, "_mcrit4ida_handler", False) for handler in logger.handlers):
+        if any(getattr(handler, "_mcrit_plugin_handler", False) for handler in logger.handlers):
             continue
         handler = logging.StreamHandler(sys.stdout)
         handler.setLevel(LOG_LEVEL)
         handler.setFormatter(formatter)
-        handler._mcrit4ida_handler = True
+        handler._mcrit_plugin_handler = True
         logger.addHandler(handler)
 
 

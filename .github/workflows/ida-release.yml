@@ -52,10 +52,13 @@ jobs:
 
       - name: Check the tag is on main
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
         run: |
-          git fetch --quiet origin main
-          if ! git merge-base --is-ancestor "${TAG}" origin/main; then
+          status=$(gh api "repos/${REPO}/compare/main...${TAG}" --jq .status)
+          # "identical"/"behind" mean the tag is reachable from main
+          if [ "${status}" != "identical" ] && [ "${status}" != "behind" ]; then
             echo "::error::${TAG} is not an ancestor of main; releases are cut from main."
             exit 1
           fi

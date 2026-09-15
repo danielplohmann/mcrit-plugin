@@ -152,22 +152,24 @@ class MainWidget(QMainWindow):
         return
 
     def getLocalSmdaReport(self):
-        ida_converted_report = self.parent.mcrit_interface.convertToSmda()
-        local_report = ida_converted_report
+        backend_converted_report = self.parent.mcrit_interface.convertToSmda()
+        local_report = backend_converted_report
         # check of we alternatively want to use SMDA for analysis
         smda_converted_report = None
         if self.parent.config.USE_SMDA_FOR_ANALYSIS:
             smda_converted_report = self.parent.mcrit_interface.convertToSmdaUsingSmda()
         if smda_converted_report is not None:
-            ida_report_offsets = [func.offset for func in ida_converted_report.getFunctions()]
+            backend_report_offsets = [
+                func.offset for func in backend_converted_report.getFunctions()
+            ]
             smda_report_offsets = [func.offset for func in smda_converted_report.getFunctions()]
             # output diagnostic information if function sets differ
-            if set(ida_report_offsets) != set(smda_report_offsets):
+            if set(backend_report_offsets) != set(smda_report_offsets):
                 print(
-                    f"[!] SMDA disassembly report function set ({len(smda_report_offsets)}) differs from {self.cc.backend.name} converted report function set ({len(ida_report_offsets)})!"
+                    f"[!] SMDA disassembly report function set ({len(smda_report_offsets)}) differs from {self.cc.backend.name} converted report function set ({len(backend_report_offsets)})!"
                 )
-                missing_in_smda = set(ida_report_offsets) - set(smda_report_offsets)
-                missing_in_ida = set(smda_report_offsets) - set(ida_report_offsets)
+                missing_in_smda = set(backend_report_offsets) - set(smda_report_offsets)
+                missing_in_backend = set(smda_report_offsets) - set(backend_report_offsets)
                 if missing_in_smda:
                     print(
                         "    Functions in %s but not in SMDA report (%d): %s"
@@ -177,13 +179,13 @@ class MainWidget(QMainWindow):
                             ", ".join([f"0x{off:x}" for off in missing_in_smda]),
                         )
                     )
-                if missing_in_ida:
+                if missing_in_backend:
                     print(
                         "    Functions in SMDA but not in %s report (%d): %s"
                         % (
                             self.cc.backend.name,
-                            len(missing_in_ida),
-                            ", ".join([f"0x{off:x}" for off in missing_in_ida]),
+                            len(missing_in_backend),
+                            ", ".join([f"0x{off:x}" for off in missing_in_backend]),
                         )
                     )
                 print("    Using SMDA converted report.")
