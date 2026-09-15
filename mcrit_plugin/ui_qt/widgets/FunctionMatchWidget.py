@@ -162,9 +162,7 @@ class FunctionMatchWidget(QMainWindow):
 
     def hook_refresh(self, view, use_current_function=False):
         if self.parent.local_smda_report is None:
-            self.label_current_function_matches.setText(
-                "Cannot check for matches, need to convert database to SMDA report first."
-            )
+            self.label_current_function_matches.setText("Convert to SMDA report first.")
             return
         # get current function from cursor position
         if self.updateCurrentFunction(view) is None and not use_current_function:

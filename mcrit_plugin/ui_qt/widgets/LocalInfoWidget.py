@@ -147,7 +147,7 @@ class LocalInfoWidget(QMainWindow):
         self.activityInfoRequested.emit(message)
 
     def _setActivityInfo(self, message):
-        timestamp = self._datetime.datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%SZ")
+        timestamp = self._datetime.datetime.now(self._datetime.timezone.utc).strftime("%H:%M:%S")
         self.label_mcrit_activity_info.setText("Activity Info: %s - %s" % (timestamp, message))
 
     def updateServerInfo(self, mcrit_server, version=None, statistics=None):
