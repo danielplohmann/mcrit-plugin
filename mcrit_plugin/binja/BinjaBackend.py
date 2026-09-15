@@ -12,13 +12,29 @@ from binaryninja.enums import (
     MessageBoxButtonResult,
     MessageBoxButtonSet,
     MessageBoxIcon,
+    ThemeColor,
 )
 
 from mcrit_plugin.binja.BinjaSmdaInterface import BinjaSmdaInterface
 from mcrit_plugin.core.Backend import Backend
+from mcrit_plugin.core.ScoreColorProvider import ThemeRole
 
 TITLE = "MCRIT"
 logger = Logger(0, TITLE)
+
+THEME_HIGHLIGHT_ROLES = {
+    ThemeRole.BLUE: ThemeColor.BlueStandardHighlightColor,
+    ThemeRole.CYAN: ThemeColor.CyanStandardHighlightColor,
+    ThemeRole.GREEN: ThemeColor.GreenStandardHighlightColor,
+    ThemeRole.YELLOW: ThemeColor.YellowStandardHighlightColor,
+    ThemeRole.ORANGE: ThemeColor.OrangeStandardHighlightColor,
+    ThemeRole.RED: ThemeColor.RedStandardHighlightColor,
+    ThemeRole.MAGENTA: ThemeColor.MagentaStandardHighlightColor,
+}
+# the standard highlight colors are meant as tints; at full strength they overpower any theme
+TINT_STRENGTH = 0.4
+# Binary Ninja composites node highlights over the graph background, like its own highlighting
+GRAPH_HIGHLIGHT_ALPHA = 128
 
 
 class BinjaBackend(Backend):
@@ -198,6 +214,31 @@ class BinjaBackend(Backend):
             TITLE, message, MessageBoxButtonSet.OKButtonSet, MessageBoxIcon.WarningIcon
         )
 
+    def theme_color(self, role, default):
+        try:
+            from binaryninjaui import getThemeColor
+        except ImportError:
+            return default
+        if role == ThemeRole.TEXT_ON_TINT:
+            return None
+        base = getThemeColor(ThemeColor.BackgroundHighlightDarkColor)
+        if role == ThemeRole.NEUTRAL:
+            return (base.red(), base.green(), base.blue())
+        if role == ThemeRole.CURRENT:
+            selection = getThemeColor(ThemeColor.SelectionColor)
+            return (selection.red(), selection.green(), selection.blue())
+        if role not in THEME_HIGHLIGHT_ROLES:
+            return default
+        tint = getThemeColor(THEME_HIGHLIGHT_ROLES[role])
+        return tuple(
+            int(b + TINT_STRENGTH * (t - b))
+            for t, b in (
+                (tint.red(), base.red()),
+                (tint.green(), base.green()),
+                (tint.blue(), base.blue()),
+            )
+        )
+
     @staticmethod
     def _edge_branch_types(block, targets):
         """Classify CFG edges so Binary Ninja colors them like its own graphs."""
@@ -246,7 +287,10 @@ class BinjaBackend(Backend):
             if block.offset in coloring:
                 rgb = coloring[block.offset]
                 node.highlight = binaryninja.HighlightColor(
-                    red=(rgb >> 16) & 0xFF, green=(rgb >> 8) & 0xFF, blue=rgb & 0xFF
+                    red=(rgb >> 16) & 0xFF,
+                    green=(rgb >> 8) & 0xFF,
+                    blue=rgb & 0xFF,
+                    alpha=GRAPH_HIGHLIGHT_ALPHA,
                 )
             graph.append(node)
             nodes[block.offset] = node

@@ -100,6 +100,13 @@ class Backend(ABC):
     def show_warning(self, message):
         """Modal warning."""
 
+    def theme_color(self, role, default):
+        """RGB tuple for a ScoreColorProvider.ThemeRole, or None to keep the widget's own color.
+
+        Backends that follow a user-selectable theme override this; the default keeps `default`.
+        """
+        return default
+
     @abstractmethod
     def show_function_graph(self, parent, sample_entry, function_entry, smda_function, coloring):
         """Show the CFG of a remote SMDA function; coloring maps block offset -> 0xRRGGBB."""

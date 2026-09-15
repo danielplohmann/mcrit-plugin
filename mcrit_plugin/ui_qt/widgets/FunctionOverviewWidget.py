@@ -1,5 +1,6 @@
 import mcrit_plugin.core.McritTableColumn as McritTableColumn
 import mcrit_plugin.ui_qt.QtShim as QtShim
+from mcrit_plugin.core.ScoreColorProvider import ScoreColorProvider, ThemeRole
 from mcrit_plugin.ui_qt.widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
 
 QMainWindow = QtShim.get_QMainWindow()
@@ -10,7 +11,15 @@ QPalette = QtShim.get_QPalette()
 
 
 class ColoredComboBox(QComboBox):
-    def __init__(self, parent=None, criticality=0):
+    criticality_roles = {
+        1: (ThemeRole.BLUE, (70, 120, 220)),
+        2: (ThemeRole.CYAN, (70, 180, 70)),
+        3: (ThemeRole.GREEN, (100, 255, 100)),
+        4: (ThemeRole.YELLOW, (255, 255, 100)),
+        5: (ThemeRole.RED, (255, 100, 100)),
+    }
+
+    def __init__(self, parent=None, criticality=0, backend=None):
         super().__init__(parent)
         self.criticality = criticality
         self.user_has_interacted = False
@@ -22,27 +31,20 @@ class ColoredComboBox(QComboBox):
         self.currentTextChanged.connect(self._on_text_changed)
 
         # Set colors immediately in constructor
+        scp = ScoreColorProvider(backend)
         color_rgb = None
-        if criticality == 0:
-            pass
-            # color_rgb = "100, 100, 100"  # could be grey but default works as well on light theme?
-        elif criticality == 1:
-            color_rgb = "70, 120, 220"  # blue
-        elif criticality == 2:
-            color_rgb = "70, 180, 70"  # dark green
-        elif criticality == 3:
-            color_rgb = "100, 255, 100"  # green
-        elif criticality == 4:
-            color_rgb = "255, 255, 100"  # yellow
-        elif criticality >= 5:
-            color_rgb = "255, 100, 100"  # red
+        if criticality:
+            role, default = self.criticality_roles[min(criticality, 5)]
+            color_rgb = "%d, %d, %d" % scp.roleColor(role, default)
 
         if color_rgb:
+            text_color = scp.textOnTintColor()
+            text_rule = "color: rgb(%d, %d, %d);" % text_color if text_color else ""
             # Use more aggressive stylesheet targeting all parts of the combobox
             stylesheet = f"""
                 QComboBox {{
                     background-color: rgb({color_rgb});
-                    color: black;
+                    {text_rule}
                     border: 1px solid gray;
                 }}
                 QComboBox:drop-down {{
@@ -50,11 +52,11 @@ class ColoredComboBox(QComboBox):
                 }}
                 QComboBox:disabled {{
                     background-color: rgb({color_rgb});
-                    color: black;
+                    {text_rule}
                 }}
                 QComboBox QAbstractItemView {{
                     background-color: rgb({color_rgb});
-                    color: black;
+                    {text_rule}
                 }}
             """
 
@@ -127,8 +129,11 @@ class ColoredComboBox(QComboBox):
 
 
 class DropdownDelegate(QStyledItemDelegate):
-    def __init__(self, function_name_mapping, row_criticality_mapping=None, parent_widget=None):
+    def __init__(
+        self, function_name_mapping, row_criticality_mapping=None, parent_widget=None, backend=None
+    ):
         super().__init__()
+        self.backend = backend
         self.function_name_mapping = function_name_mapping
         self.row_criticality_mapping = (
             row_criticality_mapping if row_criticality_mapping is not None else {}
@@ -139,7 +144,7 @@ class DropdownDelegate(QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         criticality = self.row_criticality_mapping.get(index.row(), 0)
-        editor = ColoredComboBox(parent, criticality)
+        editor = ColoredComboBox(parent, criticality, self.backend)
         choices = self.function_name_mapping.get((index.row(), index.column()), [])
         choice_items = [entry["text"] for entry in choices]
         editor.addItems(choice_items)
@@ -751,7 +756,10 @@ class FunctionOverviewWidget(QMainWindow):
             if function_labels:
                 # Set the delegate to create dropdown menus in the second column
                 delegate = DropdownDelegate(
-                    self.function_name_mapping, self.row_criticality_mapping, self
+                    self.function_name_mapping,
+                    self.row_criticality_mapping,
+                    self,
+                    self.cc.backend,
                 )
                 self.table_local_functions.setItemDelegateForColumn(
                     label_score_column_index, delegate

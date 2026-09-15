@@ -3,11 +3,15 @@ import time
 import mcrit_plugin.core.McritTableColumn as McritTableColumn
 import mcrit_plugin.ui_qt.QtShim as QtShim
 from mcrit_plugin.core.minimcrit.matchers.FunctionCfgMatcher import FunctionCfgMatcher
-from mcrit_plugin.core.ScoreColorProvider import ScoreColorProvider
+from mcrit_plugin.core.ScoreColorProvider import ScoreColorProvider, ThemeRole
 from mcrit_plugin.ui_qt.widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
 
 QMainWindow = QtShim.get_QMainWindow()
 QColor = QtShim.get_QColor()
+
+
+def packRgb(rgb):
+    return (rgb[0] << 16) | (rgb[1] << 8) | rgb[2]
 
 
 class BlockMatchWidget(QMainWindow):
@@ -17,7 +21,7 @@ class BlockMatchWidget(QMainWindow):
         print("[|] loading BlockMatchWidget")
         # enable access to shared MCRIT4IDA modules
         self.parent = parent
-        self.scp = ScoreColorProvider()
+        self.scp = ScoreColorProvider(self.cc.backend)
         self.last_viewed_function = None
         self.last_viewed_block = None
         self._last_block_matches = None
@@ -386,7 +390,9 @@ class BlockMatchWidget(QMainWindow):
                         block_entry["summary"]["families"], opacity=1
                     )
                     tmp_item.setBackground(QColor(row_color[0], row_color[1], row_color[2]))
-                    tmp_item.setForeground(QColor("black"))
+                    text_color = self.scp.textOnTintColor()
+                    if text_color is not None:
+                        tmp_item.setForeground(QColor(text_color[0], text_color[1], text_color[2]))
                 self.table_block_summary.setItem(row, column, tmp_item)
             # self.table_function_matches.resizeRowToContents(row)
             row += 1
@@ -518,12 +524,14 @@ class BlockMatchWidget(QMainWindow):
                 )
                 return
             #
-            coloring = {block_offset_b: 0x00DDFF}
+            matched_color = packRgb(self.scp.roleColor(ThemeRole.CYAN, (0xC0, 0xF4, 0xFF)))
+            current_color = packRgb(self.scp.roleColor(ThemeRole.CURRENT, (0x00, 0xDD, 0xFF)))
+            coloring = {}
             for offset, data in self._last_block_matches.items():
                 for match in data["matches"]:
                     if match[2] == function_entry_b.function_id:
-                        coloring[match[3]] = 0xC0F4FF
-            coloring[block_offset_b] = 0x00DDFF
+                        coloring[match[3]] = matched_color
+            coloring[block_offset_b] = current_color
             self.cc.backend.show_function_graph(
                 self, sample_entry_b, function_entry_b, smda_function_b, coloring
             )

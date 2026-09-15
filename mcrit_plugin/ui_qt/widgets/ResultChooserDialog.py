@@ -1,4 +1,5 @@
 import mcrit_plugin.ui_qt.QtShim as QtShim
+from mcrit_plugin.core.ScoreColorProvider import ScoreColorProvider, ThemeRole
 from mcrit_plugin.ui_qt.widgets.NumberQTableWidgetItem import NumberQTableWidgetItem
 
 QDialog = QtShim.get_QDialog()
@@ -8,29 +9,31 @@ QPalette = QtShim.get_QPalette()
 
 
 class StatusRowDelegate(QStyledItemDelegate):
-    def __init__(self, queued_rows, progress_rows, finished_rows):
+    def __init__(self, queued_rows, progress_rows, finished_rows, backend=None):
         super().__init__()
         self.queued_rows = queued_rows
         self.progress_rows = progress_rows
         self.finished_rows = finished_rows
+        self.scp = ScoreColorProvider(backend)
 
-    def paint_rect(self, painter, option, index, r, g, b):
+    def paint_rect(self, painter, option, index, role, default):
         painter.save()
         palette = option.palette
-        bg_color = QColor(r, g, b)
+        bg_color = QColor(*self.scp.roleColor(role, default))
         palette.setColor(QPalette.Base, bg_color)
-        painter.setPen(QColor(0, 0, 0))  # Set text color to black explicitly
+        text_color = self.scp.textOnTintColor()
+        painter.setPen(QColor(*text_color) if text_color else palette.color(QPalette.Text))
         painter.fillRect(option.rect, bg_color)
         painter.drawText(option.rect, option.displayAlignment, index.data())
         painter.restore()
 
     def paint(self, painter, option, index):
         if index.row() in self.queued_rows:
-            self.paint_rect(painter, option, index, 200, 50, 50)
+            self.paint_rect(painter, option, index, ThemeRole.RED, (200, 50, 50))
         elif index.row() in self.progress_rows:
-            self.paint_rect(painter, option, index, 200, 200, 50)
+            self.paint_rect(painter, option, index, ThemeRole.YELLOW, (200, 200, 50))
         elif index.row() in self.finished_rows:
-            self.paint_rect(painter, option, index, 50, 200, 50)
+            self.paint_rect(painter, option, index, ThemeRole.GREEN, (50, 200, 50))
         else:
             # Default painting for other rows
             super().paint(painter, option, index)
@@ -120,7 +123,7 @@ class ResultChooserDialog(QDialog):
                 self.table_jobs.setItem(row, column, tmp_item)
             row += 1
 
-        delegate = StatusRowDelegate(queued_rows, progress_rows, finished_rows)
+        delegate = StatusRowDelegate(queued_rows, progress_rows, finished_rows, self.cc.backend)
         self.table_jobs.setItemDelegate(delegate)
         if preselected is not None:
             self.table_jobs.setCurrentCell(preselected, 0)

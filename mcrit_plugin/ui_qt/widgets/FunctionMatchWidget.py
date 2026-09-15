@@ -17,7 +17,7 @@ class FunctionMatchWidget(QMainWindow):
         print("[|] loading FunctionMatchWidget")
         # enable access to shared MCRIT4IDA modules
         self.parent = parent
-        self.scp = ScoreColorProvider()
+        self.scp = ScoreColorProvider(self.cc.backend)
         self.last_viewed = None
         self.name = "Function Scope"
         self.last_family_selected = None
@@ -341,7 +341,9 @@ class FunctionMatchWidget(QMainWindow):
                 # colorize by score
                 row_color = self.scp.scoreToColor(function_match_entry.matched_score, opacity=1)
                 tmp_item.setBackground(QColor(row_color[0], row_color[1], row_color[2]))
-                tmp_item.setForeground(QColor("black"))
+                text_color = self.scp.textOnTintColor()
+                if text_color is not None:
+                    tmp_item.setForeground(QColor(text_color[0], text_color[1], text_color[2]))
                 self.table_function_matches.setItem(row, column, tmp_item)
             # self.table_function_matches.resizeRowToContents(row)
             row += 1
