@@ -68,9 +68,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
+          BRANCH: main
         run: |
           conclusion=$(gh api \
-            "repos/${REPO}/actions/workflows/pytest.yml/runs?head_sha=${SHA}&status=completed" \
+            "repos/${REPO}/actions/workflows/pytest.yml/runs?head_sha=${SHA}&status=completed&event=push&branch=${BRANCH}" \
             --jq '.workflow_runs[0].conclusion // ""')
           if [ -z "${conclusion}" ]; then
             echo "::error::No completed CI run for ${SHA}. Wait for main to go green, then re-run."

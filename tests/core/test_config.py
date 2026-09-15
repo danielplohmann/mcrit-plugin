@@ -86,6 +86,42 @@ def test_sample_group_only_coerces_setting_value(fresh_config, raw_value, expect
         assert settings.SAMPLE_GROUP_ONLY is expected
 
 
+BOOL_PROPERTIES = [
+    "SAMPLE_GROUP_ONLY",
+    "AUTO_ANALYZE_SMDA_ON_STARTUP",
+    "USE_SMDA_FOR_ANALYSIS",
+    "SUBMIT_FUNCTION_NAMES_ON_CLOSE",
+    "BLOCKS_FILTER_LIBRARY_FUNCTIONS",
+    "BLOCKS_LIVE_QUERY",
+    "FUNCTION_FILTER_LIBRARY_FUNCTIONS",
+    "FUNCTION_LIVE_QUERY",
+    "OVERVIEW_FETCH_LABELS_AUTOMATICALLY",
+    "OVERVIEW_FILTER_TO_LABELS",
+    "OVERVIEW_FILTER_TO_CONFLICTS",
+]
+
+
+@pytest.mark.parametrize("property_name", BOOL_PROPERTIES)
+@pytest.mark.parametrize(
+    "raw_value, expected",
+    [
+        (False, False),
+        (True, True),
+        ("false", False),
+        ("False", False),
+        ("0", False),
+        ("", False),
+        ("true", True),
+        ("yes", True),
+        (1, True),
+    ],
+)
+def test_bool_properties_coerce_setting_value(fresh_config, property_name, raw_value, expected):
+    settings = fresh_config.McritConfig("0.0.0")
+    with patch.object(settings, "_get", return_value=raw_value):
+        assert getattr(settings, property_name) is expected
+
+
 def test_blocks_min_size_default(fresh_config):
     settings = fresh_config.McritConfig("0.0.0")
     assert settings.BLOCKS_MIN_SIZE == 4

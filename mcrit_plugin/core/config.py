@@ -180,27 +180,27 @@ class McritConfig:
     @property
     def AUTO_ANALYZE_SMDA_ON_STARTUP(self):
         """Auto-convert the database to an SMDA report on plugin startup."""
-        return self._get("auto_analyze_smda_on_startup")
+        return self._get_bool("auto_analyze_smda_on_startup")
 
     @property
     def USE_SMDA_FOR_ANALYSIS(self):
         """Also disassemble with SMDA itself instead of only exporting the disassembler's analysis."""
-        return self._get("use_smda_for_analysis")
+        return self._get_bool("use_smda_for_analysis")
 
     @property
     def SUBMIT_FUNCTION_NAMES_ON_CLOSE(self):
         """Submit updated function names to MCRIT when the database is closed."""
-        return self._get("submit_function_names_on_close")
+        return self._get_bool("submit_function_names_on_close")
 
     @property
     def BLOCKS_FILTER_LIBRARY_FUNCTIONS(self):
         """Filter out library functions in Block Scope Widget."""
-        return self._get("blocks_filter_library_functions")
+        return self._get_bool("blocks_filter_library_functions")
 
     @property
     def BLOCKS_LIVE_QUERY(self):
         """Enable live query updates in Block Scope Widget."""
-        return self._get("blocks_live_query")
+        return self._get_bool("blocks_live_query")
 
     @property
     def BLOCKS_MIN_SIZE(self):
@@ -210,12 +210,12 @@ class McritConfig:
     @property
     def FUNCTION_FILTER_LIBRARY_FUNCTIONS(self):
         """Filter out library functions in Function Scope Widget."""
-        return self._get("function_filter_library_functions")
+        return self._get_bool("function_filter_library_functions")
 
     @property
     def FUNCTION_LIVE_QUERY(self):
         """Enable live query updates in Function Scope Widget."""
-        return self._get("function_live_query")
+        return self._get_bool("function_live_query")
 
     @property
     def FUNCTION_MIN_SCORE(self):
@@ -225,17 +225,17 @@ class McritConfig:
     @property
     def OVERVIEW_FETCH_LABELS_AUTOMATICALLY(self):
         """Auto-fetch labels in Function Overview Widget."""
-        return self._get("overview_fetch_labels_automatically")
+        return self._get_bool("overview_fetch_labels_automatically")
 
     @property
     def OVERVIEW_FILTER_TO_LABELS(self):
         """Filter to labeled functions in Function Overview Widget."""
-        return self._get("overview_filter_to_labels")
+        return self._get_bool("overview_filter_to_labels")
 
     @property
     def OVERVIEW_FILTER_TO_CONFLICTS(self):
         """Filter to conflicting labels in Function Overview Widget."""
-        return self._get("overview_filter_to_conflicts")
+        return self._get_bool("overview_filter_to_conflicts")
 
     @property
     def OVERVIEW_MIN_SCORE(self):
