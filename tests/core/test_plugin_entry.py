@@ -31,9 +31,8 @@ def test_plugin_entry_defers_qt_imports(monkeypatch):
     monkeypatch.setitem(
         sys.modules,
         "ida_kernwin",
-        types.SimpleNamespace(PluginForm=_PluginForm, is_idaq=lambda: False),
+        types.SimpleNamespace(PluginForm=_PluginForm, is_idaq=lambda: False, View_Hooks=_ViewHooks),
     )
-    monkeypatch.setitem(sys.modules, "idaapi", types.SimpleNamespace(View_Hooks=_ViewHooks))
     monkeypatch.delitem(sys.modules, "mcrit_plugin.ida.ida_mcrit", raising=False)
 
     module = importlib.import_module("mcrit_plugin.ida.ida_mcrit")

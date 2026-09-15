@@ -4,17 +4,17 @@
 # (c) Hex-Rays
 # adopted for rendering GraphDiffing in MCRIT
 
-import idaapi
+import ida_graph
 from smda.common.SmdaFunction import SmdaFunction
 from smda.common.SmdaReport import SmdaReport
 
 
-class SmdaGraphViewer(idaapi.GraphViewer):
+class SmdaGraphViewer(ida_graph.GraphViewer):
     def __init__(self, parent, sample_entry, function_entry, smda_function: SmdaFunction, coloring):
         self.title = "No Function"
         if smda_function is not None:
             self.title = f"CFG for sample {sample_entry.sample_id} ({sample_entry.family}); function: {function_entry.function_id}@0x{smda_function.offset:x}"
-        idaapi.GraphViewer.__init__(self, self.title)
+        ida_graph.GraphViewer.__init__(self, self.title)
         self.parent = parent
         self.name = "SmdaGraphViewer"
         self.smda_function = smda_function
@@ -81,7 +81,7 @@ class SmdaGraphViewer(idaapi.GraphViewer):
         return "0x%x %s" % (self._node_id_to_offset[node_id], "some text")
 
     def Show(self):
-        if not idaapi.GraphViewer.Show(self):
+        if not ida_graph.GraphViewer.Show(self):
             return False
         return True
 

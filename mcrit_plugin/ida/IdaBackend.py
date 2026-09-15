@@ -1,10 +1,13 @@
 import os
 import re
+from contextlib import contextmanager
 
 import ida_bytes
 import ida_funcs
+import ida_idaapi
 import ida_kernwin
-import idaapi
+import ida_nalt
+import ida_undo
 import idc
 
 from mcrit_plugin.core.Backend import Backend
@@ -16,7 +19,7 @@ except ImportError:
 
 
 def _address_or_none(ea):
-    if ea is None or ea == idaapi.BADADDR:
+    if ea is None or ea == ida_idaapi.BADADDR:
         return None
     return ea
 
@@ -25,18 +28,22 @@ class IdaBackend(Backend):
     name = "IDA"
     plugin_name = "MCRIT4IDA"
 
+    def __init__(self):
+        self._mutation_depth = 0
+
     def get_input_md5(self):
-        md5 = idc.retrieve_input_file_md5()
+        md5 = ida_nalt.retrieve_input_file_md5()
         return md5.hex() if md5 is not None else None
 
     def get_input_sha256(self):
-        return idaapi.retrieve_input_file_sha256().hex()
+        sha256 = ida_nalt.retrieve_input_file_sha256()
+        return sha256.hex() if sha256 is not None else None
 
     def get_input_filename(self):
-        return os.path.basename(idaapi.get_root_filename())
+        return os.path.basename(ida_nalt.get_root_filename())
 
     def get_input_size(self):
-        return idaapi.retrieve_input_file_size()
+        return ida_nalt.retrieve_input_file_size()
 
     def export_smda_report(self):
         from smda.Disassembler import Disassembler
@@ -67,11 +74,10 @@ class IdaBackend(Backend):
         return _address_or_none(ida_kernwin.get_screen_ea())
 
     def get_selection(self):
-        start = _address_or_none(idc.read_selection_start())
-        end = _address_or_none(idc.read_selection_end())
-        if start is None or end is None:
+        selected, start, end = ida_kernwin.read_range_selection(None)
+        if not selected:
             return None, None
-        return start, end
+        return _address_or_none(start), _address_or_none(end)
 
     def get_current_function(self, view=None):
         """
@@ -80,14 +86,14 @@ class IdaBackend(Backend):
         """
         if view is None:
             return None
-        widget_type = idaapi.get_widget_type(view)
-        if widget_type == idaapi.BWN_PSEUDOCODE:
+        widget_type = ida_kernwin.get_widget_type(view)
+        if widget_type == ida_kernwin.BWN_PSEUDOCODE:
             # the view already holds its decompiled function; no need to decompile per cursor event
             vdui = ida_hexrays.get_widget_vdui(view) if ida_hexrays is not None else None
             if vdui is None or vdui.cfunc is None:
                 return None
             return _address_or_none(vdui.cfunc.entry_ea)
-        if widget_type != idaapi.BWN_DISASM:
+        if widget_type != ida_kernwin.BWN_DISASM:
             return None
         ea = self.get_cursor_address()
         if ea is None:
@@ -101,7 +107,7 @@ class IdaBackend(Backend):
         return ida_bytes.get_bytes(address, size)
 
     def jump_to(self, address):
-        return idc.jumpto(address)
+        return ida_kernwin.jumpto(address)
 
     def get_function_name(self, address):
         return ida_funcs.get_func_name(address)
@@ -113,14 +119,35 @@ class IdaBackend(Backend):
         name = self.get_function_name(address)
         return bool(name) and re.match("sub_[0-9A-Fa-f]+$", name) is not None
 
+    @contextmanager
+    def mutation(self, title):
+        if self._mutation_depth:
+            # an enclosing mutation already records these changes as one undo step
+            yield
+            return
+        self._mutation_depth += 1
+        try:
+            ida_undo.create_undo_point(self.plugin_name, title)
+            yield
+        finally:
+            self._mutation_depth -= 1
+
     def run_on_ui_thread(self, func):
-        return ida_kernwin.execute_sync(func, ida_kernwin.MFF_FAST)
+        result = []
+
+        def wrapper():
+            # execute_sync requires an int return value
+            result.append(func())
+            return 1
+
+        ida_kernwin.execute_sync(wrapper, ida_kernwin.MFF_FAST)
+        return result[0] if result else None
 
     def ask_save_file(self, default_name, prompt):
-        return ida_kernwin.ask_file(1, default_name, prompt) or None
+        return ida_kernwin.ask_file(1, default_name, "%s", prompt) or None
 
     def ask_yes_no(self, prompt):
-        return ida_kernwin.ask_yn(ida_kernwin.ASKBTN_NO, prompt) == ida_kernwin.ASKBTN_YES
+        return ida_kernwin.ask_yn(ida_kernwin.ASKBTN_NO, "%s", prompt) == ida_kernwin.ASKBTN_YES
 
     def show_warning(self, message):
         ida_kernwin.warning(message)

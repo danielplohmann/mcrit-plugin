@@ -748,7 +748,6 @@ def main() -> int:
         form, qt_application = _create_form(ida_mcrit)
         _exercise_cursor_tracking(form, qt_application)
         ida_mcrit.MCRIT4IDA = form
-        ida_mcrit.G_FORM = form
 
         if _is_live():
             _exercise_live_mcrit(form, qt_application)

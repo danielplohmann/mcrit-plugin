@@ -6,7 +6,6 @@ code inspired by and based on IDAscope
 
 import ida_idaapi
 import ida_kernwin
-import idaapi
 from ida_kernwin import PluginForm
 
 from mcrit_plugin.ida.config import MCRIT4IDA_PLUGIN_ONLY, config
@@ -42,10 +41,8 @@ def _load_dependencies():
 MCRIT4IDA = None
 NAME = "MCRIT4IDA v%s" % config.VERSION
 
-G_FORM = None
 
-
-class IdaViewHooks(idaapi.View_Hooks):
+class IdaViewHooks(ida_kernwin.View_Hooks):
     """
     Courtesy of Alex Hanel's FunctionTrapperKeeper
     https://github.com/alexander-hanel/FunctionTrapperKeeper/blob/main/function_trapper_keeper.py
@@ -94,10 +91,7 @@ class Mcrit4IdaForm(PluginForm, McritSession):
         # compatibility with IDA < 6.9
         self.view_hook = IdaViewHooks(self)
         self.view_hook.hook()
-        try:
-            self.parent = self.FormToPySideWidget(form)
-        except Exception:
-            self.parent = self.FormToPyQtWidget(form)
+        self.parent = self.FormToPyQtWidget(form)
         self.parent.setWindowIcon(self.icon)
         self.setupWidgets()
         if self.config.AUTO_ANALYZE_SMDA_ON_STARTUP:
@@ -125,9 +119,6 @@ class Mcrit4IdaForm(PluginForm, McritSession):
             self.view_hook.unhook()
             self.view_hook = None
         self.hook_subscribed_widgets = []
-        global G_FORM
-        if G_FORM is self:
-            G_FORM = None
         global MCRIT4IDA
         if MCRIT4IDA is self:
             MCRIT4IDA = None
@@ -149,31 +140,24 @@ def PLUGIN_ENTRY():
 
 
 def show_mcrit_form():
-    global MCRIT4IDA
+    """Create and show a form, returning it, or None when it cannot be shown."""
     try:
         _require_gui()
     except RuntimeError as exc:
         print(f"[!] {exc}")
         return None
-    created_form = False
-    if MCRIT4IDA is None:
-        try:
-            MCRIT4IDA = Mcrit4IdaForm()
-            created_form = True
-        except ImportError as exc:
-            ida_kernwin.warning(str(exc))
-            return None
-    if MCRIT4IDA.Show() is None:
-        if created_form:
-            try:
-                MCRIT4IDA.OnClose(MCRIT4IDA)
-            except Exception as exc:
-                print(f"[!] Error closing MCRIT4IDA after failed show: {exc}")
-            MCRIT4IDA = None
+    try:
+        form = Mcrit4IdaForm()
+    except ImportError as exc:
+        ida_kernwin.warning(str(exc))
         return None
-    global G_FORM
-    G_FORM = MCRIT4IDA
-    return MCRIT4IDA
+    if not form.Show():
+        try:
+            form.release()
+        except Exception as exc:
+            print(f"[!] Error closing MCRIT4IDA after failed show: {exc}")
+        return None
+    return form
 
 
 class Mcrit4IdaPlugmod(ida_idaapi.plugmod_t):
@@ -184,7 +168,11 @@ class Mcrit4IdaPlugmod(ida_idaapi.plugmod_t):
         self.form = None
 
     def run(self, arg):
-        self.form = show_mcrit_form()
+        if self.form is None:
+            self.form = show_mcrit_form()
+        else:
+            # Show() re-creates the widget when the user closed the form before
+            self.form.Show()
         return True
 
     def __del__(self):
@@ -218,7 +206,7 @@ def main():
     global MCRIT4IDA
     if MCRIT4IDA is not None:
         try:
-            MCRIT4IDA.OnClose(MCRIT4IDA)
+            MCRIT4IDA.Close(PluginForm.WCLS_SAVE)
             print("reloading MCRIT4IDA")
         except Exception:
             pass
@@ -228,7 +216,7 @@ def main():
         print("MCRIT4IDA: configured as plugin-only mode, ignoring main function of script.")
         return
 
-    show_mcrit_form()
+    MCRIT4IDA = show_mcrit_form()
 
 
 if __name__ == "__main__":
