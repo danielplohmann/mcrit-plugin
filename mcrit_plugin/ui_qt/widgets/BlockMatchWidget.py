@@ -26,7 +26,6 @@ class BlockMatchWidget(QMainWindow):
         self.last_viewed_block = None
         self._last_block_matches = None
         self.name = "Block Scope"
-        self.last_family_selected = None
         self.icon = self.cc.QIcon(self.parent.config.ICON_FILE_PATH + "puzzle.png")
         self.central_widget = self.cc.QWidget()
         self.setCentralWidget(self.central_widget)
@@ -140,9 +139,9 @@ class BlockMatchWidget(QMainWindow):
         return None
 
     def _ensure_remote_cache(self):
-        if self.parent.family_infos is None:
+        if not self.parent.family_infos:
             self.parent.mcrit_interface.queryAllFamilyEntries()
-        if self.parent.sample_infos is None:
+        if not self.parent.sample_infos:
             self.parent.mcrit_interface.queryAllSampleEntries()
         if self.parent.family_infos is None or self.parent.sample_infos is None:
             self.clearTable()
@@ -230,8 +229,9 @@ class BlockMatchWidget(QMainWindow):
             )
             return
         # calculate all block pichashes
+        min_block_size = self.sb_blocksize_threshold.value()
         pbh = FunctionCfgMatcher.getPicBlockHashesForFunction(
-            self.parent.local_smda_report, smda_function, min_size=4
+            self.parent.local_smda_report, smda_function, min_size=min_block_size
         )
         block_matches_by_offset = {}
         start = time.time()
@@ -276,19 +276,15 @@ class BlockMatchWidget(QMainWindow):
             for k, v in self.parent.family_infos.items():
                 if v.num_samples and v.num_library_samples == v.num_samples:
                     library_families.append(k)
-            min_block_size = self.sb_blocksize_threshold.value()
-            offsets_to_drop = {"by_size": set([]), "by_lib": set([])}
+            offsets_to_drop = set([])
             for offset, data in block_matches_by_offset.items():
                 set_all_functions.update([entry[2] for entry in data["matches"]])
                 filtered_matches = [
                     entry for entry in data["matches"] if entry[0] not in library_families
                 ]
-                if data["picblockhash"]["size"] < min_block_size:
-                    offsets_to_drop["by_size"].add(offset)
-                    print("dropping because of size", offset)
                 if len(filtered_matches) < len(data["matches"]):
                     block_matches_by_offset[offset]["has_library_matches"] = True
-                    offsets_to_drop["by_lib"].add(offset)
+                    offsets_to_drop.add(offset)
                 # reduce matches if we actually have matched some blocks against libraries
                 if (
                     self.cb_filter_library.isChecked()
@@ -305,10 +301,8 @@ class BlockMatchWidget(QMainWindow):
                 set_families.update([entry[0] for entry in filtered_matches])
                 set_samples.update([entry[1] for entry in filtered_matches])
                 set_functions.update([entry[2] for entry in filtered_matches])
-            for offset in offsets_to_drop["by_size"]:
-                block_matches_by_offset.pop(offset, None)
             if self.cb_filter_library.isChecked():
-                for offset in offsets_to_drop["by_lib"]:
+                for offset in offsets_to_drop:
                     block_matches_by_offset.pop(offset, None)
                 self.label_current_function_matches.setText(
                     "Block Matches for Function: 0x%x -- %d families, %d samples, %d functions (%d filtered)."
@@ -330,14 +324,14 @@ class BlockMatchWidget(QMainWindow):
                         len(set_all_functions),
                     )
                 )
-                self.current_block_offset = self.parent.current_function
         else:
             self.label_current_function_matches.setText(
                 "No Block Matches for Function: 0x%x" % self.parent.current_function
             )
-            self.label_block_matches.setText(
-                "No Block Matches for: 0x%x" % self.parent.current_block
-            )
+            if self.parent.current_block:
+                self.label_block_matches.setText(
+                    "No Block Matches for: 0x%x" % self.parent.current_block
+                )
         self._last_block_matches = block_matches_by_offset
         # populate tables with data
         self.populateBlockSummaryTable(block_matches_by_offset)
@@ -426,7 +420,8 @@ class BlockMatchWidget(QMainWindow):
         """
         Populate the function name table with all names for the matches we found
         """
-        self.label_block_matches.setText("Block Matches for: 0x%x" % self.parent.current_block)
+        if block_offset is not None:
+            self.label_block_matches.setText("Block Matches for: 0x%x" % block_offset)
         self.table_block_matches.setSortingEnabled(False)
         self.function_matches_header_labels = [
             McritTableColumn.MAP_COLUMN_TO_HEADER_STRING[col]
@@ -437,10 +432,6 @@ class BlockMatchWidget(QMainWindow):
         self.table_block_matches.setHorizontalHeaderLabels(self.function_matches_header_labels)
         self.table_block_matches.setRowCount(0)
         if block_offset not in block_matches:
-            return
-        # Identify number of table entries and prepare addresses to display
-        if block_offset not in block_matches:
-            self.table_block_matches.setRowCount(0)
             return
         self.table_block_matches.setRowCount(len(block_matches[block_offset]["matches"]))
         self.table_block_matches.resizeRowToContents(0)

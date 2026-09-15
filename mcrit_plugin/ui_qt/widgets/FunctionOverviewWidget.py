@@ -203,6 +203,8 @@ class FunctionOverviewWidget(QMainWindow):
         self.cc.QMainWindow.__init__(self)
         print("[|] loading FunctionOverviewWidget")
         self.last_selected_fields = {}  # offset -> selected label string
+        self._label_requested_ids = set()
+        self._score_range_job_id = None
         self.resolved_function_labels = {}  # offset -> resolved label string
         # enable access to shared MCRIT4IDA modules
         self.parent = parent
@@ -211,7 +213,7 @@ class FunctionOverviewWidget(QMainWindow):
         self.central_widget = self.cc.QWidget()
         self.setCentralWidget(self.central_widget)
         self.b_fetch_labels = self.cc.QPushButton("Fetch labels for matches")
-        self.b_fetch_labels.clicked.connect(self.fetchLabels)
+        self.b_fetch_labels.clicked.connect(lambda: self.fetchLabels(force=True))
 
         # Create horizontal layout for filter options
         self.filter_container = self.cc.QWidget()
@@ -277,10 +279,6 @@ class FunctionOverviewWidget(QMainWindow):
         # table
         self.label_local_functions = self.cc.QLabel("Functions Matched")
         self.table_local_functions = self.cc.QTableWidget()
-        self.table_local_functions.selectionModel().selectionChanged.connect(
-            self._onTableFunctionsSelectionChanged
-        )
-        self.table_local_functions.clicked.connect(self._onTableFunctionsClicked)
         self.table_local_functions.doubleClicked.connect(self._onTableFunctionsDoubleClicked)
         # Enable context menu for right-click handling -> we need to do that in the delegate now
         # self.table_local_functions.setContextMenuPolicy(self.cc.QtCore.Qt.CustomContextMenu)
@@ -312,7 +310,7 @@ class FunctionOverviewWidget(QMainWindow):
     # Rendering and state keeping
     ################################################################################
 
-    def fetchLabels(self):
+    def fetchLabels(self, force=False):
         match_report = self.parent.getMatchingReport()
         if match_report is None:
             return
@@ -320,9 +318,16 @@ class FunctionOverviewWidget(QMainWindow):
         for function_match in match_report.function_matches:
             matched_function_ids.add(function_match.matched_function_id)
         print("Number of matched remote functions: ", len(matched_function_ids))
-        self.parent.mcrit_interface.queryFunctionEntriesById(
-            list(matched_function_ids), with_label_only=True
-        )
+        if force:
+            self._label_requested_ids = set()
+        # with_label_only answers nothing for unlabeled functions, so the cache alone cannot tell
+        # a pending id from one already known to be unlabeled
+        pending_ids = matched_function_ids - self._label_requested_ids
+        if pending_ids:
+            self._label_requested_ids |= pending_ids
+            self.parent.mcrit_interface.queryFunctionEntriesById(
+                list(pending_ids), with_label_only=True
+            )
         function_entries_with_labels = {}
         if self.parent.matched_function_entries:
             for function_id, function_entry in self.parent.matched_function_entries.items():
@@ -460,30 +465,11 @@ class FunctionOverviewWidget(QMainWindow):
                 "No suitable function names found to import."
             )
 
-    def _updateLabelFunctionMatches(self, num_functions_matched):
-        local_smda_report = self.parent.getLocalSmdaReport()
-        total_local_functions = local_smda_report.num_functions
-        self.label_local_functions.setText(
-            "Local Functions Matched (%d/%d), Remote Functions Matched: %d"
-            % (self._countLocalMatches(), total_local_functions, self._countRemoteMatches())
-        )
-
-    def _countLocalMatches(self):
-        local_matches = set([])
-        match_report = self.parent.getMatchingReport()
-        for function_match in match_report.function_matches:
-            local_matches.add(function_match.function_id)
-        return len(local_matches)
-
-    def _countRemoteMatches(self):
-        remote_matches = set([])
-        match_report = self.parent.getMatchingReport()
-        for function_match in match_report.function_matches:
-            remote_matches.add(function_match.matched_function_id)
-        return len(remote_matches)
-
     def ensureSpinBoxRange(self, match_report):
-        # Set min/max value for score filter once
+        # a newly fetched result brings its own score range
+        if self._score_range_job_id != self.parent.matching_job_id:
+            self._score_range_job_id = self.parent.matching_job_id
+            self.global_minimum_match_value = None
         if self.global_minimum_match_value is None:
             self.global_minimum_match_value = 100
             self.global_maximum_match_value = 0
@@ -777,57 +763,12 @@ class FunctionOverviewWidget(QMainWindow):
         self.table_local_functions.setSortingEnabled(True)
         header = self.table_local_functions.horizontalHeader()
 
-        # Set column resize modes based on content type
-        offset_column_index = McritTableColumn.columnTypeToIndex(
-            McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS
-        )
-        label_score_column_index = McritTableColumn.columnTypeToIndex(
-            McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS
-        )
-        families_column_index = McritTableColumn.columnTypeToIndex(
-            McritTableColumn.FAMILIES, self.parent.config.OVERVIEW_TABLE_COLUMNS
-        )
-        samples_column_index = McritTableColumn.columnTypeToIndex(
-            McritTableColumn.SAMPLES, self.parent.config.OVERVIEW_TABLE_COLUMNS
-        )
-        functions_column_index = McritTableColumn.columnTypeToIndex(
-            McritTableColumn.FUNCTIONS, self.parent.config.OVERVIEW_TABLE_COLUMNS
-        )
-        library_column_index = McritTableColumn.columnTypeToIndex(
-            McritTableColumn.IS_LIBRARY, self.parent.config.OVERVIEW_TABLE_COLUMNS
-        )
-
         for header_id in range(0, len(self.local_function_header_labels), 1):
-            try:
-                # Set minimal width for numeric and fixed-content columns
-                if header_id in [
-                    offset_column_index,
-                    families_column_index,
-                    samples_column_index,
-                    functions_column_index,
-                    library_column_index,
-                ]:
-                    header.setSectionResizeMode(header_id, header_view.ResizeToContents)
-                # Let the score/label column stretch to fill remaining space
-                elif header_id == label_score_column_index:
-                    header.setSectionResizeMode(header_id, header_view.Stretch)
-                else:
-                    # Fallback for any other columns
-                    header.setSectionResizeMode(header_id, header_view.ResizeToContents)
-            except Exception:
-                # Fallback for older Qt versions
-                if header_id in [
-                    offset_column_index,
-                    families_column_index,
-                    samples_column_index,
-                    functions_column_index,
-                    library_column_index,
-                ]:
-                    header.setResizeMode(header_id, header_view.ResizeToContents)
-                elif header_id == label_score_column_index:
-                    header.setResizeMode(header_id, header_view.Stretch)
-                else:
-                    header.setResizeMode(header_id, header_view.ResizeToContents)
+            # only the score/label column stretches; the rest stay as narrow as their content
+            if header_id == label_score_column_index:
+                header.setSectionResizeMode(header_id, header_view.Stretch)
+            else:
+                header.setSectionResizeMode(header_id, header_view.ResizeToContents)
 
         # Don't stretch the last section since we're handling it explicitly
         header.setStretchLastSection(False)
@@ -836,33 +777,8 @@ class FunctionOverviewWidget(QMainWindow):
     # Buttons and Actions
     ################################################################################
 
-    def _onTableFunctionsSelectionChanged(self, selected, deselected):
-        try:
-            self.table_local_functions.selectedItems()[0].row()
-        except IndexError:
-            # we can ignore this, as it may happen when a popup window is closed
-            pass
-
-    def _onTableFunctionsClicked(self, mi):
-        """
-        If a row in the best family match table is clicked, handle the selection
-        """
-        # For left click (default behavior), just handle the selection
-        function_offset_column = McritTableColumn.columnTypeToIndex(
-            McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS
-        )
-        if function_offset_column is not None:
-            offset_item = self.table_local_functions.item(mi.row(), function_offset_column)
-            if offset_item is not None:
-                clicked_function_address = offset_item.text()
-                as_int = int(clicked_function_address, 16)
-                self.last_function_selected = as_int
-
     def _handleRightClickOnRow(self, row, column):
         """Handle right-click action for a specific row and column"""
-        function_offset_column = McritTableColumn.columnTypeToIndex(
-            McritTableColumn.OFFSET, self.parent.config.OVERVIEW_TABLE_COLUMNS
-        )
         function_label_column = McritTableColumn.columnTypeToIndex(
             McritTableColumn.SCORE_AND_LABEL, self.parent.config.OVERVIEW_TABLE_COLUMNS
         )
@@ -872,14 +788,6 @@ class FunctionOverviewWidget(QMainWindow):
             if row < len(function_ids):
                 function_id = function_ids[row]
                 aggregated_result = self.current_rows[function_id]
-                if False:  # Print detailed label information to console for debugging
-                    print(
-                        f"Labels for function id {function_id} @ {self.table_local_functions.item(row, function_offset_column).text()}"
-                    )
-                    for label in sorted(aggregated_result["labels"], reverse=True):
-                        print(
-                            f"  Score: {label[0]}, Label: {label[1]}, Username: {label[2]}, Timestamp: {label[3]}"
-                        )
                 function_offset = aggregated_result["offset"]
                 if function_offset in self.resolved_function_labels:
                     self.resolved_function_labels.pop(function_offset)
@@ -923,7 +831,7 @@ class FunctionOverviewWidget(QMainWindow):
         if mi.column() not in [function_offset_column, function_label_column]:
             self.cc.backend.jump_to(int(clicked_function_address, 16))
             # change to function scope tab
-            self.parent.main_widget.tabs.setCurrentIndex(1)
+            self.parent.main_widget.setTabFocus(self.parent.function_match_widget.name)
             self.parent.function_match_widget.queryCurrentFunction()
         elif mi.column() == function_offset_column:
             self.cc.backend.jump_to(int(clicked_function_address, 16))

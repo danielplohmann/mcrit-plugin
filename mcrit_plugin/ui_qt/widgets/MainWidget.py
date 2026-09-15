@@ -57,7 +57,7 @@ class MainWidget(QMainWindow):
         self.splitter.setStretchFactor(1, 10)
         layout.addWidget(self.splitter)
         self.central_widget.setLayout(layout)
-        self.setTabFocus("SampleInfo")
+        self.setTabFocus(self.parent.sample_widget.name)
 
     def _createToolbar(self):
         """
@@ -75,8 +75,6 @@ class MainWidget(QMainWindow):
         self.toolbar.addAction(self.exportSmdaAction)
         self._createBuildYaraStringAction()
         self.toolbar.addAction(self.buildYaraStringAction)
-        self._createModifySettingsAction()
-        # self.toolbar.addAction(self.modifySettingsAction)
 
     def _createParseSmdaAction(self):
         """
@@ -137,20 +135,6 @@ class MainWidget(QMainWindow):
         )
         self.buildYaraStringAction.setEnabled(False)
         self.buildYaraStringAction.triggered.connect(self._onBuildYaraStringButtonClicked)
-
-    def _createModifySettingsAction(self):
-        """
-        Create an action for sending a matching query to the MCRIT server.
-        """
-        self.modifySettingsAction = self.cc.QAction(
-            self.cc.QIcon(self.parent.config.ICON_FILE_PATH + "settings.png"),
-            "Adjust MCRIT settings.",
-            self,
-        )
-        self.modifySettingsAction.triggered.connect(self._onNopButtonClicked)
-
-    def _onNopButtonClicked(self):
-        return
 
     def getLocalSmdaReport(self):
         backend_converted_report = self.parent.mcrit_interface.convertToSmda()
@@ -413,9 +397,10 @@ class MainWidget(QMainWindow):
                     pass
                 else:
                     self.parent.mcrit_interface.getMatchingJobById(dialog_result["selected_job_id"])
-                self.tabs.setCurrentIndex(2)
+                self.setTabFocus(self.parent.function_widget.name)
                 self.hideLocalWidget()
             self.parent.function_widget.update()
+            self.parent.sample_widget.update()
             if self.parent.config.OVERVIEW_FETCH_LABELS_AUTOMATICALLY:
                 self.parent.function_widget.fetchLabels()
             return

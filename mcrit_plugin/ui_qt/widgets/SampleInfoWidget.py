@@ -13,6 +13,7 @@ class SampleInfoWidget(QMainWindow):
         self.parent = parent
         self.name = "Sample Match Summary"
         self.last_family_selected = None
+        self._matching_data = None
         self.icon = self.cc.QIcon(self.parent.config.ICON_FILE_PATH + "puzzle.png")
         self.central_widget = self.cc.QWidget()
         self.setCentralWidget(self.central_widget)
@@ -29,7 +30,6 @@ class SampleInfoWidget(QMainWindow):
         self.table_best_family_matches.selectionModel().selectionChanged.connect(
             self._onTableBestFamilySelectionChanged
         )
-        self.table_best_family_matches.clicked.connect(self._onTableBestFamilyClicked)
         self.table_best_family_matches.doubleClicked.connect(self._onTableBestFamilyDoubleClicked)
         # lower table
         self.label_sample_matches_family = self.cc.QLabel(
@@ -212,7 +212,8 @@ class SampleInfoWidget(QMainWindow):
         header_view = self._QtShim.get_QHeaderView()
         qt = self._QtShim.get_Qt()
 
-        matching_data = self._aggregatedMatchingData()
+        self._matching_data = self._aggregatedMatchingData()
+        matching_data = self._matching_data
         self.table_best_family_matches.setSortingEnabled(False)
         self.best_family_matches_header_labels = [
             "ID",
@@ -264,9 +265,9 @@ class SampleInfoWidget(QMainWindow):
                 elif column == 3:
                     tmp_item = self.cc.QTableWidgetItem(sample_entry["version"])
                 elif column == 4:
-                    tmp_item = self.NumberQTableWidgetItem("%d" % sample_entry["minhash_matches"])
-                elif column == 5:
                     tmp_item = self.NumberQTableWidgetItem("%d" % sample_entry["pichash_matches"])
+                elif column == 5:
+                    tmp_item = self.NumberQTableWidgetItem("%d" % sample_entry["minhash_matches"])
                 elif column == 6:
                     tmp_item = self.NumberQTableWidgetItem("%d" % sample_entry["combined_matches"])
                 elif column == 7:
@@ -285,10 +286,7 @@ class SampleInfoWidget(QMainWindow):
         self.table_best_family_matches.setSortingEnabled(True)
         header = self.table_best_family_matches.horizontalHeader()
         for header_id in range(0, len(self.best_family_matches_header_labels), 1):
-            try:
-                header.setSectionResizeMode(header_id, header_view.Stretch)
-            except Exception:
-                header.setResizeMode(header_id, header_view.Stretch)
+            header.setSectionResizeMode(header_id, header_view.Stretch)
         # propagate family selection to family match table
         selected_family = self.last_family_selected if self.last_family_selected else best_family
         self._updateLabelSampleMatches("All Sample Matches within Family: %s" % selected_family)
@@ -298,7 +296,9 @@ class SampleInfoWidget(QMainWindow):
         """
         Populate the function table with information from the last scan of I{SemanticIdentifier}.
         """
-        matching_data = self._aggregatedMatchingData()
+        if self._matching_data is None:
+            self._matching_data = self._aggregatedMatchingData()
+        matching_data = self._matching_data
         self.table_family_sample_matches.setSortingEnabled(False)
         self.family_sample_matches_header_labels = [
             "ID",
@@ -342,9 +342,9 @@ class SampleInfoWidget(QMainWindow):
                 elif column == 2:
                     tmp_item = self.cc.QTableWidgetItem(sample_entry["version"])
                 elif column == 3:
-                    tmp_item = self.NumberQTableWidgetItem("%d" % sample_entry["minhash_matches"])
-                elif column == 4:
                     tmp_item = self.NumberQTableWidgetItem("%d" % sample_entry["pichash_matches"])
+                elif column == 4:
+                    tmp_item = self.NumberQTableWidgetItem("%d" % sample_entry["minhash_matches"])
                 elif column == 5:
                     tmp_item = self.NumberQTableWidgetItem("%d" % sample_entry["combined_matches"])
                 elif column == 6:
@@ -363,10 +363,7 @@ class SampleInfoWidget(QMainWindow):
         header_view = self._QtShim.get_QHeaderView()
         header = self.table_family_sample_matches.horizontalHeader()
         for header_id in range(0, len(self.family_sample_matches_header_labels), 1):
-            try:
-                header.setSectionResizeMode(header_id, header_view.Stretch)
-            except Exception:
-                header.setResizeMode(header_id, header_view.Stretch)
+            header.setSectionResizeMode(header_id, header_view.Stretch)
 
     ################################################################################
     # Buttons and Actions
@@ -377,14 +374,6 @@ class SampleInfoWidget(QMainWindow):
             return
         selected_row = self.table_best_family_matches.selectedItems()[0].row()
         family = self.table_best_family_matches.item(selected_row, 2).text()
-        self.last_family_selected = family
-        self.populateFamilyMatchTable(family)
-
-    def _onTableBestFamilyClicked(self, mi):
-        """
-        If a row in the best family match table is clicked, adjust the family sample match table
-        """
-        family = self.table_best_family_matches.item(mi.row(), 2).text()
         self.last_family_selected = family
         self.populateFamilyMatchTable(family)
 

@@ -20,7 +20,6 @@ class FunctionMatchWidget(QMainWindow):
         self.scp = ScoreColorProvider(self.cc.backend)
         self.last_viewed = None
         self.name = "Function Scope"
-        self.last_family_selected = None
         self.icon = self.cc.QIcon(self.parent.config.ICON_FILE_PATH + "flag-triangle.png")
         self.central_widget = self.cc.QWidget()
         self.setCentralWidget(self.central_widget)
@@ -138,9 +137,9 @@ class FunctionMatchWidget(QMainWindow):
         return None
 
     def _ensure_remote_cache(self):
-        if self.parent.family_infos is None:
+        if not self.parent.family_infos:
             self.parent.mcrit_interface.queryAllFamilyEntries()
-        if self.parent.sample_infos is None:
+        if not self.parent.sample_infos:
             self.parent.mcrit_interface.queryAllSampleEntries()
         if self.parent.family_infos is None or self.parent.sample_infos is None:
             self.clearTable()
@@ -260,7 +259,13 @@ class FunctionMatchWidget(QMainWindow):
                     )
                 )
                 self.current_function_offset = self.parent.current_function
-        if match_report is not None:
+        if match_report is None:
+            self.clearTable()
+            self.label_current_function_matches.setText(
+                "Match query for function 0x%x failed; check the server connection."
+                % self.parent.current_function
+            )
+        else:
             # populate tables with data
             self.populateFunctionMatchTable(match_report)
             # TODO fetch all labels to populate lower table as soon as we support this
@@ -375,14 +380,14 @@ class FunctionMatchWidget(QMainWindow):
         function_matches_by_id = {
             match.matched_function_id: match for match in match_report.filtered_function_matches
         }
-        function_entries = self.parent.mcrit_interface.queryFunctionEntriesById(
-            [i for i in function_matches_by_id.keys()]
-        )
-        if not function_entries:
-            return
+        cached_entries = self.parent.matched_function_entries or {}
+        missing_ids = [fid for fid in function_matches_by_id if fid not in cached_entries]
+        if missing_ids:
+            self.parent.mcrit_interface.queryFunctionEntriesById(missing_ids)
+        cached_entries = self.parent.matched_function_entries or {}
         matched_entries = {}
         for function_id in function_matches_by_id.keys():
-            matched_entry = self.parent.matched_function_entries.get(function_id)
+            matched_entry = cached_entries.get(function_id)
             if matched_entry is None:
                 continue
             matched_entries[function_id] = matched_entry
@@ -526,8 +531,8 @@ class FunctionMatchWidget(QMainWindow):
             function_name = self.table_function_names.item(
                 mi.row(), function_label_column_index
             ).text()
-            # print(function_name)
-            self.cc.backend.set_function_name(self.last_viewed, function_name)
+            with self.cc.backend.mutation("Apply MCRIT label"):
+                self.cc.backend.set_function_name(self.last_viewed, function_name)
 
     def _onTableFunctionMatchRightClicked(self, position):
         """

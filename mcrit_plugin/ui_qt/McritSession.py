@@ -21,8 +21,9 @@ class McritSession:
         self.remote_sample_id = None
         self.remote_sample_entry = None
         self.local_smda_report = None
-        # the smda_report without xcfg part
+        # the smda_report without xcfg part, rebuilt whenever the report is replaced
         self.local_smda_report_outline = None
+        self._outline_source = None
         # after selecting a finished remote job, this is the cached data
         self.matching_job_id = None
         self.matching_report = None
@@ -65,13 +66,17 @@ class McritSession:
         return self.local_smda_report
 
     def getLocalSmdaReportOutline(self):
+        """A fresh copy of the local report without functions; SmdaReport caches getFunctions(), so one
+        outline must not be reused with a different xcfg."""
         from smda.common.SmdaReport import SmdaReport
 
-        if self.local_smda_report_outline is None and self.local_smda_report:
-            report_as_dict = self.local_smda_report.toDict()
-            report_as_dict["xcfg"] = {}
-            self.local_smda_report_outline = SmdaReport.fromDict(report_as_dict)
-        return self.local_smda_report_outline
+        if self.local_smda_report is None:
+            return None
+        if self._outline_source is not self.local_smda_report:
+            self._outline_source = self.local_smda_report
+            self.local_smda_report_outline = self.local_smda_report.toDict()
+            self.local_smda_report_outline["xcfg"] = {}
+        return SmdaReport.fromDict(dict(self.local_smda_report_outline))
 
     def getRemoteSampleInformation(self):
         """Download family/sample meta data; callable off the UI thread, so it touches no widget."""
