@@ -18,6 +18,7 @@ For the MCRIT methodology (PicHash/MinHash, LSH banding) see the [mcrit `AGENTS.
   - `minimcrit/`, `pylev/`, `pyperclip/` — see "Vendored vs. internalized".
 - `mcrit_plugin/widgets/` — Qt views (`MainWidget`, `FunctionMatchWidget`, `BlockMatchWidget`, `FunctionOverviewWidget`, `SampleInfoWidget`, `LocalInfoWidget`, dialogs).
 - `mcrit_plugin/ida/` — `IdaBackend`, `SmdaGraphViewer`, and `config.py` (plugin `VERSION` plus the `ida-settings` binding).
+- `mcrit_plugin/binja/` — Binary Ninja frontend: `BinjaBackend`, `BinjaSmdaInterface` (SMDA `BackendInterface` fed to SMDA's `IdaExporter`), `config.py` (Binary Ninja Settings registered from the `ida-plugin.json` declarations; `VERSION` from `plugin.json`), and `McritSidebar` (sidebar, UI actions, close hook). Root `plugin.json` / `__init__.py` / `requirements.txt` are the Binary Ninja manifest, entry point and dependencies; `scripts/package_plugin.py` keeps `mcrit_plugin/binja` out of the IDA archive.
 - `scripts/` — packaging, metadata/settings verification, and IDA/IDALib smoke-test harnesses.
 - `tests/` — pure-Python pytest suite (IDA/SMDA are stubbed in `conftest.py`).
 - `icons/`, `qt-designer-mockup/` — resources.

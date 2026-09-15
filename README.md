@@ -83,6 +83,14 @@ If your installation of IDA Pro is in an offline Windows VM, use the wheelhouse 
 python -m pip install --no-index --find-links=. -r requirements.txt
 ```
 
+### Binary Ninja
+
+The same repository is a Binary Ninja plugin (Binary Ninja 6.0+, Python 3). Install it through the Extension Manager, or clone it into the Binary Ninja user plugins folder; `requirements.txt` lists the Python dependencies the Extension Manager installs.
+
+- Configure the server and behavior under **Settings → MCRIT** (same settings as the IDA plugin).
+- Open the **MCRIT** sidebar from the right sidebar, or run any **MCRIT** action from the command palette or **Plugins → MCRIT**.
+- SMDA reports are exported from Binary Ninja's own analysis; **Query Current Function** and **Query Current Block** follow the cursor, and remote CFGs open as Binary Ninja graph reports.
+
 
 ## ⚙️ Configuration
 
@@ -156,10 +164,13 @@ Configure the plugin to connect to your MCRIT instance:
 mcrit-plugin/
 ├── ida-plugin.json   # IDA plugin metadata
 ├── ida_mcrit.py      # IDA entry point
+├── plugin.json       # Binary Ninja plugin metadata
+├── __init__.py       # Binary Ninja entry point
 ├── mcrit_plugin/
 │   ├── core/         # MCRIT client, settings, disassembler Backend interface (incl. vendored pyperclip and pylev)
 │   ├── widgets/      # Qt UI components shared across disassemblers
-│   └── ida/          # IDA backend, ida-settings binding, graph viewer
+│   ├── ida/          # IDA backend, ida-settings binding, graph viewer
+│   └── binja/        # Binary Ninja backend, SMDA exporter interface, settings, sidebar and actions
 └── icons/            # Resources
 ```
 

@@ -89,7 +89,7 @@ class McritInterface(object):
         for smda_function in report.getFunctions():
             if smda_function.offset in function_symbols:
                 smda_function.function_name = function_symbols[smda_function.offset]
-        self.parent.local_widget.updateActivityInfo("Conversion from IDB to SMDA finished.")
+        self.parent.local_widget.updateActivityInfo("Conversion to SMDA finished.")
         return report
 
     def _check_connection_impl(self):

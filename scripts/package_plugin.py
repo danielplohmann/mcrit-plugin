@@ -18,6 +18,11 @@ EXCLUDE_DIR_NAMES = {
     "__pycache__",
 }
 
+# code for other disassemblers is not shipped in the IDA archive
+EXCLUDE_RELATIVE_DIRS = {
+    Path("mcrit_plugin/binja"),
+}
+
 EXCLUDE_SUFFIXES = {
     ".pyc",
     ".pyo",
@@ -41,7 +46,13 @@ def iter_files(root: Path, relative_path: str) -> list[Path]:
         return [source_path]
 
     return sorted(
-        path for path in source_path.rglob("*") if path.is_file() and should_include(path)
+        path
+        for path in source_path.rglob("*")
+        if path.is_file()
+        and should_include(path)
+        and not any(
+            path.relative_to(root).is_relative_to(excluded) for excluded in EXCLUDE_RELATIVE_DIRS
+        )
     )
 
 

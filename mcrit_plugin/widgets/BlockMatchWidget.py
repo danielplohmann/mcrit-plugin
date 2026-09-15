@@ -175,7 +175,7 @@ class BlockMatchWidget(QMainWindow):
     def hook_refresh(self, view, use_current_block=False):
         if self.parent.local_smda_report is None:
             self.label_current_function_matches.setText(
-                "Cannot check for matches, need to convert IDB to SMDA report first."
+                "Cannot check for matches, need to convert database to SMDA report first."
             )
             return
         # get current function from cursor position

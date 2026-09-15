@@ -8,6 +8,8 @@ class Backend(ABC):
     """
 
     name = ""
+    # identifies the producing plugin in uploaded SMDA reports and the UI, e.g. "MCRIT4IDA"
+    plugin_name = ""
 
     @abstractmethod
     def get_input_md5(self):

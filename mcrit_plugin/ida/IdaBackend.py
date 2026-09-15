@@ -23,6 +23,7 @@ def _address_or_none(ea):
 
 class IdaBackend(Backend):
     name = "IDA"
+    plugin_name = "MCRIT4IDA"
 
     def get_input_md5(self):
         md5 = idc.retrieve_input_file_md5()

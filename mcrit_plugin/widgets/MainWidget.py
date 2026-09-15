@@ -63,7 +63,7 @@ class MainWidget(QMainWindow):
         Creates the toolbar, containing buttons to control the widget.
         """
         # TODO for MCRIT 1.0.0 release, we hide the other buttons until they are properly developed
-        self.toolbar = self.addToolBar("MCRIT4IDA Toobar")
+        self.toolbar = self.addToolBar(self.cc.backend.plugin_name + " Toolbar")
         self._createParseSmdaAction()
         self.toolbar.addAction(self.parseSmdaAction)
         self._createUploadSmdaAction()
@@ -83,7 +83,7 @@ class MainWidget(QMainWindow):
         """
         self.parseSmdaAction = self.cc.QAction(
             self.cc.QIcon(self.parent.config.ICON_FILE_PATH + "fingerprint_scan.png"),
-            "Convert this IDB to a SMDA report which can then be used to query MCRIT.",
+            "Convert this database to a SMDA report which can then be used to query MCRIT.",
             self,
         )
         self.parseSmdaAction.triggered.connect(self._onConvertSmdaButtonClicked)
@@ -143,7 +143,7 @@ class MainWidget(QMainWindow):
         """
         self.modifySettingsAction = self.cc.QAction(
             self.cc.QIcon(self.parent.config.ICON_FILE_PATH + "settings.png"),
-            "Adjust MCRIT4IDA settings.",
+            "Adjust MCRIT settings.",
             self,
         )
         self.modifySettingsAction.triggered.connect(self._onNopButtonClicked)
@@ -164,35 +164,41 @@ class MainWidget(QMainWindow):
             # output diagnostic information if function sets differ
             if set(ida_report_offsets) != set(smda_report_offsets):
                 print(
-                    f"[!] SMDA disassembly report function set ({len(smda_report_offsets)}) differs from IDA converted report function set ({len(ida_report_offsets)})!"
+                    f"[!] SMDA disassembly report function set ({len(smda_report_offsets)}) differs from {self.cc.backend.name} converted report function set ({len(ida_report_offsets)})!"
                 )
                 missing_in_smda = set(ida_report_offsets) - set(smda_report_offsets)
                 missing_in_ida = set(smda_report_offsets) - set(ida_report_offsets)
                 if missing_in_smda:
                     print(
-                        "    Functions in IDA but not in SMDA report (%d): %s"
+                        "    Functions in %s but not in SMDA report (%d): %s"
                         % (
+                            self.cc.backend.name,
                             len(missing_in_smda),
                             ", ".join([f"0x{off:x}" for off in missing_in_smda]),
                         )
                     )
                 if missing_in_ida:
                     print(
-                        "    Functions in SMDA but not in IDA report (%d): %s"
-                        % (len(missing_in_ida), ", ".join([f"0x{off:x}" for off in missing_in_ida]))
+                        "    Functions in SMDA but not in %s report (%d): %s"
+                        % (
+                            self.cc.backend.name,
+                            len(missing_in_ida),
+                            ", ".join([f"0x{off:x}" for off in missing_in_ida]),
+                        )
                     )
                 print("    Using SMDA converted report.")
             else:
                 print(
-                    "[|] SMDA converted report function set matches IDA converted report function set."
+                    f"[|] SMDA converted report function set matches {self.cc.backend.name} converted report function set."
                 )
             local_report = smda_converted_report
         if local_report is not None:
-            # some information obtained from IDA directly
+            # some information obtained from the disassembler directly
             local_report.sha256 = self.cc.backend.get_input_sha256()
             local_report.filename = self.cc.backend.get_input_filename()
             local_report.buffer_size = self.cc.backend.get_input_size()
-            local_report.smda_version = "MCRIT4IDA v%s via SMDA %s" % (
+            local_report.smda_version = "%s v%s via SMDA %s" % (
+                self.cc.backend.plugin_name,
                 self.parent.config.VERSION,
                 local_report.smda_version,
             )
@@ -311,12 +317,14 @@ class MainWidget(QMainWindow):
                     json.dump(
                         self.parent.local_smda_report.toDict(), fout, indent=1, sort_keys=True
                     )
-                self.parent.local_widget.updateActivityInfo('IDB exported to: "%s".' % filepath)
+                self.parent.local_widget.updateActivityInfo(
+                    'SMDA report exported to: "%s".' % filepath
+                )
             else:
                 self.parent.local_widget.updateActivityInfo("Export aborted.")
         else:
             self.parent.local_widget.updateActivityInfo(
-                "IDB is not converted to SMDA report yet, can't export."
+                "Database is not converted to SMDA report yet, can't export."
             )
 
     def _onUploadSmdaButtonClicked(self):
@@ -340,7 +348,7 @@ class MainWidget(QMainWindow):
                 self.getMatchResultAction.setEnabled(True)
         else:
             self.parent.local_widget.updateActivityInfo(
-                "IDB is not converted to SMDA report yet, can't upload."
+                "Database is not converted to SMDA report yet, can't upload."
             )
 
     def _onGetMatchResultButtonClicked(self):

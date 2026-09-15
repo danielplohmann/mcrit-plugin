@@ -18,7 +18,7 @@ class LocalInfoWidget(QMainWindow):
         self.central_widget = self.cc.QWidget()
         self.setCentralWidget(self.central_widget)
         self.label_mcrit_activity_info = self.cc.QLabel("Activity Info: <PLACEHOLDER>")
-        self.updateActivityInfo("MCRIT4IDA started.")
+        self.updateActivityInfo(self.cc.backend.plugin_name + " started.")
         self.label_mcrit_server_info = self.cc.QLabel("MCRIT Remote server: <not_active>")
         self.label_remote_sample_info = self.cc.QLabel("Remote sample: <unknown>")
         # horizontal line
