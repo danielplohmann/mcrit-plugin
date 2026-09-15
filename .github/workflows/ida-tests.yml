@@ -325,7 +325,7 @@ jobs:
         run: |
           # IDA 9.2+ shows a modal "do you want to enable the PyQt5 shim?" dialog
           # the first time anything in the process imports PyQt5. The mcrit plugin
-          # imports PyQt5 unconditionally (helpers/QtShim.py, helpers/pyperclip),
+          # imports PyQt5 unconditionally (mcrit_plugin/core/QtShim.py, mcrit_plugin/core/pyperclip),
           # and the dialog ignores -A / batch mode, blocking startup forever.
           # IDAPYTHON_USE_PYQT5_SHIM=0 in the GUI profile's idapython.cfg silences
           # the prompt. Guarded on __IDAVER__ >= 920 so older IDA versions ignore it.

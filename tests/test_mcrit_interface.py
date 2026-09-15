@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from helpers.McritInterface import McritInterface
+from mcrit_plugin.core.McritInterface import McritInterface
 
 
 class _FakeBinaryInfo:

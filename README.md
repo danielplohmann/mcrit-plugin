@@ -68,7 +68,7 @@ hcli plugin install ../mcrit-ida.zip \
 If you do not want to use HCLI at all, you can install the plugin manually:
 
 1. Copy this repository, or extract a packaged release ZIP, into `$IDAUSR/plugins/mcrit-ida/`.
-2. Ensure the plugin directory contains at least `ida-plugin.json`, `ida_mcrit.py`, `config.py`, `helpers/`, `widgets/`, and `icons/`.
+2. Ensure the plugin directory contains at least `ida-plugin.json`, `ida_mcrit.py`, `mcrit_plugin/`, and `icons/`.
 3. Install the Python dependencies with the Python interpreter bundled with your IDA installation:
 
 ```bash
@@ -117,7 +117,7 @@ hcli plugin install ida-settings-editor
 
 ### Configure Manually
 
-If you are not using HCLI, the most practical manual override is a `config_override.json` placed next to `config.py`. A minimal example looks like this:
+If you are not using HCLI, the most practical manual override is a `config_override.json` placed in the plugin root, next to `ida_mcrit.py`. A minimal example looks like this:
 
 ```json
 {
@@ -154,11 +154,12 @@ Configure the plugin to connect to your MCRIT instance:
 ### Project Structure
 ```text
 mcrit-plugin/
-├── ida-plugin.json   # Plugin metadata
-├── ida_mcrit.py      # Entry point
-├── config.py         # Settings management
-├── helpers/          # Utilities (incl. vendored pyperclip and pylev)
-├── widgets/          # UI components
+├── ida-plugin.json   # IDA plugin metadata
+├── ida_mcrit.py      # IDA entry point
+├── mcrit_plugin/
+│   ├── core/         # MCRIT client, settings, disassembler Backend interface (incl. vendored pyperclip and pylev)
+│   ├── widgets/      # Qt UI components shared across disassemblers
+│   └── ida/          # IDA backend, ida-settings binding, graph viewer
 └── icons/            # Resources
 ```
 

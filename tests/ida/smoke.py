@@ -121,7 +121,7 @@ def _run_plugin_lifecycle(module):
 
 
 def _create_form(module):
-    import helpers.QtShim as QtShim
+    import mcrit_plugin.core.QtShim as QtShim
 
     qt_widgets = QtShim.get_QtWidgets()
     qt_application = qt_widgets.QApplication.instance()
@@ -236,7 +236,7 @@ def _exercise_yara_action(form, report, qt_application):
     _assert(instructions, "SMDA report has no instructions for YARA test")
     instruction = instructions[0]
 
-    yara_module = importlib.import_module("widgets.YaraStringBuilderDialog")
+    yara_module = importlib.import_module("mcrit_plugin.widgets.YaraStringBuilderDialog")
     original_copy = yara_module.pyperclip.copy
     original_dialog = main_widget.YaraStringBuilderDialog
     created_dialogs = []
@@ -307,7 +307,7 @@ def _exercise_yara_action(form, report, qt_application):
 
 
 def _exercise_function_widget(form, report, qt_application):
-    import helpers.McritTableColumn as McritTableColumn
+    import mcrit_plugin.core.McritTableColumn as McritTableColumn
 
     function_widget = form.function_match_widget
     candidate = max(report.getFunctions(), key=lambda item: item.num_instructions)
@@ -349,7 +349,7 @@ def _exercise_function_widget(form, report, qt_application):
         form.copyStringToClipboard = original_copy
     _assert(copied_sha256, "Function Scope SHA256 context action did not copy a value")
 
-    with _capture_graph_show("widgets.SmdaGraphViewer") as graphs:
+    with _capture_graph_show("mcrit_plugin.ida.SmdaGraphViewer") as graphs:
         function_id_column = McritTableColumn.columnTypeToIndex(
             McritTableColumn.FUNCTION_ID, form.config.FUNCTION_MATCHES_TABLE_COLUMNS
         )
@@ -367,7 +367,7 @@ def _exercise_function_widget(form, report, qt_application):
 
 
 def _exercise_block_widget(form, report, qt_application):
-    import helpers.McritTableColumn as McritTableColumn
+    import mcrit_plugin.core.McritTableColumn as McritTableColumn
 
     block_widget = form.block_match_widget
     candidates = [
@@ -429,7 +429,7 @@ def _exercise_block_widget(form, report, qt_application):
         del block_widget.cc.backend.jump_to
     _assert(jumped_to, "Block Scope summary double-click did not navigate")
 
-    with _capture_graph_show("widgets.SmdaGraphViewer") as graphs:
+    with _capture_graph_show("mcrit_plugin.ida.SmdaGraphViewer") as graphs:
         _emit_table_signal(block_widget.table_block_matches, "doubleClicked", 0, 0)
     _assert(graphs, "Block Scope double-click did not open a graph viewer")
     _assert(graphs[0][1] and graphs[0][2], "Block graph callbacks returned no content")
@@ -457,7 +457,7 @@ def _exercise_sample_widget(form, qt_application):
 def _exercise_overview_widget(form, report, qt_application):
     import ida_funcs
 
-    import helpers.McritTableColumn as McritTableColumn
+    import mcrit_plugin.core.McritTableColumn as McritTableColumn
 
     overview = form.function_widget
     overview.b_fetch_labels.click()
@@ -524,7 +524,7 @@ def _exercise_overview_widget(form, report, qt_application):
     function_widget = form.function_match_widget
     current_matches = form.function_matches.get(function_widget.current_function_offset)
     if current_matches:
-        from helpers.minimcrit.storage.MatchingResult import MatchingResult
+        from mcrit_plugin.core.minimcrit.storage.MatchingResult import MatchingResult
 
         function_widget.populateFunctionNameTable(MatchingResult.fromDict(current_matches))
         _process_events(qt_application)
@@ -539,7 +539,7 @@ def _exercise_overview_widget(form, report, qt_application):
 
 
 def _exercise_live_mcrit(form, qt_application):
-    from helpers.minimcrit.storage.FunctionLabelEntry import FunctionLabelEntry
+    from mcrit_plugin.core.minimcrit.storage.FunctionLabelEntry import FunctionLabelEntry
 
     interface = form.mcrit_interface
     client = interface.mcrit_client

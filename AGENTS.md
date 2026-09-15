@@ -7,16 +7,17 @@ For the MCRIT methodology (PicHash/MinHash, LSH banding) see the [mcrit `AGENTS.
 ## Repository layout
 
 - `ida_mcrit.py` — plugin entry point (registers actions, widgets, menus in IDA).
-- `config.py` — `SettingsWrapper` around `ida-settings`; **defaults** for every setting.
 - `ida-plugin.json` — **HCLI/IDA plugin metadata**: the single source of truth for the plugin `version` and the declarative `settings` list.
-- `helpers/` — plugin logic.
+- `mcrit_plugin/core/` — disassembler-independent plugin logic.
+  - `config.py` — `McritConfig`: **defaults** for every setting, type coercion, table layouts; reads values through a disassembler-specific getter.
   - `McritInterface.py` — orchestrates server communication, background jobs, UI-thread dispatch.
-  - `McritClient` (under `helpers/minimcrit/`) — the **internalized** MCRIT client + DTOs (the `mcrit` package is no longer a dependency; see "Vendored vs. internalized" below).
-  - `Backend.py` — disassembler interface used by `McritInterface` and the widgets; `IdaBackend.py` implements it for IDA.
+  - `McritClient` (under `mcrit_plugin/core/minimcrit/`) — the **internalized** MCRIT client + DTOs (the `mcrit` package is no longer a dependency; see "Vendored vs. internalized" below).
+  - `Backend.py` — disassembler interface used by `McritInterface` and the widgets.
   - `QtShim.py` — PySide6/Qt abstraction for the widgets.
   - `ScoreColorProvider.py`, `McritTableColumn.py`, `ClassCollection.py`, `HeadlessMcritContext.py` — UI/util helpers.
   - `minimcrit/`, `pylev/`, `pyperclip/` — see "Vendored vs. internalized".
-- `widgets/` — Qt views (`MainWidget`, `FunctionMatchWidget`, `BlockMatchWidget`, `FunctionOverviewWidget`, `SampleInfoWidget`, `LocalInfoWidget`, dialogs, `SmdaGraphViewer`).
+- `mcrit_plugin/widgets/` — Qt views (`MainWidget`, `FunctionMatchWidget`, `BlockMatchWidget`, `FunctionOverviewWidget`, `SampleInfoWidget`, `LocalInfoWidget`, dialogs).
+- `mcrit_plugin/ida/` — `IdaBackend`, `SmdaGraphViewer`, and `config.py` (plugin `VERSION` plus the `ida-settings` binding).
 - `scripts/` — packaging, metadata/settings verification, and IDA/IDALib smoke-test harnesses.
 - `tests/` — pure-Python pytest suite (IDA/SMDA are stubbed in `conftest.py`).
 - `icons/`, `qt-designer-mockup/` — resources.
@@ -61,7 +62,7 @@ python scripts/package_plugin.py --repo . --output dist/mcrit-ida.zip
 
 - **Entry** (`ida_mcrit.py`) registers IDA menus/actions/hotkeys and the MCRIT widget subviews.
 - **`McritInterface`** owns the connection to the MCRIT server, runs long operations (convert IDB→SMDA, upload, query, match) off the UI thread, and dispatches results back to the widgets.
-- **`McritClient`** (internalized under `helpers/minimcrit/`) is the HTTP client speaking the MCRIT REST API. The plugin intentionally vendors a minified copy of the core client so it has no hard dependency on the `mcrit` package.
+- **`McritClient`** (internalized under `mcrit_plugin/core/minimcrit/`) is the HTTP client speaking the MCRIT REST API. The plugin intentionally vendors a minified copy of the core client so it has no hard dependency on the `mcrit` package.
 - **IDB→SMDA conversion** uses SMDA (optionally as the analysis backend via `use_smda_for_analysis`); results feed matching and label sync.
 - **Widgets** render matches/blocks/functions/overview and are built on PySide6 through `QtShim`.
 
@@ -78,7 +79,7 @@ These mirror the MCRIT core vocabulary (the plugin is a client of them):
 
 ## Code conventions
 
-- Lint/format: `ruff` (line-length 100, `target-version = "py38"`, selects `E4/E7/E9/F/I`). Run `ruff format .` to auto-format. Vendored dirs (`helpers/minimcrit`, `helpers/pylev`, `helpers/pyperclip`, `icons`, `qt-designer-mockup`) are excluded from ruff.
+- Lint/format: `ruff` (line-length 100, `target-version = "py38"`, selects `E4/E7/E9/F/I`). Run `ruff format .` to auto-format. Vendored dirs (`mcrit_plugin/core/minimcrit`, `mcrit_plugin/core/pylev`, `mcrit_plugin/core/pyperclip`, `icons`, `qt-designer-mockup`) are excluded from ruff.
 - License: GPL-3.0-only.
 - Do **not** introduce or log secrets/API tokens.
 
@@ -87,14 +88,14 @@ These mirror the MCRIT core vocabulary (the plugin is a client of them):
 - **Never** run `git commit`, `git push`, or open a PR unless explicitly instructed.
 - **Never** commit secrets: `mcritweb_api_token`, `mcritweb_username`, `ida-config.json`, or a `config_override.json` containing credentials. These must stay out of the tree.
 - **Settings & version sync** (this is the easy-to-break part):
-  - Settings are **declared** in `ida-plugin.json` (`settings` array) and have **defaults** in `config.py` (`SettingsWrapper._defaults`). These two must stay in sync; `verify_settings_sync.py` enforces it.
-  - The plugin `version` is declared in `ida-plugin.json` and mirrored in `config.py` (`VERSION`) and in the newest `CHANGELOG.md` heading; `verify_metadata_sync.py` checks the three agree and the release workflow refuses a tag that does not match them. **Do not bump the version unless explicitly asked.** How a release is cut is in [`RELEASING.md`](RELEASING.md); every PR that changes shipped plugin files adds an entry under `## [Unreleased]` in `CHANGELOG.md` or carries the `no-changelog` label.
+  - Settings are **declared** in `ida-plugin.json` (`settings` array) and have **defaults** in `mcrit_plugin/core/config.py` (`McritConfig._defaults`). These two must stay in sync; `verify_settings_sync.py` enforces it.
+  - The plugin `version` lives only in `ida-plugin.json` and is mirrored in the README changelog. **Do not bump the version unless explicitly asked.** When it is bumped, update both `ida-plugin.json` and the README "Version History".
   - Always run `verify_metadata_sync.py` and `verify_settings_sync.py` after touching either file.
 - **Testing**: run `ruff format --check`, `ruff check`, and `python -m pytest tests` before considering work complete. The pure pytest suite is secret-free and runs in CI on every push/PR.
 - **IDA-licensed integration tests** (`.github/workflows/ida-tests.yml`) require a licensed IDA Pro and the `IDA_LICENSE_ID`/`HCLI_API_KEY` secrets. They are **not** available to fork PRs and must **not** be run by default. They are referenced here for completeness only; drive them via manual workflow dispatch or the local `scripts/run_idalib_smoke.py` / `scripts/run_ida_smoke.py` harnesses when a licensed IDA is present.
 - **Vendored vs. internalized**:
-  - `helpers/pylev` and `helpers/pyperclip` are third-party vendored libraries. Do **not** edit them.
-  - `helpers/minimcrit` is the *minified* MCRIT API surface internalized for this plugin. Enhancing it (e.g. exposing more functionality) is allowed, **but its `McritClient` interface must not deviate from the core `mcrit` package's `McritClient`** unless the core client is enhanced in lockstep. Keep the two aligned.
+  - `mcrit_plugin/core/pylev` and `mcrit_plugin/core/pyperclip` are third-party vendored libraries. Do **not** edit them.
+  - `mcrit_plugin/core/minimcrit` is the *minified* MCRIT API surface internalized for this plugin. Enhancing it (e.g. exposing more functionality) is allowed, **but its `McritClient` interface must not deviate from the core `mcrit` package's `McritClient`** unless the core client is enhanced in lockstep. Keep the two aligned.
 
 ## Related repositories (reference only)
 

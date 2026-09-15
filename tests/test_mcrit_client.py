@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from helpers.minimcrit.client.McritClient import McritClient, handle_response
+from mcrit_plugin.core.minimcrit.client.McritClient import McritClient, handle_response
 
 
 @pytest.fixture

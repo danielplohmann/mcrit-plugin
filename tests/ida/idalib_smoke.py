@@ -79,9 +79,9 @@ def _load_plugin(plugin_root):
 
 
 def _exercise_live_mcrit():
-    import config
-    from helpers.HeadlessMcritContext import HeadlessMcritContext
-    from helpers.IdaBackend import IdaBackend
+    from mcrit_plugin.ida.config import config
+    from mcrit_plugin.core.HeadlessMcritContext import HeadlessMcritContext
+    from mcrit_plugin.ida.IdaBackend import IdaBackend
 
     context = HeadlessMcritContext(config, IdaBackend())
     interface = context.mcrit_interface

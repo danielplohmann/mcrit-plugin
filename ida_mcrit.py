@@ -9,7 +9,7 @@ import ida_kernwin
 import idaapi
 from ida_kernwin import PluginForm
 
-import config
+from mcrit_plugin.ida.config import MCRIT4IDA_PLUGIN_ONLY, config
 
 SmdaReport = None
 _SMDA_IMPORT_ERROR = None
@@ -56,19 +56,19 @@ def _load_dependencies():
         SmdaReport = _SmdaReport
         _SMDA_IMPORT_ERROR = None
 
-    import helpers.pyperclip as _pyperclip
-    import helpers.QtShim as _QtShim
-    from helpers.ClassCollection import ClassCollection as _ClassCollection
-    from helpers.IdaBackend import IdaBackend as _IdaBackend
-    from helpers.McritInterface import McritInterface as _McritInterface
-    from widgets.BlockMatchWidget import BlockMatchWidget as _BlockMatchWidget
-    from widgets.FunctionMatchWidget import FunctionMatchWidget as _FunctionMatchWidget
-    from widgets.FunctionOverviewWidget import (
+    import mcrit_plugin.core.pyperclip as _pyperclip
+    import mcrit_plugin.core.QtShim as _QtShim
+    from mcrit_plugin.core.ClassCollection import ClassCollection as _ClassCollection
+    from mcrit_plugin.core.McritInterface import McritInterface as _McritInterface
+    from mcrit_plugin.ida.IdaBackend import IdaBackend as _IdaBackend
+    from mcrit_plugin.widgets.BlockMatchWidget import BlockMatchWidget as _BlockMatchWidget
+    from mcrit_plugin.widgets.FunctionMatchWidget import FunctionMatchWidget as _FunctionMatchWidget
+    from mcrit_plugin.widgets.FunctionOverviewWidget import (
         FunctionOverviewWidget as _FunctionOverviewWidget,
     )
-    from widgets.LocalInfoWidget import LocalInfoWidget as _LocalInfoWidget
-    from widgets.MainWidget import MainWidget as _MainWidget
-    from widgets.SampleInfoWidget import SampleInfoWidget as _SampleInfoWidget
+    from mcrit_plugin.widgets.LocalInfoWidget import LocalInfoWidget as _LocalInfoWidget
+    from mcrit_plugin.widgets.MainWidget import MainWidget as _MainWidget
+    from mcrit_plugin.widgets.SampleInfoWidget import SampleInfoWidget as _SampleInfoWidget
 
     pyperclip = _pyperclip
     QtShim = _QtShim
@@ -402,7 +402,7 @@ def main():
             pass
         MCRIT4IDA = None
 
-    if config.MCRIT4IDA_PLUGIN_ONLY:
+    if MCRIT4IDA_PLUGIN_ONLY:
         print("MCRIT4IDA: configured as plugin-only mode, ignoring main function of script.")
         return
 

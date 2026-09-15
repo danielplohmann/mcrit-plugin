@@ -1,4 +1,4 @@
-"""Tests for the SettingsWrapper in config.py.
+"""Tests for McritConfig in mcrit_plugin/core/config.py.
 
 The wrapper coerces strings coming from IDA's settings store into the right
 Python types and substitutes a sane default if coercion fails. These tests
@@ -19,9 +19,8 @@ def _reload_config():
     Returns:
         The reloaded config module.
     """
-    if "config" in sys.modules:
-        del sys.modules["config"]
-    return importlib.import_module("config")
+    sys.modules.pop("mcrit_plugin.core.config", None)
+    return importlib.import_module("mcrit_plugin.core.config")
 
 
 @pytest.fixture
@@ -31,7 +30,7 @@ def fresh_config():
 
 
 def test_mcrit_request_timeout_default(fresh_config):
-    settings = fresh_config.SettingsWrapper()
+    settings = fresh_config.McritConfig("0.0.0")
     assert settings.MCRIT_REQUEST_TIMEOUT == 10
 
 
@@ -44,7 +43,7 @@ def test_mcrit_request_timeout_default(fresh_config):
     ],
 )
 def test_mcrit_request_timeout_valid_coercions(fresh_config, raw_value, expected):
-    settings = fresh_config.SettingsWrapper()
+    settings = fresh_config.McritConfig("0.0.0")
     with patch.object(settings, "_get", return_value=raw_value):
         assert settings.MCRIT_REQUEST_TIMEOUT == expected
 
@@ -58,13 +57,13 @@ def test_mcrit_request_timeout_valid_coercions(fresh_config, raw_value, expected
     ],
 )
 def test_mcrit_request_timeout_invalid_falls_back_to_default(fresh_config, raw_value):
-    settings = fresh_config.SettingsWrapper()
+    settings = fresh_config.McritConfig("0.0.0")
     with patch.object(settings, "_get", return_value=raw_value):
         assert settings.MCRIT_REQUEST_TIMEOUT == 10
 
 
 def test_sample_group_only_default(fresh_config):
-    settings = fresh_config.SettingsWrapper()
+    settings = fresh_config.McritConfig("0.0.0")
     assert settings.SAMPLE_GROUP_ONLY is False
 
 
@@ -82,41 +81,36 @@ def test_sample_group_only_default(fresh_config):
     ],
 )
 def test_sample_group_only_coerces_setting_value(fresh_config, raw_value, expected):
-    settings = fresh_config.SettingsWrapper()
+    settings = fresh_config.McritConfig("0.0.0")
     with patch.object(settings, "_get", return_value=raw_value):
         assert settings.SAMPLE_GROUP_ONLY is expected
 
 
 def test_blocks_min_size_default(fresh_config):
-    settings = fresh_config.SettingsWrapper()
+    settings = fresh_config.McritConfig("0.0.0")
     assert settings.BLOCKS_MIN_SIZE == 4
 
 
 def test_blocks_min_size_string_coerced(fresh_config):
-    settings = fresh_config.SettingsWrapper()
+    settings = fresh_config.McritConfig("0.0.0")
     with patch.object(settings, "_get", return_value="8"):
         assert settings.BLOCKS_MIN_SIZE == 8
 
 
 def test_blocks_min_size_invalid_falls_back(fresh_config):
-    settings = fresh_config.SettingsWrapper()
+    settings = fresh_config.McritConfig("0.0.0")
     with patch.object(settings, "_get", return_value="bogus"):
         assert settings.BLOCKS_MIN_SIZE == 4
 
 
 def test_function_min_score_default(fresh_config):
-    settings = fresh_config.SettingsWrapper()
+    settings = fresh_config.McritConfig("0.0.0")
     assert settings.FUNCTION_MIN_SCORE == 50
 
 
 def test_overview_min_score_default(fresh_config):
-    settings = fresh_config.SettingsWrapper()
+    settings = fresh_config.McritConfig("0.0.0")
     assert settings.OVERVIEW_MIN_SCORE == 50
-
-
-def test_version_constant_exists_and_is_string(fresh_config):
-    assert isinstance(fresh_config.VERSION, str)
-    assert fresh_config.VERSION  # non-empty
 
 
 def test_version_matches_ida_plugin_json():
@@ -127,8 +121,8 @@ def test_version_matches_ida_plugin_json():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
     with open(os.path.join(project_root, "ida-plugin.json"), "r") as fh:
         manifest = json.load(fh)
-    config = _reload_config()
-    assert manifest["plugin"]["version"] == config.VERSION
+    ida_config = importlib.import_module("mcrit_plugin.ida.config")
+    assert manifest["plugin"]["version"] == ida_config.VERSION
 
 
 def test_manifest_declares_sample_group_only_setting():
@@ -163,17 +157,17 @@ def test_plugin_loggers_do_not_propagate_to_existing_root_handler(fresh_config):
     try:
         config = _reload_config()
         smda_logger = logging.getLogger("smda.ida.IdaExporter")
-        minimcrit_logger = logging.getLogger("helpers.minimcrit.client.McritClient")
+        minimcrit_logger = logging.getLogger("mcrit_plugin.core.minimcrit.client.McritClient")
 
         assert logging.getLogger("smda").propagate is False
-        assert logging.getLogger("helpers.minimcrit").propagate is False
+        assert logging.getLogger("mcrit_plugin.core.minimcrit").propagate is False
         assert any(
             getattr(handler, "_mcrit4ida_handler", False)
             for handler in logging.getLogger("smda").handlers
         )
         assert any(
             getattr(handler, "_mcrit4ida_handler", False)
-            for handler in logging.getLogger("helpers.minimcrit").handlers
+            for handler in logging.getLogger("mcrit_plugin.core.minimcrit").handlers
         )
         assert smda_logger.getEffectiveLevel() == config.LOG_LEVEL
         assert minimcrit_logger.getEffectiveLevel() == config.LOG_LEVEL

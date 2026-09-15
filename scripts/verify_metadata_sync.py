@@ -52,12 +52,12 @@ def main() -> int:
     parser.add_argument("--repo", required=True, help="Path to the repository root")
     parser.add_argument(
         "--expected-version",
-        help="Optional semantic version that config.py, ida-plugin.json, and CHANGELOG.md must all match",
+        help="Optional semantic version that mcrit_plugin/ida/config.py, ida-plugin.json, and README must all match",
     )
     args = parser.parse_args()
 
     repo = Path(args.repo).resolve()
-    config_path = repo / "config.py"
+    config_path = repo / "mcrit_plugin" / "ida" / "config.py"
     plugin_path = repo / "ida-plugin.json"
     readme_path = repo / "README.md"
     changelog_path = repo / "CHANGELOG.md"
@@ -69,7 +69,7 @@ def main() -> int:
     plugin_min_ida = extract_plugin_min_ida_version(plugin_data["plugin"]["idaVersions"])
     readme_min_ida = extract_readme_min_ida_version(readme_path)
 
-    print(f"[INFO] config.py VERSION: {config_version}")
+    print(f"[INFO] mcrit_plugin/ida/config.py VERSION: {config_version}")
     print(f"[INFO] ida-plugin.json plugin.version: {plugin_version}")
     print(f"[INFO] CHANGELOG.md latest release version: {changelog_version}")
     print(f"[INFO] ida-plugin.json minimum IDA version: {plugin_min_ida}")
@@ -78,7 +78,7 @@ def main() -> int:
     failures: list[str] = []
     if config_version != changelog_version:
         failures.append(
-            "Version mismatch: config.py VERSION does not match latest CHANGELOG.md release heading."
+            "Version mismatch: mcrit_plugin/ida/config.py VERSION does not match latest README release heading."
         )
     if plugin_version != changelog_version:
         failures.append(
@@ -92,7 +92,7 @@ def main() -> int:
     if args.expected_version:
         if config_version != args.expected_version:
             failures.append(
-                f"Version mismatch: config.py VERSION does not match expected version {args.expected_version}."
+                f"Version mismatch: mcrit_plugin/ida/config.py VERSION does not match expected version {args.expected_version}."
             )
         if plugin_version != args.expected_version:
             failures.append(

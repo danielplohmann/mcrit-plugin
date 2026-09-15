@@ -5,15 +5,13 @@ import zipfile
 from pathlib import Path
 
 INCLUDE_PATHS = [
-    "config.py",
     "config_override.json.template",
     "ida-plugin.json",
     "ida_mcrit.py",
     "LICENSE",
     "README.md",
-    "helpers",
     "icons",
-    "widgets",
+    "mcrit_plugin",
 ]
 
 EXCLUDE_DIR_NAMES = {

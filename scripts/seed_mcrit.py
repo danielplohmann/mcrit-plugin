@@ -44,7 +44,7 @@ def main() -> int:
     parser.add_argument("--timeout", type=float, default=180)
     args = parser.parse_args()
 
-    from helpers.minimcrit.client.McritClient import McritClient
+    from mcrit_plugin.core.minimcrit.client.McritClient import McritClient
 
     sample_path = args.sample.resolve()
     sample_bytes = sample_path.read_bytes()

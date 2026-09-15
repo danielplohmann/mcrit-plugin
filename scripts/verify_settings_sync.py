@@ -25,9 +25,9 @@ def extract_defaults(config_path: Path) -> dict[str, object]:
                 and target.attr == "_defaults"
             ):
                 if not isinstance(node.value, ast.Dict):
-                    raise ValueError("SettingsWrapper._defaults must be a dictionary literal")
+                    raise ValueError("McritConfig._defaults must be a dictionary literal")
                 return ast.literal_eval(node.value)
-    raise ValueError(f"Could not find SettingsWrapper._defaults in {config_path}")
+    raise ValueError(f"Could not find McritConfig._defaults in {config_path}")
 
 
 def main() -> int:
@@ -36,14 +36,14 @@ def main() -> int:
     args = parser.parse_args()
 
     repo = Path(args.repo).resolve()
-    config_path = repo / "config.py"
+    config_path = repo / "mcrit_plugin" / "core" / "config.py"
     plugin_path = repo / "ida-plugin.json"
 
     defaults = extract_defaults(config_path)
     plugin_data = json.loads(plugin_path.read_text(encoding="utf-8"))
     settings = {setting["key"]: setting for setting in plugin_data["plugin"]["settings"]}
 
-    print(f"[INFO] config.py defaults keys: {len(defaults)}")
+    print(f"[INFO] mcrit_plugin/core/config.py defaults keys: {len(defaults)}")
     print(f"[INFO] ida-plugin.json settings keys: {len(settings)}")
 
     failures: list[str] = []
@@ -57,7 +57,7 @@ def main() -> int:
     for key in missing_in_json:
         failures.append(f"Missing setting in ida-plugin.json: {key}")
     for key in missing_in_config:
-        failures.append(f"Missing default in config.py: {key}")
+        failures.append(f"Missing default in mcrit_plugin/core/config.py: {key}")
 
     for key in sorted(default_keys & setting_keys):
         default_value = defaults[key]
@@ -67,11 +67,11 @@ def main() -> int:
 
         if expected_type and actual_type != expected_type:
             failures.append(
-                f"Type mismatch for {key}: config.py infers {expected_type}, ida-plugin.json declares {actual_type}"
+                f"Type mismatch for {key}: mcrit_plugin/core/config.py infers {expected_type}, ida-plugin.json declares {actual_type}"
             )
         if actual_default != default_value:
             failures.append(
-                f"Default mismatch for {key}: config.py has {default_value!r}, ida-plugin.json has {actual_default!r}"
+                f"Default mismatch for {key}: mcrit_plugin/core/config.py has {default_value!r}, ida-plugin.json has {actual_default!r}"
             )
 
     if failures:
