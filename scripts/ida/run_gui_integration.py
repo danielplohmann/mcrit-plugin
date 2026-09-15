@@ -79,7 +79,9 @@ def _activate_current_venv(environment: dict[str, str]) -> None:
     """Let IDAPython use the virtual environment running this test runner."""
     if sys.prefix == sys.base_prefix:
         return
-    venv_bin = Path(sys.executable).resolve().parent
+    # not resolve(): the venv's python is a symlink into the base installation, and IDAPython
+    # picks its interpreter from PATH, which then misses the virtual environment's packages
+    venv_bin = Path(sys.executable).parent
     environment["VIRTUAL_ENV"] = sys.prefix
     environment["PATH"] = str(venv_bin) + os.pathsep + environment.get("PATH", "")
 
@@ -129,6 +131,17 @@ def _restore_ida_settings(config_path: Path, previous_contents) -> None:
             )
     except (OSError, json.JSONDecodeError):
         config_path.unlink(missing_ok=True)
+
+
+def _disable_pyqt5_shim(idausr: Path) -> None:
+    """Keep IDA >= 9.2 from prompting about PyQt5 shims, which a dependency triggers on import."""
+    config_path = idausr / "cfg" / "idapython.cfg"
+    if config_path.is_file():
+        return
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        "#if __IDAVER__ >= 920\nIDAPYTHON_USE_PYQT5_SHIM = 0\n#endif\n", encoding="utf-8"
+    )
 
 
 def _find_installed_plugin(idausr: Path) -> Path:
@@ -261,6 +274,13 @@ def main() -> int:
         help="Qt platform plugin (defaults to cocoa on macOS and offscreen elsewhere).",
     )
     parser.add_argument("--offline", action="store_true")
+    parser.add_argument(
+        "--ui-session",
+        action="store_true",
+        help="Start IDA with its UI instead of batch mode (-A), so the test can drive the "
+        "disassembly cursor; deletes an existing database for the input beforehand, because "
+        "no dialog is answered automatically.",
+    )
     parser.add_argument("--require-hcli", action="store_true")
     args = parser.parse_args()
 
@@ -284,6 +304,7 @@ def main() -> int:
 
     plugin_root = args.plugin_root.expanduser().resolve() if args.plugin_root else None
     package_root = None
+    session_root = None
     plugin_zip = None
     ida_config_path = None
     previous_ida_config = None
@@ -311,6 +332,7 @@ def main() -> int:
         if not (plugin_root / "ida_mcrit.py").is_file():
             raise FileNotFoundError(f"mcrit-ida entrypoint was not found at {plugin_root}")
 
+        _disable_pyqt5_shim(idausr)
         ida_config_path, previous_ida_config = _prepare_ida_settings(idausr, settings)
         ida_binary = (
             args.ida_binary.expanduser().resolve() if args.ida_binary else _find_ida_binary(ida_dir)
@@ -345,9 +367,15 @@ def main() -> int:
         command = [str(ida_binary)]
         if ida_license := environment.get("IDA_LICENSE"):
             command.append(f"-Olicense:{ida_license}")
+        if args.ui_session:
+            # without -A nothing answers the "database already exists" dialog, so analyze a copy
+            # in an empty directory where no database or its unpacked sidecars can sit
+            session_root = Path(tempfile.mkdtemp(prefix="mcrit-ida-session-"))
+            input_path = Path(shutil.copy2(input_path, session_root / input_path.name))
+        else:
+            command.append("-A")
         command.extend(
             [
-                "-A",
                 f"-L{log_path}",
                 f"-S{integration_script}",
                 str(input_path),
@@ -426,6 +454,8 @@ def main() -> int:
             _restore_ida_settings(ida_config_path, previous_ida_config)
         if package_root is not None:
             shutil.rmtree(package_root, ignore_errors=True)
+        if session_root is not None:
+            shutil.rmtree(session_root, ignore_errors=True)
 
 
 if __name__ == "__main__":

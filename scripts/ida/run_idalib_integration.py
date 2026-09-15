@@ -14,6 +14,7 @@ from pathlib import Path
 from run_gui_integration import (
     _activate_current_venv,
     _build_plugin_zip,
+    _disable_pyqt5_shim,
     _find_installed_plugin,
     _install_with_hcli,
     _prepare_ida_settings,
@@ -24,13 +25,14 @@ from run_gui_integration import (
 
 
 def _find_activation_script(ida_dir: Path) -> Path:
-    candidates = (
-        ida_dir / "py-activate-idalib.py",
-        ida_dir / "idalib" / "python" / "py-activate-idalib.py",
-    )
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate
+    roots = (ida_dir, ida_dir / "Contents" / "MacOS")
+    for root in roots:
+        for candidate in (
+            root / "py-activate-idalib.py",
+            root / "idalib" / "python" / "py-activate-idalib.py",
+        ):
+            if candidate.is_file():
+                return candidate
     raise FileNotFoundError(f"Could not find py-activate-idalib.py below {ida_dir}")
 
 
@@ -38,8 +40,9 @@ def _activate_idalib(ida_dir: Path, idausr: Path) -> None:
     """Register the current Python environment with IDALib's installation."""
     environment = os.environ.copy()
     environment["IDAUSR"] = str(idausr)
+    script = _find_activation_script(ida_dir)
     subprocess.run(
-        [sys.executable, str(_find_activation_script(ida_dir)), "-d", str(ida_dir)],
+        [sys.executable, str(script), "-d", str(script.parents[2])],
         check=True,
         env=environment,
     )
@@ -74,6 +77,7 @@ def main() -> int:
     previous_ida_config = None
     settings = _test_settings(args.mcrit_server, args.timeout)
     try:
+        _disable_pyqt5_shim(idausr)
         _activate_idalib(ida_dir, idausr)
         plugin_root = args.plugin_root.expanduser().resolve() if args.plugin_root else None
         if plugin_root is None:
