@@ -66,7 +66,6 @@ def _make_interface(timeout=10, sample_group_only=False):
     )
     inst.config = inst.parent.config
     inst.mcrit_client = MagicMock()
-    inst._withTraceback = False
     return inst
 
 
@@ -78,13 +77,8 @@ def _make_interface(timeout=10, sample_group_only=False):
         ("amd64", "intel"),
         ("i386", "intel"),
         ("intel", "intel"),
-        ("ARM", "arm"),
-        ("arm64", "arm"),
-        ("MIPS", "mips"),
-        ("mipsel", "mips"),
-        ("ppc", "ppc"),
-        ("PowerPC", "ppc"),
-        ("powerpc64", "ppc"),
+        ("AARCH64", "aarch64"),
+        ("arm64", "aarch64"),
     ],
 )
 def test_select_smda_backend_known_arches(architecture, expected):
@@ -92,11 +86,10 @@ def test_select_smda_backend_known_arches(architecture, expected):
     assert interface._select_smda_backend(_FakeBinaryInfo(architecture)) == expected
 
 
-@pytest.mark.parametrize("architecture", ["riscv", "aarch64", "sparc"])
+@pytest.mark.parametrize("architecture", ["riscv", "arm", "mips", "ppc", "powerpc64", "sparc"])
 def test_select_smda_backend_unknown_returns_none(architecture):
-    # aarch64 currently falls through because the substring check looks for "arm",
-    # not "arch"; this test pins that documented behavior so any future widening
-    # of the rule is intentional.
+    # SMDA only offers intel, aarch64, cil and dalvik; any other name would leave the
+    # Disassembler without a backend instead of raising, so it must answer None here.
     interface = _make_interface()
     assert interface._select_smda_backend(_FakeBinaryInfo(architecture)) is None
 
@@ -128,24 +121,6 @@ class TestCheckConnectionImpl:
 
 
 class TestSampleGroupOnly:
-    @pytest.mark.parametrize(
-        "raw_value, expected",
-        [
-            (False, False),
-            (True, True),
-            ("false", False),
-            ("true", True),
-            ("0", False),
-            ("1", True),
-            (None, False),
-        ],
-    )
-    def test_is_sample_group_only_coerces_config_value(self, raw_value, expected):
-        interface = _make_interface()
-        interface.config.SAMPLE_GROUP_ONLY = raw_value
-
-        assert interface._isSampleGroupOnly() is expected
-
     def test_request_matching_job_passes_configured_sample_group_only(self):
         interface = _make_interface(sample_group_only=True)
         interface.mcrit_client.requestMatchesForSample.return_value = "job-1"

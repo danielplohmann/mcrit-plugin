@@ -3,6 +3,8 @@ import os
 import threading
 import traceback
 
+import requests
+
 from mcrit_plugin.core.minimcrit.client.McritClient import McritClient
 from mcrit_plugin.core.minimcrit.storage.MatchingResult import MatchingResult
 
@@ -37,29 +39,36 @@ class McritInterface(object):
         self.json = json
         self.os = os
         self.os_path = os.path
-        self._withTraceback = False
 
     def _getMcritServerAddress(self):
         return self._mcrit_server
 
-    def _isSampleGroupOnly(self):
-        value = getattr(self.config, "SAMPLE_GROUP_ONLY", False)
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str):
-            return value.strip().lower() in {"1", "true", "yes", "on"}
-        return bool(value)
+    @staticmethod
+    def _describeError(exc):
+        """McritClient answers None for HTTP 4xx/5xx, so anything raised here is transport or payload."""
+        if isinstance(exc, requests.exceptions.Timeout):
+            return "request timed out"
+        if isinstance(exc, requests.exceptions.ConnectionError):
+            return "server unreachable"
+        if isinstance(exc, requests.exceptions.RequestException):
+            return "request error: %s" % exc
+        return "unexpected %s: %s" % (type(exc).__name__, exc)
+
+    def _reportFailure(self, operation, exc):
+        traceback.print_exc()
+        self.parent.local_widget.updateActivityInfo(
+            "%s failed (%s)." % (operation, self._describeError(exc))
+        )
+        self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
 
     def _select_smda_backend(self, binary_info):
+        """One of SMDA's own backend names, or None to let SMDA pick; an unknown name leaves the
+        Disassembler without a backend instead of raising."""
         arch = (binary_info.architecture or "").lower()
         if "x86" in arch or "amd64" in arch or "i386" in arch or "intel" in arch:
             return "intel"
-        if "arm" in arch:
-            return "arm"
-        if "mips" in arch:
-            return "mips"
-        if "ppc" in arch or "powerpc" in arch:
-            return "ppc"
+        if "aarch64" in arch or "arm64" in arch:
+            return "aarch64"
         return None
 
     def convertToSmda(self):
@@ -96,8 +105,7 @@ class McritInterface(object):
             mcrit_version = self.mcrit_client.getVersion()
             return mcrit_version, None
         except Exception as exc:
-            if self._withTraceback:
-                traceback.print_exc()
+            traceback.print_exc()
             return None, exc
 
     def checkConnection(self, async_=False):
@@ -113,14 +121,14 @@ class McritInterface(object):
                     self._getMcritServerAddress(), version=mcrit_version
                 )
             else:
-                if err is None:
-                    self.parent.local_widget.updateActivityInfo(
-                        "Connection check failed (status code)."
-                    )
-                else:
-                    self.parent.local_widget.updateActivityInfo(
-                        "Connection check failed (unreachable)."
-                    )
+                reason = (
+                    "server rejected the request or sent no version"
+                    if err is None
+                    else self._describeError(err)
+                )
+                self.parent.local_widget.updateActivityInfo(
+                    "Connection check failed (%s)." % reason
+                )
                 self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
 
         if async_:
@@ -147,13 +155,8 @@ class McritInterface(object):
                 )
             else:
                 self.parent.local_widget.updateActivityInfo("querySampleSha256 failed")
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo(
-                "querySampleSha256 failed, error on connection :("
-            )
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("querySampleSha256", exc)
 
     def uploadReport(self, report):
         self.parent.local_widget.updateActivityInfo(
@@ -176,11 +179,8 @@ class McritInterface(object):
                 self.parent.local_widget.update()
             else:
                 self.parent.local_widget.updateActivityInfo("Upload failed.")
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo("Upload failed, error on connection :(")
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("Upload", exc)
 
     def queryJobs(self, sample_id=None):
         """Fetch all jobs regarding Matches, optionally filter to a sample_id"""
@@ -208,11 +208,8 @@ class McritInterface(object):
             else:
                 self.parent.local_widget.updateActivityInfo("No jobs available yet.")
             return jobs
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo("Job query failed, error on connection :(")
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("Job query", exc)
 
     def requestMatchingJob(self, sample_id, force_update=False):
         self.parent.local_widget.updateActivityInfo(
@@ -223,7 +220,7 @@ class McritInterface(object):
                 sample_id,
                 band_matches_required=2,
                 force_recalculation=force_update,
-                sample_group_only=self._isSampleGroupOnly(),
+                sample_group_only=self.config.SAMPLE_GROUP_ONLY,
             )
             if job_id:
                 self.parent.local_widget.updateActivityInfo(
@@ -232,13 +229,8 @@ class McritInterface(object):
                 return job_id
             else:
                 self.parent.local_widget.updateActivityInfo("Match query failed.")
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo(
-                "Match query failed, error on connection :("
-            )
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("Match query", exc)
         return None
 
     def getMatchingJobById(self, job_id):
@@ -251,13 +243,8 @@ class McritInterface(object):
                 self.parent.local_widget.updateActivityInfo("Success! Downloaded MatchResult.")
             else:
                 self.parent.local_widget.updateActivityInfo("Result query failed.")
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo(
-                "Result query failed, error on connection :("
-            )
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("Result query", exc)
 
     def queryAllFamilyEntries(self):
         self.parent.local_widget.updateActivityInfo("Querying for FamilyEntries")
@@ -270,13 +257,8 @@ class McritInterface(object):
                 )
             else:
                 self.parent.local_widget.updateActivityInfo("queryAllFamilyEntries failed")
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo(
-                "queryAllFamilyEntries failed, error on connection :("
-            )
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("queryAllFamilyEntries", exc)
 
     def querySmdaFunctionMatches(self, smda_report):
         try:
@@ -288,7 +270,7 @@ class McritInterface(object):
                 match_report_dict = self.mcrit_client.getMatchesForSmdaFunction(
                     smda_report,
                     exclude_self_matches=False,
-                    sample_group_only=self._isSampleGroupOnly(),
+                    sample_group_only=self.config.SAMPLE_GROUP_ONLY,
                 )
                 if match_report_dict:
                     self.parent.function_matches.update({smda_function.offset: match_report_dict})
@@ -310,13 +292,8 @@ class McritInterface(object):
                                     function_entry.offset
                                 )
                     return match_report
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo(
-                "querySmdaFunctionMatches failed, error on connection :("
-            )
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("querySmdaFunctionMatches", exc)
 
     def queryFunctionEntriesById(self, function_ids, with_label_only=False):
         try:
@@ -328,13 +305,8 @@ class McritInterface(object):
                     self.parent.matched_function_entries = {}
                 self.parent.matched_function_entries.update(function_entries)
                 return function_entries
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo(
-                "queryFunctionEntriesById failed, error on connection :("
-            )
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("queryFunctionEntriesById", exc)
 
     def queryPicHashMatches(self, pichash):
         try:
@@ -347,13 +319,8 @@ class McritInterface(object):
                 )
                 if pichash_match_summary:
                     self.parent.pichash_match_summaries.update({pichash: pichash_match_summary})
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo(
-                "queryPicHashMatches failed, error on connection :("
-            )
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("queryPicHashMatches", exc)
 
     def queryAllSampleEntries(self):
         self.parent.local_widget.updateActivityInfo("Querying for SampleEntries")
@@ -366,13 +333,8 @@ class McritInterface(object):
                 )
             else:
                 self.parent.local_widget.updateActivityInfo("queryAllSampleEntries query failed")
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo(
-                "queryAllSampleEntries failed, error on connection :("
-            )
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("queryAllSampleEntries", exc)
 
     def queryFunctionEntriesBySampleId(self, sample_id):
         self.parent.local_widget.updateActivityInfo("Querying for remote FunctionEntry mapping")
@@ -390,43 +352,23 @@ class McritInterface(object):
                 self.parent.local_widget.updateActivityInfo(
                     "queryFunctionEntriesBySampleId query failed."
                 )
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo(
-                "queryFunctionEntriesBySampleId failed, error on connection :("
-            )
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("queryFunctionEntriesBySampleId", exc)
 
     def queryFunctionEntryById(self, function_id):
         try:
             return self.mcrit_client.getFunctionById(function_id, with_xcfg=True)
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo(
-                "queryFunctionEntryById failed, error on connection :("
-            )
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("queryFunctionEntryById", exc)
 
     def querySampleEntryById(self, sample_id):
         try:
             return self.mcrit_client.getSampleById(sample_id)
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo(
-                "querySampleEntryById failed, error on connection :("
-            )
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("querySampleEntryById", exc)
 
     def getMatchesForPicBlockHash(self, picblockhash):
         try:
             return self.mcrit_client.getMatchesForPicBlockHash(picblockhash)
-        except Exception:
-            if self._withTraceback:
-                traceback.print_exc()
-            self.parent.local_widget.updateActivityInfo(
-                "querySampleEntryById failed, error on connection :("
-            )
-            self.parent.local_widget.updateServerInfo(self._getMcritServerAddress())
+        except Exception as exc:
+            self._reportFailure("getMatchesForPicBlockHash", exc)
