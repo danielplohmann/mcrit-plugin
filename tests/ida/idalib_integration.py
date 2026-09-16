@@ -91,14 +91,9 @@ def _exercise_function_scope(context, interface, report):
     and never reaches the server at all - so assert on which offset was submitted
     rather than on how many matches came back.
     """
-    import ida_mcrit
+    from mcrit_plugin.ui_qt.McritSession import McritSession
 
-    # _load_dependencies() is GUI-gated and never runs under IDALib, so the module
-    # global the outline getter uses is still unset here.
-    from smda.common.SmdaReport import SmdaReport
-
-    ida_mcrit.SmdaReport = SmdaReport
-    get_outline = ida_mcrit.Mcrit4IdaForm.getLocalSmdaReportOutline
+    get_outline = McritSession.getLocalSmdaReportOutline
 
     eligible = [
         function

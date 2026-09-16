@@ -29,7 +29,7 @@ class HeadlessMcritContext:
         self.config = config
         self.local_widget = HeadlessActivity()
         self.local_smda_report = None
-        # Mirrors Mcrit4IdaForm: the outline is cached as a dict and rebuilt per query.
+        # Mirrors McritSession: the outline is cached as a dict and rebuilt per query.
         self.local_smda_report_outline = None
         self._outline_source = None
         self.remote_sample_id = None

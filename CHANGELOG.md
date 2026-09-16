@@ -62,17 +62,6 @@ to add an entry.
 - The outline now follows a replaced local report, so an upload after renaming no longer carries
   the previous report's metadata.
 
-## [1.1.10] - 2026-09-16
-
-### Fixed
-
-- Function Scope returning no matches for every function after the first, on SMDA 4.8 and later.
-  `SmdaReport.getFunctions()` caches its result there, and the plugin reused a single outline
-  report across queries while only swapping its `xcfg`, so every query after the first
-  re-submitted the first function. A fresh outline is now built per query.
-- The outline now follows a replaced local report, so an upload after renaming no longer carries
-  the previous report's metadata.
-
 ## Older releases
 
 Recorded as they were written in the README at the time, newest first.
