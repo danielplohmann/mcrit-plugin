@@ -47,6 +47,7 @@ class BinjaBackend(Backend):
         self.cursor_offset = None
         self._input_hashes = None
         self.closed = False
+        self._mutation_depth = 0
 
     def _smda_interface(self):
         return BinjaSmdaInterface(self.bv)
@@ -139,8 +140,15 @@ class BinjaBackend(Backend):
 
     @contextmanager
     def mutation(self, title):
-        with self.bv.undoable_transaction():
+        if self._mutation_depth:
             yield
+            return
+        self._mutation_depth += 1
+        try:
+            with self.bv.undoable_transaction():
+                yield
+        finally:
+            self._mutation_depth -= 1
 
     def set_function_name(self, address, name):
         function = self.bv.get_function_at(address)

@@ -50,7 +50,11 @@ class Backend(ABC):
 
     @abstractmethod
     def get_current_function(self, view=None):
-        """Start address of the function under the cursor in view, or None."""
+        """Start address of the function under the cursor, or None.
+
+        view is whatever the frontend's cursor hook hands over: IDA passes the widget the event
+        came from, Binary Ninja the new offset. Widgets only forward it, never interpret it.
+        """
 
     @abstractmethod
     def read_bytes(self, address, size):
@@ -74,7 +78,8 @@ class Backend(ABC):
 
     @contextmanager
     def mutation(self, title):
-        """Group database changes, e.g. applying many labels, into one undoable step."""
+        """Group database changes, e.g. applying many labels, into one undoable step. Nested
+        mutations join the enclosing one, so per-item helpers may open their own."""
         yield
 
     def run_background(self, title, work, on_done):
