@@ -16,8 +16,11 @@ manager's own workflow ([Binary Ninja](#binary-ninja)).
 ### Versioning
 
 The plugin follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) over what a user
-sees: the settings declared in `ida-plugin.json`, the minimum IDA version, and the Python packages
-the plugin needs in IDA's interpreter. It is distributed as a ZIP for
+sees: the settings declared in `ida-plugin.json`, the minimum IDA version, the Python packages
+the plugin needs in IDA's interpreter, and how the plugin is installed. That last one is why 2.0.0
+is a major release although no setting, version floor or dependency changed: copying a repository
+checkout into the plugins directory was a documented install method and no longer works. It is
+distributed as a ZIP for
 [HCLI](https://docs.hex-rays.com/user-guide/plugins/hcli) and attached to the GitHub release, not
 published to PyPI.
 

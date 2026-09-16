@@ -7,6 +7,8 @@ to add an entry.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-17
+
 ### Added
 
 - IDA releases are now cut by pushing an `ida-vX.Y.Z` tag, gated on the version strings, this file
@@ -43,9 +45,11 @@ to add an entry.
 - CI and the release workflow run on Python 3.12, matching the floor the rest of the MCRIT
   ecosystem now shares (`smda`, which the plugin needs in IDA's interpreter, requires 3.12 from
   its next release). IDA 9 bundles 3.12 alongside 3.11; nothing in the plugin needed 3.12.
-- The IDA integration workflow now ends in a "Licensed IDA result" check that fails when the
+- The IDA integration workflow now ends in a "Licensed IDA result" check that reports when the
   licensed job could not run (a pull request from a fork, or missing licence secrets) and says
-  why, instead of the job silently reporting `skipped` and the pull request looking green.
+  why, instead of the job silently reporting `skipped` and the pull request looking green. It
+  warns rather than fails, because a fork cannot obtain the licence secrets; a genuine failure of
+  the licensed job is still red on that job.
 
 ### Fixed
 
@@ -129,5 +133,6 @@ Recorded as they were written in the README at the time, newest first.
 - Initial standalone release.
 - IDA 9.2 (PySide6) compatibility.
 
-[Unreleased]: https://github.com/danielplohmann/mcrit-plugin/compare/v1.1.10...HEAD
+[Unreleased]: https://github.com/danielplohmann/mcrit-plugin/compare/ida-v2.0.0...HEAD
+[2.0.0]: https://github.com/danielplohmann/mcrit-plugin/compare/v1.1.10...ida-v2.0.0
 [1.1.10]: https://github.com/danielplohmann/mcrit-plugin/compare/v1.1.9...v1.1.10
