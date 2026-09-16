@@ -106,8 +106,8 @@ python scripts/common/run_headless_integration.py --input /tmp/mcrit-query --ref
 `.github/workflows/ida-tests.yml` runs these on pushes to `main`, on pull requests from a branch of
 this repository, and on manual dispatch, using the `IDA_LICENSE_ID` and `HCLI_API_KEY` secrets. Pull
 requests from a fork, and repositories without those secrets, cannot run the licensed job. It is
-then skipped, and the "Licensed IDA result" check fails and names the reason, so a change to the IDA
-plugin never looks green without having been tested. Dispatch the workflow on a branch of this
+then skipped, and the "Licensed IDA result" check passes with a warning that names the reason, so a
+skipped licensed job never reads as a tested one. Dispatch the workflow on a branch of this
 repository to get the signal. Dispatch with `run_matrix` for more IDA versions and platforms.
 
 IDALib covers packaging, conversion, upload and matching without a GUI. Use the Python version
