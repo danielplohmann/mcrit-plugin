@@ -324,10 +324,11 @@ class FunctionOverviewWidget(QMainWindow):
         # a pending id from one already known to be unlabeled
         pending_ids = matched_function_ids - self._label_requested_ids
         if pending_ids:
-            self._label_requested_ids |= pending_ids
-            self.parent.mcrit_interface.queryFunctionEntriesById(
+            fetched = self.parent.mcrit_interface.queryFunctionEntriesById(
                 list(pending_ids), with_label_only=True
             )
+            if fetched is not None:
+                self._label_requested_ids |= pending_ids
         function_entries_with_labels = {}
         if self.parent.matched_function_entries:
             for function_id, function_entry in self.parent.matched_function_entries.items():

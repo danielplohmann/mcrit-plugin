@@ -63,8 +63,10 @@ def _make_interface(timeout=10, sample_group_only=False):
         remote_sample_id=23,
         function_matches={},
         function_id_to_offset={},
+        matched_function_entries=None,
     )
     inst.config = inst.parent.config
+    inst._mcrit_server = "http://127.0.0.1:8000"
     inst.mcrit_client = MagicMock()
     return inst
 
@@ -159,3 +161,26 @@ class TestSampleGroupOnly:
             exclude_self_matches=False,
             sample_group_only=True,
         )
+
+
+class TestQueryFunctionEntriesById:
+    def test_returns_none_when_the_request_fails(self):
+        interface = _make_interface()
+        interface.mcrit_client.getFunctionsByIds.side_effect = TimeoutError("slow")
+
+        assert interface.queryFunctionEntriesById([1, 2], with_label_only=True) is None
+        assert interface.parent.matched_function_entries is None
+
+    def test_returns_empty_dict_when_no_entry_qualifies(self):
+        interface = _make_interface()
+        interface.mcrit_client.getFunctionsByIds.return_value = {}
+
+        assert interface.queryFunctionEntriesById([1], with_label_only=True) == {}
+
+    def test_merges_entries_into_the_session(self):
+        interface = _make_interface()
+        entry = SimpleNamespace(function_labels=["evil"])
+        interface.mcrit_client.getFunctionsByIds.return_value = {7: entry}
+
+        assert interface.queryFunctionEntriesById([7]) == {7: entry}
+        assert interface.parent.matched_function_entries == {7: entry}

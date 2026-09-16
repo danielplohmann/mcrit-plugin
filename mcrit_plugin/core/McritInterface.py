@@ -296,17 +296,21 @@ class McritInterface(object):
             self._reportFailure("querySmdaFunctionMatches", exc)
 
     def queryFunctionEntriesById(self, function_ids, with_label_only=False):
+        """The entries by id ({} when none qualify), or None when the request failed."""
         try:
             function_entries = self.mcrit_client.getFunctionsByIds(
                 function_ids, with_label_only=with_label_only
             )
-            if function_entries:
-                if self.parent.matched_function_entries is None:
-                    self.parent.matched_function_entries = {}
-                self.parent.matched_function_entries.update(function_entries)
-                return function_entries
         except Exception as exc:
             self._reportFailure("queryFunctionEntriesById", exc)
+            return None
+        if function_entries is None:
+            return None
+        if function_entries:
+            if self.parent.matched_function_entries is None:
+                self.parent.matched_function_entries = {}
+            self.parent.matched_function_entries.update(function_entries)
+        return function_entries
 
     def queryPicHashMatches(self, pichash):
         try:
