@@ -33,6 +33,8 @@ to add an entry.
   A repository checkout is no longer an IDA plugin directory; install the packaged ZIP.
 - Cursor tracking in the Hex-Rays pseudocode view reads the current function from the open view
   instead of decompiling it again.
+- In IDA, the SMDA export runs behind a wait box, and a failed export shows a warning and logs
+  the traceback to the Output window instead of raising out of the button handler.
 - The release history moved out of `README.md` into this file; the entries below are unchanged.
   `verify_metadata_sync.py` now reads the latest release heading from here.
 - The offline-dependency workflow no longer expands the release tag inside its scripts (a tag

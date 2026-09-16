@@ -127,6 +127,7 @@ class McritContextNotification(UIContextNotification):
         if not config.SUBMIT_FUNCTION_NAMES_ON_CLOSE:
             return True
         session_id = file.getMetadata().session_id
+        # each view type of the file has its own session and report, so each gets its own prompt
         for widget in list(_SIDEBAR_WIDGETS):
             if (
                 widget.backend.bv.file.session_id != session_id

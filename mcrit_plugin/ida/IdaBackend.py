@@ -1,5 +1,6 @@
 import os
 import re
+import traceback
 from contextlib import contextmanager
 
 import ida_bytes
@@ -132,6 +133,19 @@ class IdaBackend(Backend):
             yield
         finally:
             self._mutation_depth -= 1
+
+    def run_background(self, title, work, on_done):
+        """IDA's API is main-thread only, so work runs synchronously behind a wait box."""
+        ida_kernwin.show_wait_box("HIDECANCEL\n%s" % title)
+        try:
+            result = work()
+        except Exception:
+            ida_kernwin.hide_wait_box()
+            traceback.print_exc()
+            self.show_warning("%s failed, see the Output window for details." % title)
+            return
+        ida_kernwin.hide_wait_box()
+        on_done(result)
 
     def run_on_ui_thread(self, func):
         result = []
