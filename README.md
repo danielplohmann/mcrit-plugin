@@ -325,6 +325,10 @@ The tag-driven release workflow validates metadata, builds `mcrit-ida-<version>.
 
 ##  Version History
 
+### v1.1.10 (2026-09-16)
+- Fixed Function Scope returning no matches for every function after the first, on SMDA 4.8 and later. `SmdaReport.getFunctions()` caches its result there, and the plugin reused a single outline report across queries while only swapping its `xcfg`, so every query after the first re-submitted the first function. A fresh outline is now built per query.
+- The outline also follows a replaced local report, so an upload after renaming no longer carries the previous report's metadata.
+
 ### v1.1.9 (2026-08-04)
 - Matching reports now load ~7x faster (2.08s -> 0.29s on a 220k-match report), as the bundled minimcrit `MatchingResult.fromDict` no longer deep-copies the match lists for filtering. They are derived lazily as shallow copies on first access instead, mirroring the change in MCRIT 1.5.3.
 - Added `MatchingResult.resetFilters()`, so a report can be re-filtered without accumulating previous filters.
