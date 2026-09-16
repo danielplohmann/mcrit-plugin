@@ -65,11 +65,38 @@ env:
   MCRIT_SERVER: "http://127.0.0.1:8000"
 
 jobs:
+  preflight:
+    name: Licence preflight
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+      reason: ${{ steps.decide.outputs.reason }}
+    steps:
+      - name: Decide whether the licensed job can run
+        id: decide
+        shell: bash
+        env:
+          FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+          HAS_SECRETS: ${{ secrets.IDA_LICENSE_ID != '' && secrets.HCLI_API_KEY != '' }}
+        run: |
+          reason=""
+          if [[ "$FORK_PR" == "true" ]]; then
+            reason="the pull request comes from a fork, which does not receive the IDA licence secrets"
+          elif [[ "$HAS_SECRETS" != "true" ]]; then
+            reason="IDA_LICENSE_ID or HCLI_API_KEY is not set on this repository"
+          fi
+          if [[ -z "$reason" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "reason=$reason" >> "$GITHUB_OUTPUT"
+            echo "::warning::Licensed IDA integration will not run: $reason"
+          fi
+
   licensed-linux:
     name: IDA Pro 9.3 / Ubuntu / live MCRIT
-    if: >-
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+    needs: preflight
+    if: needs.preflight.outputs.run == 'true'
     runs-on: ubuntu-latest
     services:
       mongo:
@@ -444,6 +471,30 @@ jobs:
             ${{ runner.temp }}/idausr-idalib
             ${{ runner.temp }}/idausr-gui
           if-no-files-found: warn
+
+  licensed-result:
+    name: Licensed IDA result
+    needs: [preflight, licensed-linux]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless the licensed job actually passed
+        shell: bash
+        env:
+          RESULT: ${{ needs.licensed-linux.result }}
+          REASON: ${{ needs.preflight.outputs.reason }}
+        run: |
+          if [[ "$RESULT" == "success" ]]; then
+            exit 0
+          fi
+          if [[ "$RESULT" == "skipped" ]]; then
+            message="The licensed IDA integration did not run: $REASON. Dispatch this workflow on a branch of this repository before merging."
+          else
+            message="The licensed IDA integration ended with result '$RESULT'."
+          fi
+          echo "::error::$message"
+          echo "$message" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
 
   compatibility-matrix:
     name: ${{ matrix.name }}

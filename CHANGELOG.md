@@ -41,6 +41,9 @@ to add an entry.
 - CI and the release workflow run on Python 3.12, matching the floor the rest of the MCRIT
   ecosystem now shares (`smda`, which the plugin needs in IDA's interpreter, requires 3.12 from
   its next release). IDA 9 bundles 3.12 alongside 3.11; nothing in the plugin needed 3.12.
+- The IDA integration workflow now ends in a "Licensed IDA result" check that fails when the
+  licensed job could not run (a pull request from a fork, or missing licence secrets) and says
+  why, instead of the job silently reporting `skipped` and the pull request looking green.
 
 ### Fixed
 
