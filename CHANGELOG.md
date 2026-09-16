@@ -48,6 +48,17 @@ to add an entry.
   published releases, which a release created by the release workflow never triggers, so 1.1.7
   to 1.1.9 shipped without them; the release workflow now calls it directly.
 
+## [1.1.10] - 2026-09-16
+
+### Fixed
+
+- Function Scope returning no matches for every function after the first, on SMDA 4.8 and later.
+  `SmdaReport.getFunctions()` caches its result there, and the plugin reused a single outline
+  report across queries while only swapping its `xcfg`, so every query after the first
+  re-submitted the first function. A fresh outline is now built per query.
+- The outline now follows a replaced local report, so an upload after renaming no longer carries
+  the previous report's metadata.
+
 ## Older releases
 
 Recorded as they were written in the README at the time, newest first.
@@ -113,4 +124,5 @@ Recorded as they were written in the README at the time, newest first.
 - Initial standalone release.
 - IDA 9.2 (PySide6) compatibility.
 
-[Unreleased]: https://github.com/danielplohmann/mcrit-plugin/compare/v1.1.9...HEAD
+[Unreleased]: https://github.com/danielplohmann/mcrit-plugin/compare/v1.1.10...HEAD
+[1.1.10]: https://github.com/danielplohmann/mcrit-plugin/compare/v1.1.9...v1.1.10

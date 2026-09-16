@@ -7,7 +7,7 @@ try:
 except ImportError:
     PluginNotInstalledError = RuntimeError
 
-VERSION = "1.1.9"
+VERSION = "1.1.10"
 MCRIT4IDA_PLUGIN_ONLY = False
 
 PLUGIN_NAME = "mcrit-ida"
