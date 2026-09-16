@@ -36,6 +36,17 @@ rather than reconstructing it from the commit log at release time.
   ecosystem now shares (`smda`, which the plugin needs in IDA's interpreter, requires 3.12 from
   its next release). IDA 9 bundles 3.12 alongside 3.11; nothing in the plugin needed 3.12.
 
+## [1.1.10] - 2026-09-16
+
+### Fixed
+
+- Function Scope returning no matches for every function after the first, on SMDA 4.8 and later.
+  `SmdaReport.getFunctions()` caches its result there, and the plugin reused a single outline
+  report across queries while only swapping its `xcfg`, so every query after the first
+  re-submitted the first function. A fresh outline is now built per query.
+- The outline now follows a replaced local report, so an upload after renaming no longer carries
+  the previous report's metadata.
+
 ## Older releases
 
 Recorded as they were written in the README at the time, newest first.
@@ -101,4 +112,5 @@ Recorded as they were written in the README at the time, newest first.
 - Initial standalone release.
 - IDA 9.2 (PySide6) compatibility.
 
-[Unreleased]: https://github.com/danielplohmann/mcrit-plugin/compare/v1.1.9...HEAD
+[Unreleased]: https://github.com/danielplohmann/mcrit-plugin/compare/v1.1.10...HEAD
+[1.1.10]: https://github.com/danielplohmann/mcrit-plugin/compare/v1.1.9...v1.1.10
