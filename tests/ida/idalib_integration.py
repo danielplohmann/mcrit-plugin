@@ -17,6 +17,9 @@ import traceback
 from pathlib import Path
 
 
+_FUNCTION_SCOPE_QUERIES = 4
+
+
 def _assert(condition, message):
     if not condition:
         raise AssertionError(message)
@@ -78,6 +81,68 @@ def _load_plugin(plugin_root):
     _assert(ida_mcrit.show_mcrit_form() is None, "GUI form unexpectedly opened under IDALib")
 
 
+def _exercise_function_scope(context, interface, report):
+    """Query several functions the way the Function Scope tab does.
+
+    Guards the SMDA >= 4.8 regression fixed in 1.1.10: `SmdaReport.getFunctions()`
+    caches its result, so reusing one outline report and only swapping its `xcfg`
+    made every query after the first re-submit the first function. The failure is
+    silent - the second query short-circuits on the first function's cached offset
+    and never reaches the server at all - so assert on which offset was submitted
+    rather than on how many matches came back.
+    """
+    import ida_mcrit
+
+    # _load_dependencies() is GUI-gated and never runs under IDALib, so the module
+    # global the outline getter uses is still unset here.
+    from smda.common.SmdaReport import SmdaReport
+
+    ida_mcrit.SmdaReport = SmdaReport
+    get_outline = ida_mcrit.Mcrit4IdaForm.getLocalSmdaReportOutline
+
+    eligible = [
+        function
+        for function in sorted(report.getFunctions(), key=lambda f: f.offset)
+        if function.num_instructions >= 10
+    ]
+    _assert(len(eligible) >= 2, "need at least two functions with >=10 instructions")
+    targets = eligible[:_FUNCTION_SCOPE_QUERIES]
+
+    submitted = []
+    original_query = interface.mcrit_client.getMatchesForSmdaFunction
+
+    def recording_query(smda_report, *args, **kwargs):
+        submitted.append([function.offset for function in smda_report.getFunctions()])
+        return original_query(smda_report, *args, **kwargs)
+
+    interface.mcrit_client.getMatchesForSmdaFunction = recording_query
+    try:
+        for function in targets:
+            outline = get_outline(context)
+            _assert(outline is not None, "outline report was not built")
+            _assert(
+                not outline.xcfg,
+                "outline report still carries a previous query's functions; "
+                "getLocalSmdaReportOutline returned a reused object rather than a fresh one",
+            )
+            outline.xcfg = {function.offset: function}
+            before = len(submitted)
+            if function.offset not in context.function_matches:
+                interface.querySmdaFunctionMatches(outline)
+            sent = submitted[before:]
+            _assert(
+                sent and sent[0] == [function.offset],
+                f"Function Scope query for {function.offset:#x} submitted {sent} instead",
+            )
+    finally:
+        interface.mcrit_client.getMatchesForSmdaFunction = original_query
+
+    _assert(
+        len(submitted) == len(targets),
+        f"expected {len(targets)} function queries, recorded {len(submitted)}",
+    )
+
+
 def _exercise_live_mcrit():
     from mcrit_plugin.ida.config import config
     from mcrit_plugin.core.HeadlessMcritContext import HeadlessMcritContext
@@ -128,6 +193,8 @@ def _exercise_live_mcrit():
     _assert(
         context.matching_report is not None, "MCRIT result retrieval did not decode MatchingResult"
     )
+
+    _exercise_function_scope(context, interface, report)
 
 
 def main() -> int:
