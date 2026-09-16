@@ -14,13 +14,17 @@ def extract_config_version(config_path: Path) -> str:
     return match.group(1)
 
 
-def extract_readme_release_version(readme_path: Path) -> str:
+def extract_changelog_release_version(changelog_path: Path) -> str:
+    # the newest heading is either a Keep a Changelog section or, below `## Older releases`,
+    # one of the headings carried over from the README
     match = re.search(
-        r"^### v(\d+\.\d+\.\d+)\b", readme_path.read_text(encoding="utf-8"), re.MULTILINE
+        r"^(?:## \[v?(\d+\.\d+\.\d+[0-9a-z]*)\] - \d{4}-\d{2}-\d{2}|### v(\d+\.\d+\.\d+)\b)",
+        changelog_path.read_text(encoding="utf-8"),
+        re.MULTILINE,
     )
     if not match:
-        raise ValueError(f"Could not find latest release heading in {readme_path}")
-    return match.group(1)
+        raise ValueError(f"Could not find latest release heading in {changelog_path}")
+    return match.group(1) or match.group(2)
 
 
 def extract_readme_min_ida_version(readme_path: Path) -> str:
@@ -48,7 +52,7 @@ def main() -> int:
     parser.add_argument("--repo", required=True, help="Path to the repository root")
     parser.add_argument(
         "--expected-version",
-        help="Optional semantic version that config.py, ida-plugin.json, and README must all match",
+        help="Optional semantic version that config.py, ida-plugin.json, and CHANGELOG.md must all match",
     )
     args = parser.parse_args()
 
@@ -56,28 +60,29 @@ def main() -> int:
     config_path = repo / "config.py"
     plugin_path = repo / "ida-plugin.json"
     readme_path = repo / "README.md"
+    changelog_path = repo / "CHANGELOG.md"
 
     plugin_data = json.loads(plugin_path.read_text(encoding="utf-8"))
     config_version = extract_config_version(config_path)
     plugin_version = plugin_data["plugin"]["version"]
-    readme_version = extract_readme_release_version(readme_path)
+    changelog_version = extract_changelog_release_version(changelog_path)
     plugin_min_ida = extract_plugin_min_ida_version(plugin_data["plugin"]["idaVersions"])
     readme_min_ida = extract_readme_min_ida_version(readme_path)
 
     print(f"[INFO] config.py VERSION: {config_version}")
     print(f"[INFO] ida-plugin.json plugin.version: {plugin_version}")
-    print(f"[INFO] README latest release version: {readme_version}")
+    print(f"[INFO] CHANGELOG.md latest release version: {changelog_version}")
     print(f"[INFO] ida-plugin.json minimum IDA version: {plugin_min_ida}")
     print(f"[INFO] README top-level minimum IDA version: {readme_min_ida}")
 
     failures: list[str] = []
-    if config_version != readme_version:
+    if config_version != changelog_version:
         failures.append(
-            "Version mismatch: config.py VERSION does not match latest README release heading."
+            "Version mismatch: config.py VERSION does not match latest CHANGELOG.md release heading."
         )
-    if plugin_version != readme_version:
+    if plugin_version != changelog_version:
         failures.append(
-            "Version mismatch: ida-plugin.json plugin.version does not match latest README release heading."
+            "Version mismatch: ida-plugin.json plugin.version does not match latest CHANGELOG.md release heading."
         )
     if plugin_min_ida != readme_min_ida:
         failures.append(
@@ -93,9 +98,9 @@ def main() -> int:
             failures.append(
                 f"Version mismatch: ida-plugin.json plugin.version does not match expected version {args.expected_version}."
             )
-        if readme_version != args.expected_version:
+        if changelog_version != args.expected_version:
             failures.append(
-                f"Version mismatch: README latest release heading does not match expected version {args.expected_version}."
+                f"Version mismatch: CHANGELOG.md latest release heading does not match expected version {args.expected_version}."
             )
 
     if failures:

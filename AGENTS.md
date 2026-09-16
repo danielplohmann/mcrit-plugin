@@ -23,7 +23,7 @@ For the MCRIT methodology (PicHash/MinHash, LSH banding) see the [mcrit `AGENTS.
 
 ## Development setup
 
-**Python:** the runtime floor is **Python 3.11** (enforced by the `smda>=4.3.10` co-dependency). IDA 9 bundles its own interpreter (3.11/3.12); the `scripts/*.py` harnesses run under a separate venv of the same minor series. Note: `pyproject.toml` sets ruff `target-version = "py38"` for formatting compatibility only — do **not** read that as a supported runtime floor.
+**Python:** the runtime floor is **Python 3.12**, the floor shared across the MCRIT ecosystem (`smda`, the co-dependency, requires it from its next release). IDA 9 bundles 3.12; the `scripts/*.py` harnesses run under a separate venv of the same minor series. `pyproject.toml` sets ruff `target-version = "py312"` to match.
 
 Install dependencies with the IDA-bundled or matching Python:
 
@@ -88,7 +88,7 @@ These mirror the MCRIT core vocabulary (the plugin is a client of them):
 - **Never** commit secrets: `mcritweb_api_token`, `mcritweb_username`, `ida-config.json`, or a `config_override.json` containing credentials. These must stay out of the tree.
 - **Settings & version sync** (this is the easy-to-break part):
   - Settings are **declared** in `ida-plugin.json` (`settings` array) and have **defaults** in `config.py` (`SettingsWrapper._defaults`). These two must stay in sync; `verify_settings_sync.py` enforces it.
-  - The plugin `version` lives only in `ida-plugin.json` and is mirrored in the README changelog. **Do not bump the version unless explicitly asked.** When it is bumped, update both `ida-plugin.json` and the README "Version History".
+  - The plugin `version` is declared in `ida-plugin.json` and mirrored in `config.py` (`VERSION`) and in the newest `CHANGELOG.md` heading; `verify_metadata_sync.py` checks the three agree and the release workflow refuses a tag that does not match them. **Do not bump the version unless explicitly asked.** How a release is cut is in [`RELEASING.md`](RELEASING.md); every PR that changes shipped plugin files adds an entry under `## [Unreleased]` in `CHANGELOG.md` or carries the `no-changelog` label.
   - Always run `verify_metadata_sync.py` and `verify_settings_sync.py` after touching either file.
 - **Testing**: run `ruff format --check`, `ruff check`, and `python -m pytest tests` before considering work complete. The pure pytest suite is secret-free and runs in CI on every push/PR.
 - **IDA-licensed integration tests** (`.github/workflows/ida-tests.yml`) require a licensed IDA Pro and the `IDA_LICENSE_ID`/`HCLI_API_KEY` secrets. They are **not** available to fork PRs and must **not** be run by default. They are referenced here for completeness only; drive them via manual workflow dispatch or the local `scripts/run_idalib_smoke.py` / `scripts/run_ida_smoke.py` harnesses when a licensed IDA is present.
