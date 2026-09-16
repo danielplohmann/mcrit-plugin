@@ -343,9 +343,32 @@ jobs:
         run: |
           IDAPYSWITCH=$(find "${{ steps.ida.outputs.ida-dir }}" -type f -name 'idapyswitch*' -perm -u+x -print -quit)
           test -n "$IDAPYSWITCH"
-          PYTHON_LIBDIR="$(python -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')"
-          PYTHON_LIBRARY="$(find "$PYTHON_LIBDIR" -maxdepth 1 -name 'libpython3*.so*' -print -quit)"
+          # Ask Python for its own shared library rather than globbing LIBDIR. That
+          # directory holds libpython3.11.so.1.0, libpython3.11.so and libpython3.so,
+          # and `find -print -quit` returns whichever comes first in directory order.
+          # libpython3.so is the stable-ABI forwarder and carries no version, so
+          # idapyswitch rejects it with "Unsupported python version 0.0.0 ('')".
+          PYTHON_LIBRARY="$(python - <<'PY'
+          import sysconfig
+          from pathlib import Path
+
+          libdir = Path(sysconfig.get_config_var("LIBDIR") or "")
+          # INSTSONAME is the versioned soname, LDLIBRARY the unversioned link name.
+          # PY3LIBRARY (libpython3.so) is deliberately not a candidate.
+          for var in ("INSTSONAME", "LDLIBRARY"):
+              name = sysconfig.get_config_var(var)
+              if not name or ".so" not in name:
+                  continue
+              candidate = libdir / name
+              if candidate.is_file():
+                  print(candidate)
+                  break
+          else:
+              raise SystemExit(f"no shared libpython found in {libdir}")
+          PY
+          )"
           test -f "$PYTHON_LIBRARY"
+          echo "Using $PYTHON_LIBRARY"
           "$IDAPYSWITCH" --force-path "$PYTHON_LIBRARY"
 
       - name: Run licensed IDA GUI toolbar smoke test
