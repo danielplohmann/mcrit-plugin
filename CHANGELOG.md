@@ -7,6 +7,15 @@ to add an entry.
 
 ## [Unreleased]
 
+### Changed
+
+- The Binary Ninja plugin exports SMDA reports through SMDA's own `smda.binja` package instead of
+  a copy of the exporter carried here, so the exporter is versioned with the report format it
+  produces. Binary Ninja requires `smda>=4.9.0`; the IDA plugin's requirement is unchanged. ELF and
+  Mach-O reports now record the entry point relative to the base address, as native SMDA reports
+  and IDA exports do, where the copy recorded an absolute address; PE reports are unchanged, since
+  their entry point was already an RVA.
+
 ## [2.0.0] - 2026-09-18
 
 ### Added
